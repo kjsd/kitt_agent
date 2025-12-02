@@ -1,0 +1,27 @@
+services:
+  app:
+    build: .
+    ports:
+      - '80:80'
+    command: mix phx.server
+    environment:
+      MIX_ENV: dev
+      PORT: 80
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data/
+
+volumes:
+  db_data:
