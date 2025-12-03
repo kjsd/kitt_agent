@@ -22,7 +22,7 @@ config :kitt_agent, KittAgentWeb.Endpoint,
   http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))],
   check_origin: false,
   code_reloader: true,
-  debug_errors: true,
+  debug_errors: false,
   secret_key_base: "WMfl/JTPkjSfYNpyIg2Vo+BTyn7Sw0WgM0liIACaxy7q51qKidTUSgFDFSgdVPMz",
   watchers: []
 
