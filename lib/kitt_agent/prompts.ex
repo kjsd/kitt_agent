@@ -24,7 +24,7 @@ defmodule KittAgent.Prompts do
     give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk", "target":"action target", "message":"lines of dialogue. Concise Japanese within 42 characters per line", "response_tone_happiness":"Value from 0-1", "response_tone_sadness":"Value from 0-1", "response_tone_disgust":"Value from 0-1", "response_tone_fear":"Value from 0-1", "response_tone_surprise":"Value from 0-1", "response_tone_anger":"Value from 0-1", "response_tone_other":"Value from 0-1", "response_tone_neutral":"Value from 0-1"}
+    "action":"Talk", "target":"action target", "message":"lines of dialogue. Concise Japanese within 42 characters per line"}
     """
   end
   

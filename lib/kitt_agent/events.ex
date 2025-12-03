@@ -8,7 +8,6 @@ defmodule KittAgent.Events do
     attrs: [singular: :event, plural: :events, schema: Event]
 
   def add_user_text(text) do
-    
     create_event(%{"role" => "user",
                    "content" => %{"action" => "Talk",
                                   "timestamp" => "#{BasicContexts.Utils.now_jpn}",

@@ -4,7 +4,7 @@ defmodule KittAgentWeb.MainController do
   require Logger
   
   @llm_url "https://openrouter.ai/api/v1/chat/completions"
-  @llm_model "google/gemini-2.5-flash"
+  @llm_model "google/gemini-2.5-flash-lite-preview-09-2025"
 
   # Cartesia (TTS用)
   @cartesia_url "https://api.cartesia.ai/tts/bytes"
@@ -15,8 +15,7 @@ defmodule KittAgentWeb.MainController do
     
     req_body = %{
       model: @llm_model,
-      messages: messages,
-      max_tokens: 750
+      messages: messages
     }
     api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
 
@@ -26,18 +25,21 @@ defmodule KittAgentWeb.MainController do
                      {"HTTP-Referer", "https://www.kandj.org"}]
          ) do
       {:ok, %{status: 200, body: resp_body}} ->
-        [choice | _] = resp_body["choices"]
-        res = choice["message"]["content"]
-        |> Jason.decode!
-        
-        KittAgent.kitt_responce(res)
-        
-        res
-        |> inspect
-        |> Logger.info()
-        
-        conn
-        |> json(res)
+        with [choice | _] <- resp_body["choices"],
+             {:ok, res} <- Jason.decode(choice["message"]["content"]) do
+
+          KittAgent.kitt_responce(res)
+          
+          res
+          |> inspect
+          |> Logger.info()
+          
+          conn
+          |> json(res)
+        else
+          _ ->
+            send_resp(conn, 500, Jason.encode!(%{error: "LLM Error"}))
+        end
 
       {:ok, resp} ->
         Logger.error("LLM Error: #{inspect(resp.body)}")
