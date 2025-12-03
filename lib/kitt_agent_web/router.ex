@@ -8,7 +8,7 @@ defmodule KittAgentWeb.Router do
   scope "/kitt", KittAgentWeb do
     pipe_through :api
 
-    post "/chat", MainController, :chat
+    post "/talk", MainController, :talk
     post "/tts", MainController, :tts
   end
 end

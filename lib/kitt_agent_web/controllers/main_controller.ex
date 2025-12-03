@@ -10,7 +10,7 @@ defmodule KittAgentWeb.MainController do
   @cartesia_url "https://api.cartesia.ai/tts/bytes"
   @voice_id "39efcd60-14f4-4970-a02a-4e69b8b274a5" 
   
-  def chat(conn, %{"text" => user_text}) do
+  def talk(conn, %{"text" => user_text}) do
     messages = KittAgent.prompt(user_text)
     
     req_body = %{
