@@ -10,11 +10,8 @@ defmodule KittAgent do
   alias KittAgent.Events
   alias KittAgent.Prompts
 
-  def prompt(user_text) do
-    Events.add_user_text(user_text)
+  def make_llm_request(), do: Prompts.make()
 
-    Prompts.make()
-  end
-  
+  def user_talk(x), do: Events.add_user_text(x)
   def kitt_responce(x), do: Events.add_kitt_event(x)
 end

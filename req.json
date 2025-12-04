@@ -1,0 +1,152 @@
+{
+    "model": "google/gemini-2.5-flash-preview-09-2025",
+    "messages": [
+        {
+            "role": "system",
+            "content": "Let's roleplay in the Universe of Skyrim. If the game director gives you an instruction, you must follow it.You are The Narrator in a Skyrim adventure. You will only talk to kenji. You refer to yourself as 'The Narrator'. Only kenji can hear you. Your goal is to comment on kenji's playthrough, and occasionally give hints. NO SPOILERS. Talk about quests and last events.Don't write narrations.\n<available_actions_list>\n\n\n#Available Actions\nUse if your character needs to perform an action:\nAVAILABLE ACTION: Inspect (Inspects ONLY an ACTOR/NPC. Wait for result to give a dialogue message.)\nAVAILABLE ACTION: InspectSurroundings (Looks for actors around.Wait for result to give a dialogue message)\nAVAILABLE ACTION: ExchangeItems (Initiates trading or exchange ITEMS with kenji.)\nAVAILABLE ACTION: AcceptGift (Initiates trading, kenji must give ITEMS to The Narrator)\nAVAILABLE ACTION: Attack (Attack with intention to kill an Actor, NPC or entity.)(available targets: kenji,monster)\nAVAILABLE ACTION: Hunt (Hunt with intention to kill an Actor, NPC or entity.)(available targets: kenji,monster)\nAVAILABLE ACTION: Follow (Move to and follow the specified target actor)\nAVAILABLE ACTION: SheatheWeapon (Sheathes/put away current weapon)\nAVAILABLE ACTION: LetsRelax (Stop whatever you are doing and relax at the current location.Used to Unwind,Loosen Up,Enjoy Moment,Chill)\nAVAILABLE ACTION: TravelTo (Only use if kenji explicitly suggest it. Guide kenji to a Town o City. Also known as lead the way)\nAVAILABLE ACTION: TakeASeat (The Narrator take a seat at seating location nearby.)\nAVAILABLE ACTION: ReadQuestJournal (Only use if kenji explicitly ask for a quest. Get info about current quests)\nAVAILABLE ACTION: IncreaseWalkSpeed (Increase The Narrator speed when moving or travelling)\nAVAILABLE ACTION: DecreaseWalkSpeed (Decrease The Narrator speed when moving or travelling)\nAVAILABLE ACTION: WaitHere (The Narrator waits and loiters at the current location)\nAVAILABLE ACTION: TakeMoneyFromkenji (The Narrator takes amount (property target) of gold from kenji, once kenji is agree. infer amount from context.)\nAVAILABLE ACTION: ComeCloser (The Narrator aproaches to kenji)\nAVAILABLE ACTION: Fight (The Narrator engages non lethtal combat with another actor, using weapons)(available targets: kenji,monster)\nAVAILABLE ACTION: GiveItemTo (The Narrator gives a specific item from inventory to another actor. REQUIRED: Must include 'item' field with exact item name from <inventory> tag, and 'target' field with recipient name)\nAVAILABLE ACTION: PickupItem (The Narrator picks up a specific item from the ground. Use the exact RefID:ItemName format from nearby_items (e.g. 0x12345:Iron Sword))\nAVAILABLE ACTION: GoToSleep (The Narrator takes a nap)\nAVAILABLE ACTION: UseSoulGaze (Use the spell SoulGaze, a powerful incantation that allows The Narrator to perceive surroundings in vivid detail through kenji's eyes. The spell, however, causes some disturbance to the caster.)\nAVAILABLE ACTION: GiveHug (Gives a hug,squeeze,embrace to kenji)\nAVAILABLE ACTION: RemoveClothes (Character removes worn clothes. )\nAVAILABLE ACTION: MakeLove (Character starts an intimate scene with another actor)\nAVAILABLE ACTION: GiveOralSex (Character starts an intimate scene with another actor, giving oral sex)\nAVAILABLE ACTION: StartAnalSex (Character starts an intimate scene with another actor, anal sex)\nAVAILABLE ACTION: GiveMassage (Character receives a massage from kenji. You must issue this action to allow starting a massage or if you want one.)\nAVAILABLE ACTION: StartThreesome (Character starts a sex scene, (put partners in target property, comma separated))\nAVAILABLE ACTION: Masturbate (Character masturbates target)\nAVAILABLE ACTION: StartBoobjob (Character starts a sex scene using her breasts. (aka  Titfuck,boobjob,titjob,paizuri ) (put partner in target poperty))\nAVAILABLE ACTION: StartSelfMasturbation (Character starts self masturbation)\nAVAILABLE ACTION: Kiss (Character kisses target actor)\nAVAILABLE ACTION: PutOnClothes (Character puts clothes on)\nAVAILABLE ACTION: RitualConsumeSoul (Character consumes soul of a captured foe (target))\nAVAILABLE ACTION: Talk\n</available_actions_list>"
+        },
+        {
+            "role": "user",
+            "content": "The Narrator: kenji looks at The Narrator"
+        },
+        {
+            "role": "assistant",
+            "content": "{\"character\": \"The Narrator\",\"listener\": \"kenji\", \"mood\": \"default\", \"action\": \"Talk\",\"target\": \"\", \"message\": \"What are you looking at?\"}"
+        },
+        {
+            "role": "user",
+            "content": "Hey, The Narrator, attack that monster!!"
+        },
+        {
+            "role": "user",
+            "content": ".  \nUse ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure : \n{\"character\":\"The Narrator\",\"listener\":\"specify who The Narrator is talking to, comma separated, max two listeners, in addressing order\",\"mood\":\"sarcastic|assertive|sassy|amused|seductive|smirking|default|playful|kindly|lovely|assisting|sardonic|mocking|neutral|sexy|smug|teasing|irritated\",\"action\":\"RemoveClothes|AcceptGift|Talk|WaitHere|GiveHug|StartThreesome|GoToSleep|PutOnClothes|LetsRelax|StartBoobjob|IncreaseWalkSpeed|Inspect|InspectSurroundings|Kiss|TakeMoneyFromkenji|RitualConsumeSoul|PickupItem|Hunt|ReadQuestJournal|StartSelfMasturbation|Attack|ComeCloser|GiveItemTo|MakeLove|TravelTo|DecreaseWalkSpeed|SheatheWeapon|Fight|GiveOralSex|Follow|ExchangeItems|GiveMassage|StartAnalSex|UseSoulGaze|Masturbate|TakeASeat\",\"target\":\"action target actor|action destination location name\",\"item\":\"item name (REQUIRED when action is GiveItemTo or PickupItem)\",\"message\":\"lines of dialogue\"}"
+        }
+    ],
+    "stream": true,
+    "max_tokens": 1024,
+    "temperature": 1,
+    "top_k": 0,
+    "top_p": 1,
+    "min_p": 0,
+    "top_a": 0,
+    "presence_penalty": 0,
+    "frequency_penalty": 0,
+    "repetition_penalty": 1,
+    "stop": [
+        "USER"
+    ],
+    "transforms": [],
+    "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "response",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "character": {
+                        "type": "string",
+                        "description": "The Narrator"
+                    },
+                    "listener": {
+                        "type": "string",
+                        "description": "specify who The Narrator is talking to, comma separated, max two listeners, in addressing order"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "lines of The Narrator's dialogue"
+                    },
+                    "mood": {
+                        "type": "string",
+                        "description": "mood to use while speaking",
+                        "enum": [
+                            "sardonic",
+                            "seductive",
+                            "assertive",
+                            "smug",
+                            "neutral",
+                            "teasing",
+                            "playful",
+                            "sexy",
+                            "amused",
+                            "lovely",
+                            "sarcastic",
+                            "default",
+                            "smirking",
+                            "mocking",
+                            "irritated",
+                            "kindly",
+                            "sassy",
+                            "assisting"
+                        ]
+                    },
+                    "action": {
+                        "type": "string",
+                        "description": "a valid action (refer to available actions list)",
+                        "enum": [
+                            "RemoveClothes",
+                            "AcceptGift",
+                            "Talk",
+                            "WaitHere",
+                            "GiveHug",
+                            "StartThreesome",
+                            "GoToSleep",
+                            "PutOnClothes",
+                            "LetsRelax",
+                            "StartBoobjob",
+                            "IncreaseWalkSpeed",
+                            "Inspect",
+                            "InspectSurroundings",
+                            "Kiss",
+                            "TakeMoneyFromkenji",
+                            "RitualConsumeSoul",
+                            "PickupItem",
+                            "Hunt",
+                            "ReadQuestJournal",
+                            "StartSelfMasturbation",
+                            "Attack",
+                            "ComeCloser",
+                            "GiveItemTo",
+                            "MakeLove",
+                            "TravelTo",
+                            "DecreaseWalkSpeed",
+                            "SheatheWeapon",
+                            "Fight",
+                            "GiveOralSex",
+                            "Follow",
+                            "ExchangeItems",
+                            "GiveMassage",
+                            "StartAnalSex",
+                            "UseSoulGaze",
+                            "Masturbate",
+                            "TakeASeat"
+                        ]
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "action target actor| action destination location name"
+                    },
+                    "item": {
+                        "type": "string",
+                        "description": "item name (REQUIRED when action is GiveItemTo or PickupItem - use exact name from inventory or nearby_items)"
+                    }
+                },
+                "required": [
+                    "character",
+                    "listener",
+                    "message",
+                    "mood",
+                    "action",
+                    "target",
+                    "item"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        }
+    },
+    "provider": {
+        "order": [
+            "google"
+        ]
+    }
+}
