@@ -4,17 +4,14 @@ defmodule KittAgentWeb.MainController do
 
   require Logger
   
-  @llm_url "https://openrouter.ai/api/v1/chat/completions"
-
   # Cartesia (TTS用)
-  @cartesia_url "https://api.cartesia.ai/tts/bytes"
   @voice_id "39efcd60-14f4-4970-a02a-4e69b8b274a5" 
   
   def talk(conn, %{"text" => user_text}) do
     KittAgent.user_talk(user_text)
 
     api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
-    case Req.post(@llm_url, 
+    case Req.post(Application.get_env(:kitt_agent, :api_urls)[:openrouter],
            json: KittAgent.make_llm_request(), 
            headers: [{"Authorization", "Bearer #{api_key}"},
                      {"HTTP-Referer", "https://www.kandj.org"},
@@ -62,7 +59,7 @@ defmodule KittAgentWeb.MainController do
 
     # Cartesiaへリクエスト
     # 注意: Cartesiaはバイナリデータを返します
-    case Req.post(@cartesia_url, 
+    case Req.post(Application.get_env(:kitt_agent, :api_urls)[:cartesia], 
       json: cartesia_body,
       headers: [
         {"X-API-Key", api_key},

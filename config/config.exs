@@ -8,6 +8,12 @@
 import Config
 
 config :kitt_agent,
+  api_urls: [
+    openrouter: "https://openrouter.ai/api/v1/chat/completions",
+    cartesia: "https://api.cartesia.ai/tts/bytes"
+  ]
+
+config :kitt_agent,
   ecto_repos: [KittAgent.Repo],
   generators: [timestamp_type: :utc_datetime]
 

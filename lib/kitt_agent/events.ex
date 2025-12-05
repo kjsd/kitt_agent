@@ -21,9 +21,10 @@ defmodule KittAgent.Events do
 
   def recents(n \\ 100) do
     Event
-    |> order_by(asc: :inserted_at)
+    |> order_by(desc: :inserted_at)
     |> limit(^n)
     |> Repo.all
+    |> Enum.reverse
   end
     
 end
