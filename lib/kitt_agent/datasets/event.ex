@@ -7,6 +7,8 @@ defmodule KittAgent.Datasets.Event do
     field :role, :string
     field :content, :map
 
+    belongs_to :kitt, KittAgent.Datasets.Kitt, type: :binary_id
+
     timestamps()
   end
 

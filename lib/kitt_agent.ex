@@ -7,11 +7,12 @@ defmodule KittAgent do
   if it comes from the database, an external API or others.
   """
 
+  alias KittAgent.Datasets.Kitt
   alias KittAgent.Events
   alias KittAgent.Prompts
 
-  def make_llm_request(), do: Prompts.make()
+  def make_llm_request(%Kitt{} = k), do: Prompts.make(k)
 
-  def user_talk(x), do: Events.add_user_text(x)
-  def kitt_responce(x), do: Events.add_kitt_event(x)
+  def user_talk(%Kitt{} = k, x), do: Events.add_user_text(k, x)
+  def kitt_responce(%Kitt{} = k, x), do: Events.add_kitt_event(k, x)
 end

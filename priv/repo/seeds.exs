@@ -9,3 +9,16 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+alias KittAgent.Kitts
+
+today = BasicContexts.Utils.today_jpn
+
+%{
+  name: "キット",
+  vendor: "Makeblock",
+  model: "mBot2",
+  birthday: today,
+  hometown: "東白川村，日本"
+}
+|> Kitts.create_kitt()

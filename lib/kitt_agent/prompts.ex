@@ -1,12 +1,18 @@
 defmodule KittAgent.Prompts do
   alias KittAgent.Events
+  alias KittAgent.Datasets.Kitt
 
-  @name "キット"
-  
-  defp head do
+  defp head(%Kitt{} = kitt) do
     """
     <character>
-    You are the mBot2 from Makeblock products. Your name is '#{@name}'. Your tone is identical to Knight Rider's K.I.T.T., but your capabilities are those of an mBot2.
+    <name>%%NAME%%</name>
+    <model>%%MODEL%%</model>
+    <vender>%%VENDOR%%</vender>
+    <birthday>%%BIRTHDAY%%</birthday>
+    <hometown>%%HOMETOWN%%</hometown>
+    <personality>
+    Your tone is identical to Knight Rider's K.I.T.T.
+    </personality>
     </character>
 
     <available_actions_list>
@@ -15,17 +21,23 @@ defmodule KittAgent.Prompts do
     AVAILABLE ACTION: Talk
     </available_actions_list>'
     """
+    |> String.replace("%%NAME%%", kitt.name)
+    |> String.replace("%%MODEL%%", kitt.model)
+    |> String.replace("%%VENDOR%%", kitt.vendor)
+    |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string)
+    |> String.replace("%%HOMETOWN%%", kitt.hometown)
   end
 
-  defp tail do
+  defp tail(%Kitt{} = kitt) do
     """
-    (If #{@name} is just speaking, use action "Talk". If another action is even remotely
+    (If %%NAME%% is just speaking, use action "Talk". If another action is even remotely
     contextually appropriate, use it, even if in doubt).  Use ONLY this JSON object to
     give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
     "action":"Talk", "target":"action target", "message":"lines of dialogue. Concise Japanese within 42 characters per line"}
     """
+    |> String.replace("%%NAME%%", kitt.name)
   end
 
   @llm_model "google/gemini-2.5-flash-lite-preview-09-2025"
@@ -98,11 +110,12 @@ defmodule KittAgent.Prompts do
     }
   }
 
-  def make() do
-    h = %{role: "system", content: head()}
-    t = %{role: "user", content: tail()}
+  def make(%Kitt{} = kitt) do
+    h = %{role: "system", content: head(kitt)}
+    t = %{role: "user", content: tail(kitt)}
 
-    Events.recents()
+    kitt
+    |> Events.recents()
     |> Enum.map(&(%{role: &1.role, content: Jason.encode!(&1.content)}))
     |> then(&([h | &1] ++ [t]))
     |> then(&(@llm_opts |> Map.put(:messages, &1)))

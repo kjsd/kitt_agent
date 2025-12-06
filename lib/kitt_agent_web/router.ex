@@ -5,10 +5,10 @@ defmodule KittAgentWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/kitt", KittAgentWeb do
+  scope "/kitt/:id", KittAgentWeb do
     pipe_through :api
 
-    post "/talk", MainController, :talk
+    post "/talk/", MainController, :talk
     post "/tts", MainController, :tts
   end
 end
