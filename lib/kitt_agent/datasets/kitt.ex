@@ -10,6 +10,7 @@ defmodule KittAgent.Datasets.Kitt do
     field :birthday, :date
     field :hometown, :string
 
+    has_one :biography, KittAgent.Datasets.Biography
     has_many :events, KittAgent.Datasets.Event
     has_many :memories, KittAgent.Datasets.Memory
 
@@ -19,7 +20,7 @@ defmodule KittAgent.Datasets.Kitt do
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:name, :model, :vendor, :birthday, :hometown])
+    |> cast(attrs, [:id, :name, :model, :vendor, :birthday, :hometown])
     |> validate_required([:name])
   end
 end

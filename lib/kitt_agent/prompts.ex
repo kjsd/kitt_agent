@@ -1,17 +1,21 @@
 defmodule KittAgent.Prompts do
   alias KittAgent.Events
   alias KittAgent.Datasets.Kitt
+  alias KittAgent.Kitts
 
   defp head(%Kitt{} = kitt) do
+    bio = Kitts.biography(kitt)
+    personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
+    
     """
     <character>
     <name>%%NAME%%</name>
     <model>%%MODEL%%</model>
-    <vender>%%VENDOR%%</vender>
+    <vendor>%%VENDOR%%</vendor>
     <birthday>%%BIRTHDAY%%</birthday>
     <hometown>%%HOMETOWN%%</hometown>
     <personality>
-    Your tone is identical to Knight Rider's K.I.T.T.
+    %%PERSONALITY%%
     </personality>
     </character>
 
@@ -26,6 +30,7 @@ defmodule KittAgent.Prompts do
     |> String.replace("%%VENDOR%%", kitt.vendor)
     |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string)
     |> String.replace("%%HOMETOWN%%", kitt.hometown)
+    |> String.replace("%%PERSONALITY%%", personality)
   end
 
   defp tail(%Kitt{} = kitt) do
