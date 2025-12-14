@@ -51,7 +51,7 @@ defmodule KittAgent.Prompts do
     model: @llm_model,
     provider: %{
       order: [
-        "google"
+        "google-vertex"
       ]
     },
     structured_outputs: true,
@@ -64,7 +64,7 @@ defmodule KittAgent.Prompts do
           properties: %{
             message: %{
               type: "string",
-              description: "lines of dialogue. Concise Japanese within 42 characters per line"
+              description: "Concise Japanese dialogue. If exceeding 42 characters, break lines at natural pauses within the conversation."
             },
             mood: %{
               type: "string",
