@@ -45,7 +45,7 @@ defmodule KittAgent.Prompts do
     |> String.replace("%%NAME%%", kitt.name)
   end
 
-  @prop_message "Concise Japanese dialogue. If exceeding 42 characters, break lines at natural pauses within the conversation. "
+  @prop_message "Concise Japanese dialogue. If exceeding 42 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 42."
 
   @llm_model "google/gemini-2.5-flash-lite-preview-09-2025"
 
