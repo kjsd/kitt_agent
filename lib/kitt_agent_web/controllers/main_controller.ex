@@ -11,36 +11,11 @@ defmodule KittAgentWeb.MainController do
   @voice_id "39efcd60-14f4-4970-a02a-4e69b8b274a5" 
   
   def talk(conn, %{"id" => id, "text" => user_text}) do
-    with %Kitt{} = kitt <- Kitts.get_kitt(id) do
-      kitt |> KittAgent.user_talk(user_text)
+    with %Kitt{} = kitt <- Kitts.get_kitt(id),
+         {:ok, res} <- kitt |> KittAgent.talk(user_text) do
 
-      api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
-      case Req.post(Application.get_env(:kitt_agent, :api_urls)[:openrouter],
-            json: kitt |> KittAgent.make_llm_request(), 
-            headers: [{"Authorization", "Bearer #{api_key}"},
-                      {"HTTP-Referer", "https://www.kandj.org"},
-                      {"X-Title", "KJSD"}]
-          ) do
-        {:ok, %{status: 200, body: resp_body}} ->
-          with [choice | _] <- resp_body["choices"],
-               {:ok, res} <- Jason.decode(choice["message"]["content"]) do
-
-            kitt |> KittAgent.kitt_responce(res)
-            
-            res
-            |> inspect
-            |> Logger.info()
-            
-            conn
-            |> json(res)
-          else
-            e ->
-              {:error, e}
-          end
-
-        {:ok, e} ->
-          {:error, e}
-      end
+      conn
+      |> json(res)
     end
   end
 

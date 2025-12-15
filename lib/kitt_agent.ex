@@ -8,11 +8,7 @@ defmodule KittAgent do
   """
 
   alias KittAgent.Datasets.Kitt
-  alias KittAgent.Events
-  alias KittAgent.Prompts
+  alias KittAgent.Requests
 
-  def make_llm_request(%Kitt{} = k), do: Prompts.make(k)
-
-  def user_talk(%Kitt{} = k, x), do: Events.add_user_text(k, x)
-  def kitt_responce(%Kitt{} = k, x), do: Events.add_kitt_event(k, x)
+  def talk(%Kitt{} = k, x), do: Requests.talk(k, x)
 end

@@ -31,8 +31,8 @@ defmodule KittAgent.Prompts do
     |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string)
     |> String.replace("%%HOMETOWN%%", kitt.hometown)
     |> String.replace("%%PERSONALITY%%", personality)
-  end
-
+  end    
+    
   defp tail(%Kitt{} = kitt) do
     """
     (If %%NAME%% is just speaking, use action "Talk". If another action is even remotely
@@ -40,10 +40,12 @@ defmodule KittAgent.Prompts do
     give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk", "target":"action target", "message":"lines of dialogue. Concise Japanese within 42 characters per line"}
+    "action":"Talk", "target":"action target", "message":"lines of dialogue."}
     """
     |> String.replace("%%NAME%%", kitt.name)
   end
+
+  @prop_message "Concise Japanese dialogue. If exceeding 42 characters, break lines at natural pauses within the conversation. "
 
   @llm_model "google/gemini-2.5-flash-lite-preview-09-2025"
 
@@ -64,7 +66,7 @@ defmodule KittAgent.Prompts do
           properties: %{
             message: %{
               type: "string",
-              description: "Concise Japanese dialogue. If exceeding 42 characters, break lines at natural pauses within the conversation."
+              description: @prop_message
             },
             mood: %{
               type: "string",
@@ -99,7 +101,7 @@ defmodule KittAgent.Prompts do
             },
             target: %{
               type: "string",
-              description: "action target actor| action destination location name"
+              description: "action target actor or object"
             },
             required: [
               "message",
@@ -115,14 +117,16 @@ defmodule KittAgent.Prompts do
     }
   }
 
-  def make(%Kitt{} = kitt) do
+  def make(%Kitt{} = kitt, last_ev) do
     h = %{role: "system", content: head(kitt)}
     t = %{role: "user", content: tail(kitt)}
 
     kitt
     |> Events.recents()
+    |> then(&(&1 ++ [last_ev]))
     |> Enum.map(&(%{role: &1.role, content: Jason.encode!(&1.content)}))
     |> then(&([h | &1] ++ [t]))
     |> then(&(@llm_opts |> Map.put(:messages, &1)))
   end
+
 end
