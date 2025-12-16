@@ -8,7 +8,7 @@ import Config
 config :kitt_agent, KittAgent.Repo,
   username: "postgres",
   password: "postgres",
-  hostname: "localhost",
+  hostname: "db",
   database: "kitt_agent_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
@@ -17,7 +17,7 @@ config :kitt_agent, KittAgent.Repo,
 # you can enable the server option below.
 config :kitt_agent, KittAgentWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "2eKrXeo/OlJyYiPafYxyQ2JyIRHGeHtEt3Ntd30D/jZNGDdYgLQ49UZgnxRI8UeI",
+  secret_key_base: "QLWoEFLuRzNkclV1OCSvOEAnZANNMFblEhenikMHYeNWRvQfcZh/mo9HWFpqj0dL",
   server: false
 
 # Print only warnings and errors during test
@@ -25,3 +25,7 @@ config :logger, level: :warning
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Enable helpful, but potentially expensive runtime checks
+config :phoenix_live_view,
+  enable_expensive_runtime_checks: true

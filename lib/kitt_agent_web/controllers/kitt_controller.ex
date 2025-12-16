@@ -1,4 +1,4 @@
-defmodule KittAgentWeb.MainController do
+defmodule KittAgentWeb.KittController do
   use KittAgentWeb, :controller
   action_fallback KittAgentWeb.FallbackController
 

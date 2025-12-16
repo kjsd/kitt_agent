@@ -22,11 +22,32 @@ config :kitt_agent, KittAgentWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [json: KittAgentWeb.ErrorJSON],
+    formats: [html: KittAgentWeb.ErrorHTML, json: KittAgentWeb.ErrorJSON],
     layout: false
   ],
   pubsub_server: KittAgent.PubSub,
-  live_view: [signing_salt: "Xflktu8I"]
+  live_view: [signing_salt: "Re36i3vR"]
+
+# Configure esbuild (the version is required)
+config :esbuild,
+  version: "0.25.4",
+  kitt_agent: [
+    args:
+      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ]
+
+# Configure tailwind (the version is required)
+config :tailwind,
+  version: "4.1.12",
+  kitt_agent: [
+    args: ~w(
+      --input=assets/css/app.css
+      --output=priv/static/assets/css/app.css
+    ),
+    cd: Path.expand("..", __DIR__)
+  ]
 
 # Configure Elixir's Logger
 config :logger, :default_formatter,

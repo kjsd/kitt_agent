@@ -1,7 +1,7 @@
 FROM elixir:alpine
 
 RUN apk update && \
-    apk --no-cache add nodejs npm alpine-sdk erlang-dev
+    apk --no-cache add nodejs npm alpine-sdk erlang-dev inotify-tools
 
 RUN mix local.hex --force && \
     mix local.rebar --force && \

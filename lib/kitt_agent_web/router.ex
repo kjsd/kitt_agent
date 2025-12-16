@@ -1,14 +1,29 @@
 defmodule KittAgentWeb.Router do
   use KittAgentWeb, :router
 
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {KittAgentWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  scope "/kitt-web", KittAgentWeb do
+    pipe_through :browser
+
+    live "/", HomeLive
   end
 
   scope "/kitt/:id", KittAgentWeb do
     pipe_through :api
 
-    post "/talk/", MainController, :talk
-    post "/tts", MainController, :tts
+    post "/talk/", KittController, :talk
+    post "/tts", KittController, :tts
   end
 end

@@ -23,8 +23,11 @@ config :kitt_agent, KittAgentWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: false,
-  secret_key_base: "WMfl/JTPkjSfYNpyIg2Vo+BTyn7Sw0WgM0liIACaxy7q51qKidTUSgFDFSgdVPMz",
-  watchers: []
+  secret_key_base: "w1yOpXWICKOCnW8bEIz2AOXOhQdw3GUJj2KdW20ltFWYtzXggTcsVCJbro+G6SZU",
+  watchers: [
+    esbuild: {Esbuild, :install_and_run, [:kitt_agent, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:kitt_agent, ~w(--watch)]}
+  ]
 
 # ## SSL Support
 #
@@ -49,6 +52,21 @@ config :kitt_agent, KittAgentWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+# Reload browser tabs when matching files change.
+config :kitt_agent, KittAgentWeb.Endpoint,
+  live_reload: [
+    web_console_logger: true,
+    patterns: [
+      # Static assets, except user uploads
+      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
+      # Gettext translations
+      ~r"priv/gettext/.*\.po$"E,
+      # Router, Controllers, LiveViews and LiveComponents
+      ~r"lib/kitt_agent_web/router\.ex$"E,
+      ~r"lib/kitt_agent_web/(controllers|live|components)/.*\.(ex|heex)$"E
+    ]
+  ]
+
 # Enable dev routes for dashboard and mailbox
 config :kitt_agent, dev_routes: true
 
@@ -61,3 +79,11 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+config :phoenix_live_view,
+  # Include debug annotations and locations in rendered markup.
+  # Changing this configuration will require mix clean and a full recompile.
+  debug_heex_annotations: true,
+  debug_attributes: true,
+  # Enable helpful, but potentially expensive runtime checks
+  enable_expensive_runtime_checks: true
