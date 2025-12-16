@@ -1,10 +1,10 @@
 defmodule KittAgent.Prompts do
-  alias KittAgent.Events
   alias KittAgent.Datasets.Kitt
-  alias KittAgent.Kitts
+  alias KittAgent.Datasets.Event
+  alias KittAgent.Events
 
   defp head(%Kitt{} = kitt) do
-    bio = Kitts.biography(kitt)
+    bio = kitt.biography
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
     
     """
@@ -33,6 +33,8 @@ defmodule KittAgent.Prompts do
     |> String.replace("%%PERSONALITY%%", personality)
   end    
     
+  @prop_message "Concise Japanese dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+
   defp tail(%Kitt{} = kitt) do
     """
     (If %%NAME%% is just speaking, use action "Talk". If another action is even remotely
@@ -40,12 +42,11 @@ defmodule KittAgent.Prompts do
     give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk", "target":"action target", "message":"lines of dialogue."}
+    "action":"Talk", "target":"action target", "message":"#{@prop_message}"}
     """
     |> String.replace("%%NAME%%", kitt.name)
   end
 
-  @prop_message "Concise Japanese dialogue. If exceeding 42 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 42."
 
   @llm_model "google/gemini-2.5-flash-lite-preview-09-2025"
 
@@ -117,14 +118,14 @@ defmodule KittAgent.Prompts do
     }
   }
 
-  def make(%Kitt{} = kitt, last_ev) do
+  def make(%Kitt{} = kitt, %Event{} = last_ev) do
     h = %{role: "system", content: head(kitt)}
     t = %{role: "user", content: tail(kitt)}
 
     kitt
     |> Events.recents()
     |> then(&(&1 ++ [last_ev]))
-    |> Enum.map(&(%{role: &1.role, content: Jason.encode!(&1.content)}))
+    |> Enum.map(&%{role: &1.role, content: Jason.encode!(&1.content)})
     |> then(&([h | &1] ++ [t]))
     |> then(&(@llm_opts |> Map.put(:messages, &1)))
   end

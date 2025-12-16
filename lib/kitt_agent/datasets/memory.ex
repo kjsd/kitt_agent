@@ -2,6 +2,7 @@ defmodule KittAgent.Datasets.Memory do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder, only: [:content]}
   schema "memory" do
     field :content, :string
 

@@ -2,6 +2,7 @@ defmodule KittAgent.Datasets.Biography do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder, only: [:personality]}
   schema "biographies" do
     field :personality, :string
 

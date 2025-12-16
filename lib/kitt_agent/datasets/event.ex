@@ -2,12 +2,12 @@ defmodule KittAgent.Datasets.Event do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:id, :role, :content]}
+  @derive {Jason.Encoder, only: [:role]}
   schema "events" do
     field :role, :string
-    field :content, :map
 
     belongs_to :kitt, KittAgent.Datasets.Kitt, type: :binary_id
+    has_one :content, KittAgent.Datasets.Content
 
     timestamps()
   end
@@ -15,7 +15,7 @@ defmodule KittAgent.Datasets.Event do
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:role, :content])
-    |> validate_required([:role, :content])
+    |> cast(attrs, [:role])
+    |> validate_required([:role])
   end
 end

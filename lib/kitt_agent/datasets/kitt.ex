@@ -3,6 +3,7 @@ defmodule KittAgent.Datasets.Kitt do
   import Ecto.Changeset
 
   @primary_key {:id, :binary_id, autogenerate: true}
+  @derive {Jason.Encoder, only: [:id, :name, :model, :vendor, :birthday, :hometown]}
   schema "kitts" do
     field :name, :string
     field :model, :string
