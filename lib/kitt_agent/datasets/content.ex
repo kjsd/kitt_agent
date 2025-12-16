@@ -2,7 +2,7 @@ defmodule KittAgent.Datasets.Content do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:action, :message, :target, :timestamp]}
+  @derive {Jason.Encoder, only: [:action, :message, :target, :mood, :timestamp]}
   schema "contents" do
     field :action, :string
     field :message, :string
