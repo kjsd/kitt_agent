@@ -15,7 +15,6 @@ defmodule KittAgentWeb.HomeLive do
     pa = (ceil(i/5) - 1) * 5 + 1
     pz = if(pa + 4 > pl, do: pl, else: pa + 4)
 
-     {i, pa, pz, pl} |> IO.inspect
     {events, pa, pz, pl}
   end
 
@@ -36,7 +35,7 @@ defmodule KittAgentWeb.HomeLive do
 
   def handle_event("talk",  %{"id" => id, "user_text" => text}, socket) do
     with %Kitt{} = kitt <- Kitts.get_kitt(id),
-         {:ok, res} <- kitt |> KittAgent.talk(text) do
+         {:ok, _} <- kitt |> KittAgent.talk(text) do
 
       {events, pa, pz, pl} = events_page(1)
 
