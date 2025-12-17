@@ -78,6 +78,21 @@
               </tbody>
             </table>
           </div>
+          
+          <!-- ページネーション -->
+          <div class="join flex justify-center mt-6">
+            <button :if={@p > 1} class="join-item btn"
+                    phx-click="page" phx-value-i={@p - 1}>«</button>
+            <%= for i <- 1..@l do %>
+              <%= if i == @p do %>
+                <button class="join-item btn btn-active btn-disabled">{i}</button>
+              <% else %>
+                <button class="join-item btn" phx-click="page" phx-value-i={i}>{i}</button>
+              <% end %>
+            <% end %>
+            <button :if={@p < @l} class="join-item btn"
+                    phx-click="page" phx-value-i={@p + 1}>»</button>
+          </div>
         </div>
       </div>
     </main>
@@ -92,7 +107,7 @@
       
       <!-- メニュー項目 -->
       <li>
-        <a class="active">
+        <a class="active" href="/kitt-web">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
           Dashboard
         </a>
@@ -113,7 +128,11 @@
       <div class="divider"></div> 
       
       <li><a>Settings</a></li>
-      <li><a>Documentation</a></li>
+      <li>
+        <a href="https://github.com/kjsd/kitt_agent" target="_blank">
+          Documentation
+        </a>
+      </li>
     </ul>
   </div>
 </div>
