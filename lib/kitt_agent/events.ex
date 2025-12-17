@@ -8,6 +8,12 @@ defmodule KittAgent.Events do
 
   use BasicContexts, repo: Repo, funcs: [:get],
     attrs: [singular: :event, plural: :events, schema: Event, preload: :content]
+  use BasicContexts.PartialList, repo: Repo, plural: :events, schema: Event,
+    order_by: [desc: :inserted_at, desc: :id],
+    last_fn: fn query, _ ->
+    query
+    |> preload([:kitt, :content])
+  end
 
   @recent 100
   

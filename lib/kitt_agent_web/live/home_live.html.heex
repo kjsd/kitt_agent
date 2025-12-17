@@ -12,75 +12,33 @@
         </label>
       </div>
       <div class="flex-1">
-        <a class="btn btn-ghost text-xl">Admin Dashboard</a>
-      </div>
-      <div class="flex-none gap-2">
-        <div class="form-control hidden sm:block">
-          <input type="text" placeholder="Search data..." class="input input-bordered w-24 md:w-auto" />
-        </div>
-        <div class="dropdown dropdown-end">
-          <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
-            <div class="w-10 rounded-full">
-              <img alt="User Avatar" src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
-            </div>
-          </div>
-          <ul tabindex="0" class="mt-3 z- 1  p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
-            <li><a>Profile</a></li>
-            <li><a>Settings</a></li>
-            <li><a>Logout</a></li>
-          </ul>
-        </div>
+        <a class="btn btn-ghost text-xl">Dashboard</a>
       </div>
     </div>
 
     <!-- ページコンテンツ -->
     <main class="p-6">
-      <!-- 統計エリア (Stats) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="stats shadow">
-          <div class="stat">
-            <div class="stat-figure text-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </div>
-            <div class="stat-title">Total Users</div>
-            <div class="stat-value text-primary">3,200</div>
-            <div class="stat-desc">↗︎ 14% more than last month</div>
-          </div>
-        </div>[ 1 (https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEMpNW7H1cGq4nhV93iBp_j-a1UOPzD7l5bTZFRqUw5J_7H82p2CzwdilNDFab_VDmPFl3Tfex0L8KaLsdpS-l6CnnVFWQ0WrKamkeGP0kC-RCcE-0Y0OvmjJEP-XFnOjTR39ndy1ShdoBa7o-RpQ80VcTx5mVKe9OeX63BtDNBTa2cHiQlapnfGVlC)][ 3 (https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFSBe5J73byeL7uNk4AadjmMZHoqYH13nDqugP8yBI9LXkGSy-aGwMiPWJ1py6kxnsMP9Kq2GT-cdvHVMqYl6Vq9vqu3Qd8rvIF5PYk15Leb1_9TEf3FqZsr-kgei7iP-7tyhF6mZD0xPjVi8Escj_EqGUqPUC8aA==)][ 4 (https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGOiZEx8RrLwp9-grMWhTwyZGWLCdKDHXaZKL9A5zwT9mebIMfiOwbSqJQ7RRrXlas9KM5CHKakDirUoFWyVKtS5eUumjbA6ye-F-yDuAAEeiWiH6_VqGlx6tx_nIQrGKNiPEldOMUNO_4B3oPm2TY4Hgc=)]
-        
-        <div class="stats shadow">
-          <div class="stat">
-            <div class="stat-figure text-secondary">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-            </div>
-            <div class="stat-title">New Products</div>
-            <div class="stat-value text-secondary">150</div>
-            <div class="stat-desc">Added this week</div>
+      <form phx-submit="talk">
+        <div class="flex flex-col p-6 w-full">
+          <select name="id" class="select">
+            <%= for kitt <- @kitts do %>
+              <option value={kitt.id}>{kitt.name}</option>
+            <% end %>
+          </select>
+          <textarea name="user_text" class="textarea textarea-bordered w-full"
+                    placeholder="Let's talk to KITT" />
+          <button type="submit" class="btn btn-primary btn-sm">Talk</button>
+          <div>
+            {@response}
           </div>
         </div>
-        
-        <div class="stats shadow">
-          <div class="stat">
-            <div class="stat-figure text-accent">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
-            </div>
-            <div class="stat-title">Orders</div>
-            <div class="stat-value text-accent">1,200</div>
-            <div class="stat-desc">↘︎ 5% less than last month</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- データ管理テーブル -->
+      </form>
+      
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
           <div class="flex justify-between items-center mb-4">
             <h2 class="card-title">Recent Transactions</h2>
-            <button class="btn btn-primary btn-sm">
-              + Add New
-            </button>
           </div>
-          
           <div class="overflow-x-auto">
             <table class="table table-zebra">
               <!-- ヘッド -->
@@ -91,64 +49,34 @@
                       <input type="checkbox" class="checkbox" />
                     </label>
                   </th>
-                  <th>User</th>
+                  <th>KITT</th>
                   <th>Role</th>
-                  <th>Status</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
+                  <th>Message</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Mood</th>
+                  <th>Timestamp</th>
                 </tr>
               </thead>
               <tbody>
-                <!-- LiveViewのループ処理を想定 -->
-                <%= for user <- @users do %>
+                <%= for ev <- @events do %>
                   <tr class="hover">
                     <th>
                       <label>
                         <input type="checkbox" class="checkbox" />
                       </label>
                     </th>
-                    <td>
-                      <div class="flex items-center gap-3">
-                        <div class="avatar">
-                          <div class="mask mask-squircle w-12 h-12">
-                            <img src={user.avatar_url} alt="Avatar" />
-                          </div>
-                        </div>
-                        <div>
-                          <div class="font-bold"><%= user.name %></div>
-                          <div class="text-sm opacity-50"><%= user.email %></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <%= user.role %>
-                      <br/>
-                      <span class="badge badge-ghost badge-sm">IT Dept</span>
-                    </td>
-                    <td>
-                      <!-- ステータスによる条件分岐の例 -->
-                      <span class={["badge", user.status == "Active" && "badge-success badge-outline", user.status == "Offline" && "badge-neutral badge-outline"]}>
-                        <%= user.status %>
-                      </span>
-                    </td>
-                    <td><%= user.last_login %></td>
-                    <td>
-                      <button class="btn btn-ghost btn-xs">Details</button>
-                      <button class="btn btn-ghost btn-xs text-error">Delete</button>
-                    </td>
+                    <td>{ev.kitt.name}</td>
+                    <td>{ev.role}</td>
+                    <td>{ev.content.message}</td>
+                    <td>{ev.content.action}</td>
+                    <td>{ev.content.target}</td>
+                    <td>{ev.content.mood}</td>
+                    <td>{ev.content.timestamp}</td>
                   </tr>
                 <% end %>
               </tbody>
             </table>
-          </div>
-          
-          <!-- ページネーション -->
-          <div class="join flex justify-center mt-6">
-            <button class="join-item btn">«</button>
-            <button class="join-item btn">Page 1</button>
-            <button class="join-item btn btn-active">Page 2</button>
-            <button class="join-item btn">Page 3</button>
-            <button class="join-item btn">»</button>
           </div>
         </div>
       </div>
@@ -160,7 +88,7 @@
     <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label> 
     <ul class="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
       <!-- サイドバータイトル -->
-      <li class="mb-4 text-lg font-bold px-4">DB Manager</li>
+      <li class="mb-4 text-lg font-bold px-4">KITT Agent</li>
       
       <!-- メニュー項目 -->
       <li>
@@ -172,7 +100,7 @@
       <li>
         <a>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          Users
+          KITTs
         </a>
       </li>
       <li>

@@ -4,7 +4,7 @@ defmodule KittAgent.Kitts do
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
 
-  use BasicContexts, repo: Repo, funcs: [:get, :create],
+  use BasicContexts, repo: Repo, funcs: [:get, :create, :all],
     attrs: [singular: :kitt, plural: :kitts, schema: Kitt, preload: :biography]
 
   def create(attr, bio \\ %{}) do
