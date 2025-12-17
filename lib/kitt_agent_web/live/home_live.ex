@@ -6,29 +6,46 @@ defmodule KittAgentWeb.HomeLive do
   alias KittAgent.Events
 
   @events_unit 5
-  
+
+  defp events_page(i) do
+    b = (i - 1) * @events_unit
+    e = b + @events_unit-1
+    {events, {_, len}} = Events.list_events(b..e)
+    pl = ceil(len / @events_unit)
+    pa = (ceil(i/5) - 1) * 5 + 1
+    pz = if(pa + 4 > pl, do: pl, else: pa + 4)
+
+     {i, pa, pz, pl} |> IO.inspect
+    {events, pa, pz, pl}
+  end
+
   def mount(_params, _session, socket) do
     kitts = Kitts.all_kitts()
-    {events, {_, len}} = Events.list_events(0..@events_unit-1)
+    {events, pa, pz, pl} = events_page(1)
 
     socket
     |> assign(page_title: "Dashboard")
     |> assign(kitts: kitts)
     |> assign(events: events)
     |> assign(p: 1)
-    |> assign(l: ceil(len / @events_unit))
-    |> assign(response: "Response Area")
+    |> assign(pa: pa)
+    |> assign(pz: pz)
+    |> assign(pl: pl)
     |> then(&{:ok, &1})
   end
 
   def handle_event("talk",  %{"id" => id, "user_text" => text}, socket) do
     with %Kitt{} = kitt <- Kitts.get_kitt(id),
          {:ok, res} <- kitt |> KittAgent.talk(text) do
-      {events, _} = Events.list_events(0..@events_unit-1)
+
+      {events, pa, pz, pl} = events_page(1)
 
       socket
       |> assign(events: events)
-      |> assign(response: inspect(res))
+      |> assign(p: 1)
+      |> assign(pa: pa)
+      |> assign(pz: pz)
+      |> assign(pl: pl)
       |> then(&{:noreply, &1})
     else
       _ ->
@@ -38,14 +55,14 @@ defmodule KittAgentWeb.HomeLive do
 
   def handle_event("page",  %{"i" => i}, socket) do
     idx = String.to_integer(i)
-    b = (idx - 1) * @events_unit
-    e = b + @events_unit-1
-    {events, {_, len}} = Events.list_events(b..e)
+    {events, pa, pz, pl} = events_page(idx)
     
     socket
     |> assign(events: events)
     |> assign(p: idx)
-    |> assign(l: ceil(len / @events_unit))
+    |> assign(pa: pa)
+    |> assign(pz: pz)
+    |> assign(pl: pl)
     |> then(&{:noreply, &1})
   end
   

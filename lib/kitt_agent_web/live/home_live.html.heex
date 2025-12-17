@@ -22,15 +22,12 @@
         <div class="flex flex-col p-6 w-full">
           <select name="id" class="select">
             <%= for kitt <- @kitts do %>
-              <option value={kitt.id}>{kitt.name}</option>
+              <option value={kitt.id}>{kitt.name}@{kitt.id}</option>
             <% end %>
           </select>
           <textarea name="user_text" class="textarea textarea-bordered w-full"
                     placeholder="Let's talk to KITT" />
           <button type="submit" class="btn btn-primary btn-sm">Talk</button>
-          <div>
-            {@response}
-          </div>
         </div>
       </form>
       
@@ -81,17 +78,17 @@
           
           <!-- ページネーション -->
           <div class="join flex justify-center mt-6">
-            <button :if={@p > 1} class="join-item btn"
-                    phx-click="page" phx-value-i={@p - 1}>«</button>
-            <%= for i <- 1..@l do %>
+            <button :if={@pa > 1} class="join-item btn"
+                    phx-click="page" phx-value-i={@pa - 1}>«</button>
+            <%= for i <- @pa..@pz do %>
               <%= if i == @p do %>
                 <button class="join-item btn btn-active btn-disabled">{i}</button>
               <% else %>
                 <button class="join-item btn" phx-click="page" phx-value-i={i}>{i}</button>
               <% end %>
             <% end %>
-            <button :if={@p < @l} class="join-item btn"
-                    phx-click="page" phx-value-i={@p + 1}>»</button>
+            <button :if={@pz < @pl} class="join-item btn"
+                    phx-click="page" phx-value-i={@pz + 1}>»</button>
           </div>
         </div>
       </div>

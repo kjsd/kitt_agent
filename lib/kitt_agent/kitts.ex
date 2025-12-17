@@ -6,6 +6,11 @@ defmodule KittAgent.Kitts do
 
   use BasicContexts, repo: Repo, funcs: [:get, :create, :all],
     attrs: [singular: :kitt, plural: :kitts, schema: Kitt, preload: :biography]
+  use BasicContexts.PartialList, repo: Repo, plural: :kitts, schema: Kitt,
+    last_fn: fn query, _ ->
+    query
+    |> preload(:biography)
+  end
 
   def create(attr, bio \\ %{}) do
     with {:ok, o} <- create_kitt(attr) do
