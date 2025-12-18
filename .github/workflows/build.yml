@@ -1,5 +1,5 @@
 name: Docker Image CI
-name: Deploy
+
 on:
   workflow_run:
     workflows: [Test]
@@ -7,7 +7,6 @@ on:
       - completed
     branches:
       - main
-      - dev
 
 jobs:
   build-and-push:
