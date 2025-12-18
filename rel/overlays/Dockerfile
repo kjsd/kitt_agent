@@ -38,7 +38,7 @@ RUN mix release
 
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
-FROM alpine-3.23.0 AS app
+FROM alpine:3.23.0 AS app
 RUN apk add --no-cache libstdc++ openssl ncurses-libs
 RUN apk --no-cache add tzdata && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
     apk del tzdata
