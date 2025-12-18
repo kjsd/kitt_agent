@@ -33,6 +33,22 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
+  openrouter_key =
+    System.get_env("OPENROUTER_KEY") ||
+      raise """
+      environment variable OPENROUTER_KEY is missing.
+      """
+  cartesia_key =
+    System.get_env("CARTESIA_KEY") ||
+      raise """
+      environment variable CARTESIA_KEY is missing.
+      """
+  config :kitt_agent,
+    keys: [
+      openrouter: openrouter_key,
+      cartesia: cartesia_key
+    ]
+
   config :kitt_agent, KittAgent.Repo,
     # ssl: true,
     url: database_url,
