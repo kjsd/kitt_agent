@@ -6,16 +6,15 @@ services:
     command: mix phx.server
     environment:
       MIX_ENV: dev
-      PORT: 80
+      PORT: 4000
     volumes:
       - .:/app
     depends_on:
       - db
   db:
-    build:
-      context: .
-      dockerfile: Dockerfile.postgres
+    image: postgres:18-alpine
     environment:
+      LANG: ja_JP.utf8
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
