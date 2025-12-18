@@ -2,7 +2,7 @@ services:
   app:
     build: .
     ports:
-      - '80:80'
+      - '4000:4000'
     command: mix phx.server
     environment:
       MIX_ENV: dev
