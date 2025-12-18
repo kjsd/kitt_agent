@@ -49,10 +49,9 @@ jobs:
         otp: ['28.3']
     services:
       db:
-        build:
-          context: .
-          dockerfile: Dockerfile.postgres
+        image: postgres:18-alpine
         env:
+          LANG: ja_JP.utf8
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: >-
