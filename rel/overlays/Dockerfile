@@ -1,5 +1,4 @@
 ARG MIX_ENV="prod"
-ARG APP="kitt_agent"
 
 FROM hexpm/elixir:1.19.4-erlang-28.3-alpine-3.23.0 AS build
 
@@ -21,14 +20,18 @@ ENV MIX_ENV="${MIX_ENV}"
 COPY mix.exs mix.lock ./
 RUN mkdir config
 COPY config/config.exs config/$MIX_ENV.exs config/
-COPY apps apps
 
 RUN mix deps.get --only $MIX_ENV
 
+RUN mix assets.setup
+COPY priv priv
+COPY lib lib
+
 # compile and build the release
-#RUN cd ./apps/api_web
-RUN mix assets.deploy
 RUN mix compile
+
+COPY assets assets
+RUN mix assets.deploy
 
 # changes to config/runtime.exs don't require recompiling the code
 COPY config/runtime.exs config/
@@ -63,7 +66,7 @@ RUN \
 # Everything from this line onwards will run in the context of the unprivileged user.
 USER "${USER}"
 
-COPY --from=build --chown="${USER}":"${USER}" /app/_build/"${MIX_ENV}"/rel/"${APP}" ./
+COPY --from=build --chown="${USER}":"${USER}" /app/_build/"${MIX_ENV}"/rel/kitt_agent ./
 
 ENTRYPOINT ["bin/server"]
 
