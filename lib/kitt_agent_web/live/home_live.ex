@@ -11,11 +11,15 @@ defmodule KittAgentWeb.HomeLive do
     b = (i - 1) * @events_unit
     e = b + @events_unit-1
     {events, {_, len}} = Events.list_events(b..e)
-    pl = ceil(len / @events_unit)
-    pa = (ceil(i/5) - 1) * 5 + 1
-    pz = if(pa + 4 > pl, do: pl, else: pa + 4)
+    if len > 0 do
+      pl = ceil(len / @events_unit)
+      pa = (ceil(i/5) - 1) * 5 + 1
+      pz = if(pa + 4 > pl, do: pl, else: pa + 4)
 
-    {events, pa, pz, pl}
+      {events, pa, pz, pl}
+    else
+      {events, 1, 1, 1}
+    end
   end
 
   def mount(_params, _session, socket) do
