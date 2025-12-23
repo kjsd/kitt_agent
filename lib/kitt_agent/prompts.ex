@@ -130,4 +130,38 @@ defmodule KittAgent.Prompts do
     |> then(&(@llm_opts |> Map.put(:messages, &1)))
   end
 
+  @summary_system_prompt """
+  You are an expert summarizer for the AI character "%%NAME%%".
+  Your task is to condense the provided conversation logs into a concise, narrative summary (Long-term Memory).
+  
+  Guidelines:
+  1. Language: Japanese.
+  2. Perspective: Write from an objective perspective focusing on "%%NAME%%"'s experiences.
+  3. Focus: Key discussions, facts about the user, and "%%NAME%%"'s emotional journey.
+  4. Length: Concise (around 3-5 sentences).
+  """
+
+  def summary(%Kitt{} = kitt, events) when is_list(events) do
+    system_content = 
+      @summary_system_prompt 
+      |> String.replace("%%NAME%%", kitt.name)
+
+    conversation_text =
+      events
+      |> Enum.map(fn %Event{role: role, content: content} -> 
+        t = if content.timestamp, do: Calendar.strftime(content.timestamp, "%H:%M"), else: ""
+        "[#{t}] #{role}: #{content.message} (Mood: #{content.mood})"
+      end)
+      |> Enum.join("\n")
+
+    messages = [
+      %{role: "system", content: system_content},
+      %{role: "user", content: "Conversation Log:\n" <> conversation_text}
+    ]
+
+    @llm_opts
+    |> Map.drop([:response_format, :structured_outputs])
+    |> Map.put(:messages, messages)
+  end
+
 end
