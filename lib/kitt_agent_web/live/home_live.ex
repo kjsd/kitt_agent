@@ -24,6 +24,7 @@ defmodule KittAgentWeb.HomeLive do
   end
 
   def mount(_params, _session, socket) do
+    if connected?(socket), do: Events.subscribe()
     kitts = Kitts.all_kitts()
     {events, pa, pz, pl} = events_page(1)
 
@@ -38,22 +39,25 @@ defmodule KittAgentWeb.HomeLive do
     |> then(&{:ok, &1})
   end
 
-  def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do
-    with %Kitt{} = kitt <- Kitts.get_kitt(id),
-         {:ok, _} <- kitt |> KittAgent.talk(text) do
-      {events, pa, pz, pl} = events_page(1)
+  def handle_info({[:event, :created], _}, socket) do
+    # Refresh the current page
+    page = socket.assigns.p
+    {events, pa, pz, pl} = events_page(page)
 
-      socket
-      |> assign(events: events)
-      |> assign(p: 1)
-      |> assign(pa: pa)
-      |> assign(pz: pz)
-      |> assign(pl: pl)
-      |> then(&{:noreply, &1})
-    else
-      _ ->
-        socket
+    socket
+    |> assign(events: events)
+    |> assign(pa: pa)
+    |> assign(pz: pz)
+    |> assign(pl: pl)
+    |> then(&{:noreply, &1})
+  end
+
+  def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do
+    with %Kitt{} = kitt <- Kitts.get_kitt(id) do
+      kitt |> KittAgent.talk(text)
     end
+
+    {:noreply, socket}
   end
 
   def handle_event("page", %{"i" => i}, socket) do
