@@ -7,7 +7,7 @@ defmodule KittAgent.Datasets.Memory do
     field :content, :string
 
     belongs_to :kitt, KittAgent.Datasets.Kitt, type: :binary_id
-    
+
     timestamps()
   end
 

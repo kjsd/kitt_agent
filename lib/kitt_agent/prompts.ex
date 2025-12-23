@@ -8,7 +8,7 @@ defmodule KittAgent.Prompts do
     bio = kitt.biography
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
     memory = kitt |> Memories.last_content()
-    
+
     """
     <character>
     <name>%%NAME%%</name>
@@ -38,12 +38,12 @@ defmodule KittAgent.Prompts do
     |> String.replace("%%NAME%%", kitt.name)
     |> String.replace("%%MODEL%%", kitt.model)
     |> String.replace("%%VENDOR%%", kitt.vendor)
-    |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string)
+    |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string())
     |> String.replace("%%HOMETOWN%%", kitt.hometown)
     |> String.replace("%%PERSONALITY%%", personality)
     |> String.replace("%%MEMORY%%", memory)
-  end    
-    
+  end
+
   @prop_message "Concise Japanese dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
 
   defp tail(%Kitt{} = kitt) do
@@ -57,7 +57,6 @@ defmodule KittAgent.Prompts do
     """
     |> String.replace("%%NAME%%", kitt.name)
   end
-
 
   @standard_model "google/gemini-2.5-flash-lite-preview-09-2025"
   @summary_model "google/gemini-3-flash-preview"
@@ -124,7 +123,8 @@ defmodule KittAgent.Prompts do
               },
               parameters: %{
                 type: "string",
-                description: "action parameters (e.g. '5s', '10cm', '90deg'). Use 'none' if not applicable."
+                description:
+                  "action parameters (e.g. '5s', '10cm', '90deg'). Use 'none' if not applicable."
               },
               required: [
                 "message",
@@ -157,7 +157,7 @@ defmodule KittAgent.Prompts do
   @summary_system_prompt """
   You are an expert summarizer for the AI character "%%NAME%%".
   Your task is to condense the provided conversation logs into a concise, narrative summary (Long-term Memory).
-  
+
   Guidelines:
   1. Language: Japanese.
   2. Perspective: Write from an objective perspective focusing on "%%NAME%%"'s experiences.
@@ -166,15 +166,15 @@ defmodule KittAgent.Prompts do
   """
 
   def summary(%Kitt{} = kitt, events) when is_list(events) do
-    system_content = 
-      @summary_system_prompt 
+    system_content =
+      @summary_system_prompt
       |> String.replace("%%NAME%%", kitt.name)
 
     memory = kitt |> Memories.last_content()
 
     conversation_text =
       events
-      |> Enum.map(fn %Event{role: role, content: content} -> 
+      |> Enum.map(fn %Event{role: role, content: content} ->
         t = if content.timestamp, do: Calendar.strftime(content.timestamp, "%H:%M"), else: ""
         "[#{t}] #{role}: #{content.message} (Mood: #{content.mood})"
       end)
@@ -190,5 +190,4 @@ defmodule KittAgent.Prompts do
     |> Map.drop([:response_format, :structured_outputs])
     |> Map.put(:messages, messages)
   end
-
 end

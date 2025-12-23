@@ -9,11 +9,12 @@ defmodule KittAgentWeb.HomeLive do
 
   defp events_page(i) do
     b = (i - 1) * @events_unit
-    e = b + @events_unit-1
+    e = b + @events_unit - 1
     {events, {_, len}} = Events.list_events(b..e)
+
     if len > 0 do
       pl = ceil(len / @events_unit)
-      pa = (ceil(i/5) - 1) * 5 + 1
+      pa = (ceil(i / 5) - 1) * 5 + 1
       pz = if(pa + 4 > pl, do: pl, else: pa + 4)
 
       {events, pa, pz, pl}
@@ -37,10 +38,9 @@ defmodule KittAgentWeb.HomeLive do
     |> then(&{:ok, &1})
   end
 
-  def handle_event("talk",  %{"id" => id, "user_text" => text}, socket) do
+  def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do
     with %Kitt{} = kitt <- Kitts.get_kitt(id),
          {:ok, _} <- kitt |> KittAgent.talk(text) do
-
       {events, pa, pz, pl} = events_page(1)
 
       socket
@@ -56,10 +56,10 @@ defmodule KittAgentWeb.HomeLive do
     end
   end
 
-  def handle_event("page",  %{"i" => i}, socket) do
+  def handle_event("page", %{"i" => i}, socket) do
     idx = String.to_integer(i)
     {events, pa, pz, pl} = events_page(idx)
-    
+
     socket
     |> assign(events: events)
     |> assign(p: idx)
@@ -68,5 +68,4 @@ defmodule KittAgentWeb.HomeLive do
     |> assign(pl: pl)
     |> then(&{:noreply, &1})
   end
-  
 end

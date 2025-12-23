@@ -2,13 +2,14 @@ defmodule KittAgentWeb.FallbackController do
   use KittAgentWeb, :controller
 
   require Logger
-  
+
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
     |> put_view(json: KittAgentWeb.ErrorJSON)
     |> render(:"404")
   end
+
   def call(conn, nil), do: call(conn, {:error, :not_found})
 
   def call(conn, {:error, :bad_request}) do
@@ -38,6 +39,7 @@ defmodule KittAgentWeb.FallbackController do
     |> put_view(json: KittAgentWeb.ErrorJSON)
     |> render(:"422")
   end
+
   def call(conn, {:error, :invalid_format}),
     do: call(conn, {:error, :unprocessable_entity})
 
@@ -47,10 +49,10 @@ defmodule KittAgentWeb.FallbackController do
     |> put_view(KittAgentWeb.ErrorJSON)
     |> render(:"422", changeset: c)
   end
-  
+
   def call(conn, {:error, e}) do
     e |> inspect |> Logger.error()
-          
+
     conn
     |> put_status(:internal_server_error)
     |> put_view(json: KittAgentWeb.ErrorJSON)

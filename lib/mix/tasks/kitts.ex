@@ -5,10 +5,10 @@ defmodule Mix.Tasks.Kitts do
 
   def run(_) do
     Mix.Task.run("app.start")
-    
+
     KittAgent.Datasets.Kitt
     |> preload(:biography)
-    |> KittAgent.Repo.all
-    |> IO.inspect
+    |> KittAgent.Repo.all()
+    |> IO.inspect()
   end
 end

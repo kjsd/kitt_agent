@@ -4,20 +4,25 @@ defmodule KittAgent.Kitts do
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
 
-  use BasicContexts, repo: Repo, funcs: [:get, :create, :all],
+  use BasicContexts,
+    repo: Repo,
+    funcs: [:get, :create, :all],
     attrs: [singular: :kitt, plural: :kitts, schema: Kitt, preload: :biography]
-  use BasicContexts.PartialList, repo: Repo, plural: :kitts, schema: Kitt,
+
+  use BasicContexts.PartialList,
+    repo: Repo,
+    plural: :kitts,
+    schema: Kitt,
     last_fn: fn query, _ ->
-    query
-    |> preload(:biography)
-  end
+      query
+      |> preload(:biography)
+    end
 
   def create(attr, bio \\ %{}) do
     with {:ok, o} <- create_kitt(attr) do
       o
       |> Ecto.build_assoc(:biography, bio)
-      |> Repo.insert!
+      |> Repo.insert!()
     end
   end
-      
 end
