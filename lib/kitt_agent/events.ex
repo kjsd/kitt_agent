@@ -63,5 +63,20 @@ defmodule KittAgent.Events do
     |> limit(^@recent)
     |> Repo.delete_all
   end
+
+  def list_since(%Kitt{} = kitt, timestamp) do
+    Event
+    |> where([e], e.kitt_id == ^kitt.id)
+    |> then(fn q ->
+      if timestamp do
+        where(q, [e], e.inserted_at > ^timestamp)
+      else
+        q
+      end
+    end)
+    |> order_by([e], asc: e.inserted_at)
+    |> preload([:content])
+    |> Repo.all()
+  end
   
 end

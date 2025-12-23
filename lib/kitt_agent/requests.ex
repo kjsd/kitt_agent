@@ -46,7 +46,7 @@ defmodule KittAgent.Requests do
         ) do
       {:ok, %{status: 200, body: resp_body}} ->
         with [choice | _] <- resp_body["choices"],
-             {:ok, res} <- Jason.decode(choice["message"]["content"]) do
+             res <- choice["message"]["content"] do
           
           {:ok, res}
         else

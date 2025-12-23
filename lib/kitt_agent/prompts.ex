@@ -60,7 +60,7 @@ defmodule KittAgent.Prompts do
 
 
   @standard_model "google/gemini-2.5-flash-lite-preview-09-2025"
-  @summary_model "google/gemini-2.5-flash-lite-preview-09-2025"
+  @summary_model "google/gemini-3-flash-preview"
 
   def llm_opts(model) do
     %{
