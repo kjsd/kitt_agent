@@ -68,6 +68,8 @@ USER "${USER}"
 
 COPY --from=build --chown="${USER}":"${USER}" /app/_build/"${MIX_ENV}"/rel/kitt_agent ./
 
+RUN bin/migrate
+
 ENTRYPOINT ["bin/server"]
 
 # Usage:

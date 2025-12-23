@@ -12,9 +12,7 @@ defmodule KittAgent.Application do
       KittAgent.Repo,
       {DNSCluster, query: Application.get_env(:kitt_agent, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: KittAgent.PubSub},
-      # Start a worker by calling: KittAgent.Worker.start_link(arg)
-      # {KittAgent.Worker, arg},
-      # Start to serve requests, typically the last entry
+      KittAgent.Summarizer,
       KittAgentWeb.Endpoint
     ]
 

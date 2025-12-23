@@ -2,10 +2,12 @@ defmodule KittAgent.Prompts do
   alias KittAgent.Datasets.Kitt
   alias KittAgent.Datasets.Event
   alias KittAgent.Events
+  alias KittAgent.Memories
 
   defp head(%Kitt{} = kitt) do
     bio = kitt.biography
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
+    memory = kitt |> Memories.last_content()
     
     """
     <character>
@@ -18,6 +20,9 @@ defmodule KittAgent.Prompts do
     %%PERSONALITY%%
     </personality>
     </character>
+    <middle-term-memory>
+    %%MEMORY%%
+    </middle-term-memory>
 
     <available_actions_list>
     #Available Actions
@@ -36,6 +41,7 @@ defmodule KittAgent.Prompts do
     |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string)
     |> String.replace("%%HOMETOWN%%", kitt.hometown)
     |> String.replace("%%PERSONALITY%%", personality)
+    |> String.replace("%%MEMORY%%", memory)
   end    
     
   @prop_message "Concise Japanese dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
@@ -53,85 +59,88 @@ defmodule KittAgent.Prompts do
   end
 
 
-  @llm_model "google/gemini-2.5-flash-lite-preview-09-2025"
+  @standard_model "google/gemini-2.5-flash-lite-preview-09-2025"
+  @summary_model "google/gemini-2.5-flash-lite-preview-09-2025"
 
-  @llm_opts %{
-    model: @llm_model,
-    provider: %{
-      order: [
-        "google-vertex"
-      ]
-    },
-    structured_outputs: true,
-    response_format: %{
-      type: "json_schema",
-      json_schema: %{
-        name: "response",
-        schema: %{
-          type: "object",
-          properties: %{
-            message: %{
-              type: "string",
-              description: @prop_message
+  def llm_opts(model) do
+    %{
+      model: model,
+      provider: %{
+        order: [
+          "google-vertex"
+        ]
+      },
+      structured_outputs: true,
+      response_format: %{
+        type: "json_schema",
+        json_schema: %{
+          name: "response",
+          schema: %{
+            type: "object",
+            properties: %{
+              message: %{
+                type: "string",
+                description: @prop_message
+              },
+              mood: %{
+                type: "string",
+                description: "mood to use while speaking",
+                enum: [
+                  "sardonic",
+                  "seductive",
+                  "assertive",
+                  "smug",
+                  "neutral",
+                  "teasing",
+                  "playful",
+                  "sexy",
+                  "amused",
+                  "lovely",
+                  "sarcastic",
+                  "default",
+                  "smirking",
+                  "mocking",
+                  "irritated",
+                  "kindly",
+                  "sassy",
+                  "assisting"
+                ]
+              },
+              action: %{
+                type: "string",
+                description: "a valid action (refer to available actions list)",
+                enum: [
+                  "Talk",
+                  "MoveForward",
+                  "MoveBackward",
+                  "TurnLeft",
+                  "TurnRight",
+                  "Stop"
+                ]
+              },
+              target: %{
+                type: "string",
+                description: "action target actor or object"
+              },
+              parameters: %{
+                type: "string",
+                description: "action parameters (e.g. '5s', '10cm', '90deg'). Use 'none' if not applicable."
+              },
+              required: [
+                "message",
+                "mood",
+                "action",
+                "target",
+                "parameters"
+              ],
+              additionalProperties: false
             },
-            mood: %{
-              type: "string",
-              description: "mood to use while speaking",
-              enum: [
-                "sardonic",
-                "seductive",
-                "assertive",
-                "smug",
-                "neutral",
-                "teasing",
-                "playful",
-                "sexy",
-                "amused",
-                "lovely",
-                "sarcastic",
-                "default",
-                "smirking",
-                "mocking",
-                "irritated",
-                "kindly",
-                "sassy",
-                "assisting"
-              ]
-            },
-            action: %{
-              type: "string",
-              description: "a valid action (refer to available actions list)",
-              enum: [
-                "Talk",
-                "MoveForward",
-                "MoveBackward",
-                "TurnLeft",
-                "TurnRight",
-                "Stop"
-              ]
-            },
-            target: %{
-              type: "string",
-              description: "action target actor or object"
-            },
-            parameters: %{
-              type: "string",
-              description: "action parameters (e.g. '5s', '10cm', '90deg'). Use 'none' if not applicable."
-            },
-            required: [
-              "message",
-              "mood",
-              "action",
-              "target",
-              "parameters"
-            ],
-            additionalProperties: false
-          },
-          strict: true
+            strict: true
+          }
         }
       }
     }
-  }
+  end
 
   def make(%Kitt{} = kitt, %Event{} = last_ev) do
     h = %{role: "system", content: head(kitt)}
@@ -142,7 +151,7 @@ defmodule KittAgent.Prompts do
     |> then(&(&1 ++ [last_ev]))
     |> Enum.map(&%{role: &1.role, content: Jason.encode!(&1.content)})
     |> then(&([h | &1] ++ [t]))
-    |> then(&(@llm_opts |> Map.put(:messages, &1)))
+    |> then(&(llm_opts(@standard_model) |> Map.put(:messages, &1)))
   end
 
   @summary_system_prompt """
@@ -161,6 +170,8 @@ defmodule KittAgent.Prompts do
       @summary_system_prompt 
       |> String.replace("%%NAME%%", kitt.name)
 
+    memory = kitt |> Memories.last_content()
+
     conversation_text =
       events
       |> Enum.map(fn %Event{role: role, content: content} -> 
@@ -171,10 +182,11 @@ defmodule KittAgent.Prompts do
 
     messages = [
       %{role: "system", content: system_content},
+      %{role: "user", content: "Middle term memory:\n" <> memory},
       %{role: "user", content: "Conversation Log:\n" <> conversation_text}
     ]
 
-    @llm_opts
+    llm_opts(@summary_model)
     |> Map.drop([:response_format, :structured_outputs])
     |> Map.put(:messages, messages)
   end

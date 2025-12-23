@@ -1,5 +1,6 @@
 defmodule KittAgent.Events do
   import Ecto.Query, warn: false
+  import BasicContexts.Query
 
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
@@ -10,6 +11,10 @@ defmodule KittAgent.Events do
     attrs: [singular: :event, plural: :events, schema: Event, preload: :content]
   use BasicContexts.PartialList, repo: Repo, plural: :events, schema: Event,
     order_by: [desc: :inserted_at, desc: :id],
+    where_fn: fn query, attrs ->
+    query
+    |> add_if(attrs[:kitt], &(&2 |> where([t], t.kitt_id == ^&1.id)))
+  end,
     last_fn: fn query, _ ->
     query
     |> preload([:kitt, :content])
@@ -46,12 +51,8 @@ defmodule KittAgent.Events do
   end
 
   def recents(%Kitt{} = kitt) do
-    kitt
-    |> Ecto.assoc(:events)
-    |> order_by(desc: :inserted_at)
-    |> preload(:content)
-    |> limit(^@recent)
-    |> Repo.all
+    list_events(0..@recent, %{kitt: kitt})
+    |> elem(0)
     |> Enum.reverse
   end
 
