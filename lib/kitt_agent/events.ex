@@ -41,23 +41,44 @@ defmodule KittAgent.Events do
     }
   end
 
-  def create_event!(%Kitt{} = kitt, %Event{role: r, content: c}) do
-    kitt
-    |> Ecto.build_assoc(:events, %{role: r})
-    |> Repo.insert!()
-    |> Ecto.build_assoc(:content, c)
-    |> Repo.insert!()
+  @topic "events"
+
+  def subscribe do
+    Phoenix.PubSub.subscribe(KittAgent.PubSub, @topic)
   end
 
-  def create_kitt_event!(%Kitt{} = kitt, attr) do
+  def create_event(%Kitt{} = kitt, %Event{role: r, content: c}) do
+    o = kitt
+    |> Ecto.build_assoc(:events, %{role: r})
+    |> Repo.insert!()
+
+    o
+    |> Ecto.build_assoc(:content, c)
+    |> Repo.insert!()
+
+    o |> Repo.preload(:content)
+    |> broadcast_change([:event, :created])
+  end
+
+  def create_kitt_event(%Kitt{} = kitt, attr) do
     v = attr |> Map.put("timestamp", BasicContexts.Utils.now_jpn())
 
-    kitt
+    o = kitt
     |> Ecto.build_assoc(:events, %{role: "assistant"})
     |> Repo.insert!()
+
+    o
     |> Ecto.build_assoc(:content)
     |> Content.changeset(v)
     |> Repo.insert!()
+    
+    o |> Repo.preload(:content)
+    |> broadcast_change([:event, :created])
+  end
+
+  defp broadcast_change(%Event{} = result, event) do
+    Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {event, result})
+    {:ok, result}
   end
 
   def recents(%Kitt{} = kitt) do
