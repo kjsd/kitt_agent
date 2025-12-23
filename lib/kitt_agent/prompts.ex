@@ -23,6 +23,11 @@ defmodule KittAgent.Prompts do
     #Available Actions
     Use if your character needs to perform an action:
     AVAILABLE ACTION: Talk
+    AVAILABLE ACTION: MoveForward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
+    AVAILABLE ACTION: MoveBackward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
+    AVAILABLE ACTION: TurnLeft (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
+    AVAILABLE ACTION: TurnRight (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
+    AVAILABLE ACTION: Stop (parameters: "none")
     </available_actions_list>'
     """
     |> String.replace("%%NAME%%", kitt.name)
@@ -42,7 +47,7 @@ defmodule KittAgent.Prompts do
     give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk", "target":"action target", "message":"#{@prop_message}"}
+    "action":"Talk", "target":"action target", "parameters": "parameters (e.g. 5s) or none", "message":"#{@prop_message}"}
     """
     |> String.replace("%%NAME%%", kitt.name)
   end
@@ -98,17 +103,27 @@ defmodule KittAgent.Prompts do
               description: "a valid action (refer to available actions list)",
               enum: [
                 "Talk",
+                "MoveForward",
+                "MoveBackward",
+                "TurnLeft",
+                "TurnRight",
+                "Stop"
               ]
             },
             target: %{
               type: "string",
               description: "action target actor or object"
             },
+            parameters: %{
+              type: "string",
+              description: "action parameters (e.g. '5s', '10cm', '90deg'). Use 'none' if not applicable."
+            },
             required: [
               "message",
               "mood",
               "action",
-              "target"
+              "target",
+              "parameters"
             ],
             additionalProperties: false
           },

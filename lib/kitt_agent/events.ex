@@ -20,6 +20,7 @@ defmodule KittAgent.Events do
   def make_talk_event(%Kitt{} = kitt, text) do
     %Event{role: "user", content: %Content{
               action: "Talk",
+              parameters: "none",
               timestamp: BasicContexts.Utils.now_jpn,
               target: "#{kitt.name}",
               message: text}}
