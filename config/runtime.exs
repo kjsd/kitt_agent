@@ -35,11 +35,13 @@ if config_env() == :prod do
       raise """
       environment variable OPENROUTER_KEY is missing.
       """
+
   cartesia_key =
     System.get_env("CARTESIA_KEY") ||
       raise """
       environment variable CARTESIA_KEY is missing.
       """
+
   config :kitt_agent,
     keys: [
       openrouter: openrouter_key,
@@ -66,27 +68,27 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-config :kitt_agent, KittAgentWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))],
-  check_origin: false,
-  secret_key_base: secret_key_base
+  config :kitt_agent, KittAgentWeb.Endpoint,
+    # Binding to loopback ipv4 address prevents access from other machines.
+    # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+    http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))],
+    check_origin: false,
+    secret_key_base: secret_key_base
 
-#  host = System.get_env("PHX_HOST") || "example.com"
+  #  host = System.get_env("PHX_HOST") || "example.com"
 
-#  config :kitt_agent, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  #  config :kitt_agent, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-#  config :kitt_agent, KittAgentWeb.Endpoint,
-#    url: [host: host, port: 443, scheme: "https"],
-#    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-#      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-#    ],
-#    secret_key_base: secret_key_base
+  #  config :kitt_agent, KittAgentWeb.Endpoint,
+  #    url: [host: host, port: 443, scheme: "https"],
+  #    http: [
+  # Enable IPv6 and bind on all interfaces.
+  # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
+  # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
+  # for details about using IPv6 vs IPv4 and loopback vs public addresses.
+  #      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+  #    ],
+  #    secret_key_base: secret_key_base
 
   # ## SSL Support
   #

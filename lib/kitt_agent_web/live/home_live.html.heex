@@ -2,21 +2,34 @@
 <div class="drawer lg:drawer-open">
   <input id="my-drawer" type="checkbox" class="drawer-toggle" />
   
-  <!-- メインコンテンツエリア -->
+<!-- メインコンテンツエリア -->
   <div class="drawer-content flex flex-col bg-base-100 min-h-screen">
     <!-- Navbar (トップナビゲーション) -->
     <div class="navbar bg-base-100 border-b border-base-200 w-full sticky top-0 z-10">
       <div class="flex-none lg:hidden">
         <label for="my-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="inline-block w-6 h-6 stroke-current"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            >
+            </path>
+          </svg>
         </label>
       </div>
       <div class="flex-1">
         <a class="btn btn-ghost text-xl">Dashboard</a>
       </div>
     </div>
-
-    <!-- ページコンテンツ -->
+    
+<!-- ページコンテンツ -->
     <main class="p-6">
       <form phx-submit="talk">
         <div class="flex flex-col p-6 w-full">
@@ -25,12 +38,15 @@
               <option value={kitt.id}>{kitt.name}@{kitt.id}</option>
             <% end %>
           </select>
-          <textarea name="user_text" class="textarea textarea-bordered w-full"
-                    placeholder="Let's talk to KITT" />
+          <textarea
+            name="user_text"
+            class="textarea textarea-bordered w-full"
+            placeholder="Let's talk to KITT"
+          />
           <button type="submit" class="btn btn-primary btn-sm">Talk</button>
         </div>
       </form>
-      
+
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
           <div class="flex justify-between items-center mb-4">
@@ -50,6 +66,7 @@
                   <th>Role</th>
                   <th>Message</th>
                   <th>Action</th>
+                  <th>Params</th>
                   <th>Target</th>
                   <th>Mood</th>
                   <th>Timestamp</th>
@@ -67,6 +84,7 @@
                     <td>{ev.role}</td>
                     <td>{ev.content.message}</td>
                     <td>{ev.content.action}</td>
+                    <td>{ev.content.parameters}</td>
                     <td>{ev.content.target}</td>
                     <td>{ev.content.mood}</td>
                     <td>{ev.content.timestamp}</td>
@@ -76,10 +94,11 @@
             </table>
           </div>
           
-          <!-- ページネーション -->
+<!-- ページネーション -->
           <div class="join flex justify-center mt-6">
-            <button :if={@pa > 1} class="join-item btn"
-                    phx-click="page" phx-value-i={@pa - 1}>«</button>
+            <button :if={@pa > 1} class="join-item btn" phx-click="page" phx-value-i={@pa - 1}>
+              «
+            </button>
             <%= for i <- @pa..@pz do %>
               <%= if i == @p do %>
                 <button class="join-item btn btn-active btn-disabled">{i}</button>
@@ -87,43 +106,83 @@
                 <button class="join-item btn" phx-click="page" phx-value-i={i}>{i}</button>
               <% end %>
             <% end %>
-            <button :if={@pz < @pl} class="join-item btn"
-                    phx-click="page" phx-value-i={@pz + 1}>»</button>
+            <button :if={@pz < @pl} class="join-item btn" phx-click="page" phx-value-i={@pz + 1}>
+              »
+            </button>
           </div>
         </div>
       </div>
     </main>
-  </div> 
-
-  <!-- サイドバー (Drawer Side) -->
+  </div>
+  
+<!-- サイドバー (Drawer Side) -->
   <div class="drawer-side z-20">
-    <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label> 
+    <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
     <ul class="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
       <!-- サイドバータイトル -->
       <li class="mb-4 text-lg font-bold px-4">KITT Agent</li>
       
-      <!-- メニュー項目 -->
+<!-- メニュー項目 -->
       <li>
         <a class="active" href="/kitt-web">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
+          </svg>
           Dashboard
         </a>
       </li>
       <li>
         <a>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
+          </svg>
           KITTs
         </a>
       </li>
       <li>
         <a>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
           Reports
         </a>
       </li>
-      
-      <div class="divider"></div> 
-      
+
+      <div class="divider"></div>
+
       <li><a>Settings</a></li>
       <li>
         <a href="https://github.com/kjsd/kitt_agent" target="_blank">

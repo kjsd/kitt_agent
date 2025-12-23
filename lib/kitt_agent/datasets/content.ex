@@ -2,9 +2,10 @@ defmodule KittAgent.Datasets.Content do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:action, :message, :target, :mood, :timestamp]}
+  @derive {Jason.Encoder, only: [:action, :parameters, :message, :target, :mood, :timestamp]}
   schema "contents" do
     field :action, :string
+    field :parameters, :string
     field :message, :string
     field :target, :string
     field :mood, :string
@@ -18,7 +19,7 @@ defmodule KittAgent.Datasets.Content do
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:action, :message, :target, :mood, :timestamp])
+    |> cast(attrs, [:action, :parameters, :message, :target, :mood, :timestamp])
     |> validate_required([:action, :message])
   end
 end

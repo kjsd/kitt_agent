@@ -3,11 +3,11 @@ defmodule KittAgent.Datasets.Memory do
   import Ecto.Changeset
 
   @derive {Jason.Encoder, only: [:content]}
-  schema "memory" do
+  schema "memories" do
     field :content, :string
 
     belongs_to :kitt, KittAgent.Datasets.Kitt, type: :binary_id
-    
+
     timestamps()
   end
 

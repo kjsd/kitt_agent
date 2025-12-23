@@ -12,11 +12,12 @@
 
 alias KittAgent.Kitts
 
-today = BasicContexts.Utils.today_jpn
+today = BasicContexts.Utils.today_jpn()
 
 bio = %{
   personality: "%%NAME%%'s tone is identical to Knight Rider's K.I.T.T."
 }
+
 %{
   id: "2d16ba43-3eb0-46c2-9583-e38dbb82c5fa",
   name: "キット",
@@ -26,4 +27,3 @@ bio = %{
   hometown: "東白川村，日本"
 }
 |> Kitts.create(bio)
-
