@@ -39,10 +39,12 @@
             <% end %>
           </select>
           <textarea
+            phx-hook="EnterSubmit"
+            id="user_text"
             name="user_text"
             class="textarea textarea-bordered w-full"
             placeholder="Let's talk to KITT"
-          />
+          ></textarea>
           <button type="submit" class="btn btn-primary btn-sm">Talk</button>
         </div>
       </form>
