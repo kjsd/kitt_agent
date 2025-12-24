@@ -73,4 +73,15 @@ defmodule KittAgentWeb.HomeLive do
     |> assign(pl: pl)
     |> then(&{:noreply, &1})
   end
+
+  def handle_event("delete_events", %{"ids" => ids} = arg, socket) do
+    Events.delete_events(ids)
+
+    handle_event("page", arg, socket)
+  end
+
+  def handle_event("delete_events", arg, socket) do
+    handle_event("page", arg, socket)
+  end
+  
 end

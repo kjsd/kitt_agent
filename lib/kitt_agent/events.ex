@@ -82,6 +82,13 @@ defmodule KittAgent.Events do
     {:ok, result}
   end
 
+  def delete_events([_|_] = ids) do
+    Event
+    |> where([t], t.id in ^ids)
+    |> Repo.delete_all()
+  end
+  def delete_events(_), do: {0, nil}
+  
   def recents(%Kitt{} = kitt) do
     list_events(0..@recent, %{kitt: kitt}, [desc: :inserted_at, desc: :id])
     |> elem(0)
