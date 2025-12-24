@@ -31,7 +31,7 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 
 ### Prerequisites
 *   Elixir ~> 1.15
-*   Docker (for PostgreSQL)
+*   Docker
 
 ### Steps
 
@@ -41,14 +41,9 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
     cd kitt_agent
     ```
 
-2.  **Start the Database:**
-    ```bash
-    docker-compose up -d
-    ```
-
 3.  **Install Dependencies:**
     ```bash
-    mix setup
+    docker compose run --rm app mix setup
     ```
 
 4.  **Configuration:**
@@ -56,7 +51,7 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 
 5.  **Start the Server:**
     ```bash
-    mix phx.server
+    docker compose up
     ```
 
     Visit `http://localhost:4000` to access the KittAgent Dashboard.

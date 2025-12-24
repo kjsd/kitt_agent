@@ -16,14 +16,15 @@ defmodule KittAgent.Events do
     repo: Repo,
     plural: :events,
     schema: Event,
-    order_by: [desc: :inserted_at, desc: :id],
     where_fn: fn query, attrs ->
       query
       |> add_if(attrs[:kitt], &(&2 |> where([t], t.kitt_id == ^&1.id)))
+      |> add_if(attrs[:newer], &(&2 |> where([t], t.inserted_at > ^&1)))
     end,
-    last_fn: fn query, _ ->
-      query
-      |> preload([:kitt, :content])
+    last_fn: fn query, args ->
+    query
+    |> add_if(args[:order_by], &(&2 |> order_by(^&1)))
+    |> preload([:kitt, :content])
     end
 
   @recent 100
@@ -82,31 +83,17 @@ defmodule KittAgent.Events do
   end
 
   def recents(%Kitt{} = kitt) do
-    list_events(0..@recent, %{kitt: kitt})
+    list_events(0..@recent, %{kitt: kitt}, [desc: :inserted_at, desc: :id])
     |> elem(0)
     |> Enum.reverse()
   end
 
-  def clear(%Kitt{} = kitt) do
-    kitt
-    |> Ecto.assoc(:events)
-    |> order_by(asc: :inserted_at)
-    |> limit(^@recent)
-    |> Repo.delete_all()
+  def list_since(%Kitt{} = kitt, %NaiveDateTime{} = timestamp) do
+    list_events(nil, %{kitt: kitt, newer: timestamp}, asc: :inserted_at)
+    |> elem(0)
   end
-
-  def list_since(%Kitt{} = kitt, timestamp) do
-    Event
-    |> where([e], e.kitt_id == ^kitt.id)
-    |> then(fn q ->
-      if timestamp do
-        where(q, [e], e.inserted_at > ^timestamp)
-      else
-        q
-      end
-    end)
-    |> order_by([e], asc: e.inserted_at)
-    |> preload([:content])
-    |> Repo.all()
+  def list_since(%Kitt{} = kitt, _) do
+    list_events(nil, %{kitt: kitt}, asc: :inserted_at)
+    |> elem(0)
   end
 end
