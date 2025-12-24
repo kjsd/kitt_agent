@@ -10,14 +10,15 @@ defmodule KittAgent.Requests do
     api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
 
     last_ev = kitt |> Events.make_talk_event(user_text)
+
     case Req.post(Application.get_env(:kitt_agent, :api_urls)[:openrouter],
-          json: kitt |> Prompts.make(last_ev),
-          headers: [
-            {"Authorization", "Bearer #{api_key}"},
-            {"HTTP-Referer", "https://www.kandj.org"},
-            {"X-Title", "KJSD"}
-          ]
-        ) do
+           json: kitt |> Prompts.make(last_ev),
+           headers: [
+             {"Authorization", "Bearer #{api_key}"},
+             {"HTTP-Referer", "https://www.kandj.org"},
+             {"X-Title", "KJSD"}
+           ]
+         ) do
       {:ok, %{status: 200, body: resp_body}} ->
         with [choice | _] <- resp_body["choices"],
              {:ok, res} <- Jason.decode(choice["message"]["content"]) do
@@ -29,7 +30,7 @@ defmodule KittAgent.Requests do
         else
           e ->
             Logger.error(inspect(e))
-          {:error, e}
+            {:error, e}
         end
 
       {:ok, e} ->

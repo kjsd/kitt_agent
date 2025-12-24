@@ -56,5 +56,20 @@ defmodule KittAgent.EventsTest do
 
       assert_receive {[:event, :created], ^ev}
     end
+
+    test "delete_events/1 deletes specified events", %{kitt: kitt} do
+      {:ok, ev1} = Events.create_event(kitt, Events.make_talk_event(kitt, "msg1"))
+      {:ok, ev2} = Events.create_event(kitt, Events.make_talk_event(kitt, "msg2"))
+      {:ok, ev3} = Events.create_event(kitt, Events.make_talk_event(kitt, "msg3"))
+
+      assert {2, _} = Events.delete_events([ev1.id, ev3.id])
+
+      remaining_events = Events.recents(kitt)
+      remaining_ids = Enum.map(remaining_events, & &1.id)
+
+      assert ev2.id in remaining_ids
+      refute ev1.id in remaining_ids
+      refute ev3.id in remaining_ids
+    end
   end
 end

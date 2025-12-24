@@ -51,50 +51,64 @@
 
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="card-title">Recent Transactions</h2>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="table table-zebra">
-              <!-- ヘッド -->
-              <thead>
-                <tr>
-                  <th>
-                    <label>
-                      <input type="checkbox" class="checkbox" />
-                    </label>
-                  </th>
-                  <th>KITT</th>
-                  <th>Role</th>
-                  <th>Message</th>
-                  <th>Action</th>
-                  <th>Params</th>
-                  <th>Target</th>
-                  <th>Mood</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                <%= for ev <- @events do %>
-                  <tr class="hover">
+          <form phx-submit="delete_events">
+            <input type="hidden" name="i" value={@p} />
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="card-title">Recent Transactions</h2>
+              <button
+                type="submit"
+                class="btn btn-error btn-outline btn-sm"
+                data-confirm="Are you sure you want to delete the selected events?"
+              >
+                Delete
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="table table-zebra">
+                <!-- ヘッド -->
+                <thead>
+                  <tr>
                     <th>
                       <label>
-                        <input type="checkbox" class="checkbox" />
+                        <input
+                          type="checkbox"
+                          class="checkbox"
+                          onclick="document.getElementsByName('ids[]').forEach(el => el.checked = this.checked)"
+                        />
                       </label>
                     </th>
-                    <td>{ev.kitt.name}</td>
-                    <td>{ev.role}</td>
-                    <td>{ev.content.message}</td>
-                    <td>{ev.content.action}</td>
-                    <td>{ev.content.parameters}</td>
-                    <td>{ev.content.target}</td>
-                    <td>{ev.content.mood}</td>
-                    <td>{ev.content.timestamp}</td>
+                    <th>KITT</th>
+                    <th>Role</th>
+                    <th>Message</th>
+                    <th>Action</th>
+                    <th>Params</th>
+                    <th>Target</th>
+                    <th>Mood</th>
+                    <th>Timestamp</th>
                   </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  <%= for ev <- @events do %>
+                    <tr class="hover">
+                      <th>
+                        <label>
+                          <input type="checkbox" name="ids[]" value={ev.id} class="checkbox" />
+                        </label>
+                      </th>
+                      <td>{ev.kitt.name}</td>
+                      <td>{ev.role}</td>
+                      <td>{ev.content.message}</td>
+                      <td>{ev.content.action}</td>
+                      <td>{ev.content.parameters}</td>
+                      <td>{ev.content.target}</td>
+                      <td>{ev.content.mood}</td>
+                      <td>{ev.content.timestamp}</td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </form>
           
 <!-- ページネーション -->
           <div class="join flex justify-center mt-6">
@@ -145,7 +159,7 @@
         </a>
       </li>
       <li>
-        <a>
+        <a href={~p"/kitt-web/kitts"}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-5 w-5"
