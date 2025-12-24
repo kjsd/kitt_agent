@@ -43,8 +43,6 @@ RUN mix release
 # the compiled release and other runtime necessities
 FROM alpine:3.23.0 AS app
 RUN apk add --no-cache libstdc++ openssl ncurses-libs
-RUN apk --no-cache add tzdata && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
-    apk del tzdata
 
 ARG MIX_ENV
 ENV USER="elixir"

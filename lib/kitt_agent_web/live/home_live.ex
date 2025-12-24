@@ -10,7 +10,8 @@ defmodule KittAgentWeb.HomeLive do
   defp events_page(i) do
     b = (i - 1) * @events_unit
     e = b + @events_unit - 1
-    {events, {_, len}} = Events.list_events(b..e)
+    {events, {_, len}} = Events.list_events(b..e, nil,
+                             %{order_by: [desc: :inserted_at, desc: :id]})
 
     if len > 0 do
       pl = ceil(len / @events_unit)
