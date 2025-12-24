@@ -23,5 +23,6 @@ defmodule KittAgent.Datasets.Kitt do
     o
     |> cast(attrs, [:id, :name, :model, :vendor, :birthday, :hometown])
     |> validate_required([:name])
+    |> cast_assoc(:biography)
   end
 end

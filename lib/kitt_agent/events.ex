@@ -22,9 +22,9 @@ defmodule KittAgent.Events do
       |> add_if(attrs[:newer], &(&2 |> where([t], t.inserted_at > ^&1)))
     end,
     last_fn: fn query, args ->
-    query
-    |> add_if(args[:order_by], &(&2 |> order_by(^&1)))
-    |> preload([:kitt, :content])
+      query
+      |> add_if(args[:order_by], &(&2 |> order_by(^&1)))
+      |> preload([:kitt, :content])
     end
 
   @recent 100
@@ -49,31 +49,35 @@ defmodule KittAgent.Events do
   end
 
   def create_event(%Kitt{} = kitt, %Event{role: r, content: c}) do
-    o = kitt
-    |> Ecto.build_assoc(:events, %{role: r})
-    |> Repo.insert!()
+    o =
+      kitt
+      |> Ecto.build_assoc(:events, %{role: r})
+      |> Repo.insert!()
 
     o
     |> Ecto.build_assoc(:content, c)
     |> Repo.insert!()
 
-    o |> Repo.preload(:content)
+    o
+    |> Repo.preload(:content)
     |> broadcast_change([:event, :created])
   end
 
   def create_kitt_event(%Kitt{} = kitt, attr) do
     v = attr |> Map.put("timestamp", BasicContexts.Utils.now_jpn())
 
-    o = kitt
-    |> Ecto.build_assoc(:events, %{role: "assistant"})
-    |> Repo.insert!()
+    o =
+      kitt
+      |> Ecto.build_assoc(:events, %{role: "assistant"})
+      |> Repo.insert!()
 
     o
     |> Ecto.build_assoc(:content)
     |> Content.changeset(v)
     |> Repo.insert!()
-    
-    o |> Repo.preload(:content)
+
+    o
+    |> Repo.preload(:content)
     |> broadcast_change([:event, :created])
   end
 
@@ -82,15 +86,16 @@ defmodule KittAgent.Events do
     {:ok, result}
   end
 
-  def delete_events([_|_] = ids) do
+  def delete_events([_ | _] = ids) do
     Event
     |> where([t], t.id in ^ids)
     |> Repo.delete_all()
   end
+
   def delete_events(_), do: {0, nil}
-  
+
   def recents(%Kitt{} = kitt) do
-    list_events(0..@recent, %{kitt: kitt}, [desc: :inserted_at, desc: :id])
+    list_events(0..@recent, %{kitt: kitt}, desc: :inserted_at, desc: :id)
     |> elem(0)
     |> Enum.reverse()
   end
@@ -99,6 +104,7 @@ defmodule KittAgent.Events do
     list_events(nil, %{kitt: kitt, newer: timestamp}, asc: :inserted_at)
     |> elem(0)
   end
+
   def list_since(%Kitt{} = kitt, _) do
     list_events(nil, %{kitt: kitt}, asc: :inserted_at)
     |> elem(0)

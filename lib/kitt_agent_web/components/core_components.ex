@@ -469,6 +469,93 @@ defmodule KittAgentWeb.CoreComponents do
   end
 
   @doc """
+  Renders a simple form.
+
+  ## Examples
+
+      <.simple_form for={@form} phx-change="validate" phx-submit="save">
+        <.input field={@form[:email]} label="Email"/>
+        <.input field={@form[:username]} label="Username" />
+        <:actions>
+          <.button>Save</.button>
+        </:actions>
+      </.simple_form>
+  """
+  attr :for, :any, required: true, doc: "the datastructure for the form"
+  attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
+
+  attr :rest, :global,
+    include: ~w(autocomplete name rel action enctype method novalidate target multipart),
+    doc: "the arbitrary HTML attributes to apply to the form tag"
+
+  slot :inner_block, required: true
+  slot :actions, doc: "the slot for form actions, such as a save button"
+
+  def simple_form(assigns) do
+    ~H"""
+    <.form :let={f} for={@for} as={@as} {@rest}>
+      <div class="space-y-4">
+        {render_slot(@inner_block, f)}
+        <div :if={@actions != []} class="flex items-center justify-end gap-6">
+          {render_slot(@actions, f)}
+        </div>
+      </div>
+    </.form>
+    """
+  end
+
+  @doc """
+  Renders a modal.
+
+  ## Examples
+
+      <.modal id="confirm-modal">
+        This is a modal.
+      </.modal>
+
+  JS commands may be used for the `:on_cancel` to trigger other events.
+
+      <.modal id="confirm-modal" on_cancel={JS.push("delete") |> hide("#confirm-modal")}>
+        This is a modal.
+      </.modal>
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, :any, default: %JS{}
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={["modal", @show && "modal-open"]}
+      phx-remove={hide_modal(@id)}
+      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+    >
+      <div class="modal-box relative">
+        <button
+          type="button"
+          class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+          phx-click={JS.exec("data-cancel", to: "##{@id}")}
+        >
+          ✕
+        </button>
+        {render_slot(@inner_block)}
+      </div>
+      <div
+        class="modal-backdrop bg-black/50 fixed inset-0 -z-10"
+        phx-click={JS.exec("data-cancel", to: "##{@id}")}
+      >
+      </div>
+    </div>
+    """
+  end
+
+  defp hide_modal(id) do
+    JS.remove_class("modal-open", to: "##{id}")
+  end
+
+  @doc """
   Translates an error message using gettext.
   """
   def translate_error({msg, opts}) do

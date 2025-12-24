@@ -6,7 +6,7 @@ defmodule KittAgent.Kitts do
 
   use BasicContexts,
     repo: Repo,
-    funcs: [:get, :create, :all],
+    funcs: [:get, :create, :update, :delete, :change, :all],
     attrs: [singular: :kitt, plural: :kitts, schema: Kitt, preload: :biography]
 
   use BasicContexts.PartialList,

@@ -18,6 +18,9 @@ defmodule KittAgentWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
+    live "/kitts", KittLive.Index, :index
+    live "/kitts/new", KittLive.Index, :new
+    live "/kitts/:id/edit", KittLive.Index, :edit
   end
 
   scope "/kitt/:id", KittAgentWeb do
