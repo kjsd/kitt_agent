@@ -27,12 +27,16 @@ defmodule KittAgent.Prompts do
     <available_actions_list>
     #Available Actions
     Use if your character needs to perform an action:
-    AVAILABLE ACTION: Talk
-    AVAILABLE ACTION: MoveForward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
-    AVAILABLE ACTION: MoveBackward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
-    AVAILABLE ACTION: TurnLeft (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
-    AVAILABLE ACTION: TurnRight (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
-    AVAILABLE ACTION: Stop (parameters: "none")
+    AVAILABLE ACTION: Talk (Use this for normal conversation)
+    AVAILABLE ACTION: SystemActions (Use this to perform physical movements)
+
+    If you choose "SystemActions", you must provide a list of actions in the "system_actions" field.
+    Supported physical actions:
+    - MoveForward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
+    - MoveBackward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
+    - TurnLeft (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
+    - TurnRight (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
+    - Stop (parameters: "none")
     </available_actions_list>'
     """
   end
@@ -43,12 +47,11 @@ defmodule KittAgent.Prompts do
      
   defp tail(%Kitt{} = kitt) do
     """
-    (If #{kitt.name} is just speaking, use action "Talk". If another action is even remotely
-    contextually appropriate, use it, even if in doubt).  Use ONLY this JSON object to
-    give your answer. Do not send any other characters outside of this JSON structure
+    (If #{kitt.name} is just speaking, use action "Talk". If #{kitt.name} needs to move, use "SystemActions" and populate "system_actions" list).
+    Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"Talk|SystemActions", "system_actions": [{"action": "MoveForward", "parameter": "10cm"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
@@ -101,15 +104,30 @@ defmodule KittAgent.Prompts do
               },
               action: %{
                 type: "string",
-                description: "a valid action (refer to available actions list)",
+                description: "Choose 'Talk' for dialogue, or 'SystemActions' to perform physical movements.",
                 enum: [
                   "Talk",
-                  "MoveForward",
-                  "MoveBackward",
-                  "TurnLeft",
-                  "TurnRight",
-                  "Stop"
+                  "SystemActions"
                 ]
+              },
+              system_actions: %{
+                type: "array",
+                description: "List of actions to perform if action is 'SystemActions'",
+                items: %{
+                  type: "object",
+                  properties: %{
+                    action: %{
+                      type: "string",
+                      enum: ["MoveForward", "MoveBackward", "TurnLeft", "TurnRight", "Stop"]
+                    },
+                    parameter: %{
+                      type: "string",
+                      description: "e.g. '5s', '10cm', '90deg'"
+                    }
+                  },
+                  required: ["action", "parameter"],
+                  additionalProperties: false
+                }
               },
               listener: %{
                 type: "string",

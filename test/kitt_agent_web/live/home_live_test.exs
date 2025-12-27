@@ -29,15 +29,14 @@ defmodule KittAgentWeb.HomeLiveTest do
       role: "user",
       content: %KittAgent.Datasets.Content{
         action: "Talk",
-        parameters: "none",
-        timestamp: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-        target: kitt.name,
-        message: "New Message from Test"
+        listener: kitt.name,
+        message: "New Message from Test",
+        mood: "neutral"
       }
     }
 
     # This triggers the broadcast
-    Events.create_event(kitt, event_params)
+    Events.create_kitt_event(event_params, kitt)
 
     # Verify the view updates
     assert render(view) =~ "New Message from Test"

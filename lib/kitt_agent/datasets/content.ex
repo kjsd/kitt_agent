@@ -20,5 +20,6 @@ defmodule KittAgent.Datasets.Content do
     o
     |> cast(attrs, [:action, :message, :listener, :mood])
     |> validate_required([:action, :message])
+    |> cast_assoc(:system_actions)
   end
 end

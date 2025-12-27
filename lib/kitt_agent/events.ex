@@ -46,9 +46,20 @@ defmodule KittAgent.Events do
   end
   
   def create_kitt_event(%Event{} = ev, %Kitt{} = kitt) do
-    kitt
-    |> Ecto.build_assoc(:events, ev)
-    |> Map.from_struct()
+    ev_map =
+      kitt
+      |> Ecto.build_assoc(:events, ev)
+      |> Map.from_struct()
+      |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
+      |> Map.update(:content, nil, fn
+        %KittAgent.Datasets.Content{} = c ->
+          c
+          |> Map.from_struct()
+          |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
+        other -> other
+      end)
+
+    ev_map
     |> create_event()
     |> broadcast_change([:event, :created])
   end
