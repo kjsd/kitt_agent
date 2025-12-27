@@ -47,7 +47,6 @@
               <th>Hometown</th>
               <th>Lang</th>
               <th>Timezone</th>
-              <th>Biography</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -61,23 +60,31 @@
               <td>{kitt.lang}</td>
               <td>{kitt.timezone}</td>
               <td>
-                <.button phx-click="show_bio" phx-value-id={kitt.id} class="btn btn-sm btn-ghost">View</.button>
-              </td>
-              <td>
                 <div class="join">
-                  <.link
-                    patch={~p"/kitt-web/kitts/#{kitt}/edit"}
-                    class="btn btn-sm btn-ghost join-item"
-                  >
-                    Edit
-                  </.link>
-                  <.link
-                    phx-click={JS.push("delete", value: %{id: kitt.id}) |> hide("##{id}")}
-                    data-confirm="Are you sure?"
-                    class="btn btn-sm btn-ghost text-error join-item"
-                  >
-                    Delete
-                  </.link>
+                  <div class="tooltip" data-tip="View Biography">
+                    <.button phx-click="show_bio" phx-value-id={kitt.id} class="btn btn-sm btn-ghost" aria-label="View Biography">
+                      <.icon name="hero-eye" class="size-4" />
+                    </.button>
+                  </div>
+                  <div class="tooltip" data-tip="Edit">
+                    <.link
+                      patch={~p"/kitt-web/kitts/#{kitt}/edit"}
+                      class="btn btn-sm btn-ghost join-item"
+                      aria-label="Edit"
+                    >
+                      <.icon name="hero-pencil-square" class="size-4" />
+                    </.link>
+                  </div>
+                  <div class="tooltip" data-tip="Delete">
+                    <.link
+                      phx-click={JS.push("delete", value: %{id: kitt.id}) |> hide("##{id}")}
+                      data-confirm="Are you sure?"
+                      class="btn btn-sm btn-ghost text-error join-item"
+                      aria-label="Delete"
+                    >
+                      <.icon name="hero-trash" class="size-4" />
+                    </.link>
+                  </div>
                 </div>
               </td>
             </tr>
