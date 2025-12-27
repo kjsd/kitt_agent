@@ -50,10 +50,15 @@ defmodule KittAgentWeb.HomeLive do
   end
 
   def handle_event("show_actions", %{"id" => id}, socket) do
+    id_int = String.to_integer(id)
+
     actions =
       socket.assigns.events
-      |> Enum.find(&(&1.id == id))
-      |> then(& &1.content.system_actions)
+      |> Enum.find(&(&1.id == id_int))
+      |> case do
+        nil -> []
+        event -> event.content.system_actions
+      end
 
     {:noreply, assign(socket, selected_system_actions: actions)}
   end
