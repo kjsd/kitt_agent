@@ -12,7 +12,7 @@ defmodule KittAgentWeb.HomeLive do
     e = b + @events_unit - 1
 
     {events, {_, len}} = 
-      Events.list_events(b..e, nil, %{order_by: [desc: :inserted_at, desc: :id]})
+      Events.list_events(b..e, %{kitt: kitt}, %{order_by: [desc: :inserted_at, desc: :id]})
       |> Events.with_timestamp(kitt)
 
     if len > 0 do
@@ -25,6 +25,7 @@ defmodule KittAgentWeb.HomeLive do
       {events, 1, 1, 1}
     end
   end
+  defp events_page(_, _), do: {[], 1, 1, 1}
 
   def mount(_params, _session, socket) do
     if connected?(socket), do: Events.subscribe()

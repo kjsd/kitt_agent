@@ -33,9 +33,13 @@
     <main class="p-6">
       <form phx-submit="talk">
         <div class="flex flex-col p-6 w-full">
-          <select name="id" class="select" phx-change="kitt" phx-target="{@myself}">
+          <select name="id" class="select" phx-change="kitt">
             <%= for kitt <- @kitts do %>
-              <option value={kitt.id}>{kitt.name}@{kitt.id}</option>
+              <%= if kitt == @kitt do %>
+                <option value={kitt.id} selected>{kitt.name}@{kitt.id}</option>
+              <% else %>
+                <option value={kitt.id}>{kitt.name}@{kitt.id}</option>
+              <% end %>
             <% end %>
           </select>
           <textarea
