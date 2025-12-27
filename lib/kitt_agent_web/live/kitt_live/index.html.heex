@@ -70,7 +70,7 @@
                     <.link
                       patch={~p"/kitt-web/kitts/#{kitt}/edit"}
                       class="btn btn-sm btn-ghost join-item"
-                      aria-label="Edit"
+                      aria-label="Edit Kitt"
                     >
                       <.icon name="hero-pencil-square" class="size-4" />
                     </.link>
@@ -80,7 +80,7 @@
                       phx-click={JS.push("delete", value: %{id: kitt.id}) |> hide("##{id}")}
                       data-confirm="Are you sure?"
                       class="btn btn-sm btn-ghost text-error join-item"
-                      aria-label="Delete"
+                      aria-label="Delete Kitt"
                     >
                       <.icon name="hero-trash" class="size-4" />
                     </.link>
