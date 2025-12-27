@@ -5,11 +5,10 @@ defmodule KittAgent.Events do
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
   alias KittAgent.Datasets.Event
-  alias KittAgent.Datasets.Content
 
   use BasicContexts,
     repo: Repo,
-    funcs: [:get],
+    funcs: [:get, :create],
     attrs: [singular: :event, plural: :events, schema: Event, preload: :content]
 
   use BasicContexts.PartialList,
@@ -29,17 +28,29 @@ defmodule KittAgent.Events do
 
   @recent 100
 
-  def make_talk_event(%Kitt{} = kitt, text) do
+  def make_user_talk_event(text) do
     %Event{
       role: "user",
-      content: %Content{
+      content: %{
         action: "Talk",
-        parameters: "none",
-        timestamp: BasicContexts.Utils.now_jpn(),
-        target: "#{kitt.name}",
         message: text
       }
     }
+  end
+
+  def make_kitt_event(attr) do
+    %Event{
+      role: "assistant",
+      content: attr
+    }
+  end
+  
+  def create_kitt_event(%Event{} = ev, %Kitt{} = kitt) do
+    kitt
+    |> Ecto.build_assoc(:events, ev)
+    |> Map.from_struct()
+    |> create_event()
+    |> broadcast_change([:event, :created])
   end
 
   @topic "events"
@@ -48,43 +59,11 @@ defmodule KittAgent.Events do
     Phoenix.PubSub.subscribe(KittAgent.PubSub, @topic)
   end
 
-  def create_event(%Kitt{} = kitt, %Event{role: r, content: c}) do
-    o =
-      kitt
-      |> Ecto.build_assoc(:events, %{role: r})
-      |> Repo.insert!()
-
-    o
-    |> Ecto.build_assoc(:content, c)
-    |> Repo.insert!()
-
-    o
-    |> Repo.preload(:content)
-    |> broadcast_change([:event, :created])
-  end
-
-  def create_kitt_event(%Kitt{} = kitt, attr) do
-    v = attr |> Map.put("timestamp", BasicContexts.Utils.now_jpn())
-
-    o =
-      kitt
-      |> Ecto.build_assoc(:events, %{role: "assistant"})
-      |> Repo.insert!()
-
-    o
-    |> Ecto.build_assoc(:content)
-    |> Content.changeset(v)
-    |> Repo.insert!()
-
-    o
-    |> Repo.preload(:content)
-    |> broadcast_change([:event, :created])
-  end
-
-  defp broadcast_change(%Event{} = result, event) do
+  defp broadcast_change({:ok, %Event{} = result}, event) do
     Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {event, result})
     {:ok, result}
   end
+  defp broadcast_change(result, _), do: result
 
   def delete_events([_ | _] = ids) do
     Event
@@ -109,4 +88,19 @@ defmodule KittAgent.Events do
     list_events(nil, %{kitt: kitt}, asc: :inserted_at)
     |> elem(0)
   end
+
+  def with_timestamp({list, opt}, %Kitt{} = kitt) do
+    list
+    |> Enum.map(&with_timestamp(&1, kitt))
+    |> then(&{&1, opt})
+  end
+  def with_timestamp(%Event{inserted_at: ts} = event, %Kitt{timezone: tz}) do
+    with {:ok, utc} <- ts |> DateTime.from_naive("Etc/UTC"),
+         {:ok, x} <- utc |> DateTime.shift_zone(tz) do
+      event |> Map.put(:timestamp, x)
+    else
+      _ -> event |> Map.put(:timestamp, ts)
+    end
+  end
+  
 end

@@ -5,9 +5,8 @@ defmodule KittAgent.Repo.Migrations.Contents do
     create table("contents") do
       add :action, :string, null: false
       add :message, :string, null: false
-      add :target, :string
+      add :listener, :string
       add :mood, :string
-      add :timestamp, :naive_datetime
 
       add :event_id, references(:events, on_delete: :delete_all), null: false
 

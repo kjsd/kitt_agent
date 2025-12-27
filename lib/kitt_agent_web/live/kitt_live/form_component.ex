@@ -24,6 +24,8 @@ defmodule KittAgentWeb.KittLive.FormComponent do
         <.input field={@form[:vendor]} type="text" label="Vendor" />
         <.input field={@form[:birthday]} type="date" label="Birthday" />
         <.input field={@form[:hometown]} type="text" label="Hometown" />
+        <.input field={@form[:lang]} type="text" value="Japanese" label="Lang" />
+        <.input field={@form[:timezone]} type="text" value="Asia/Tokyo" label="Timezone" />
 
         <.inputs_for :let={bio_form} field={@form[:biography]}>
           <.input field={bio_form[:personality]} type="textarea" label="Personality" />

@@ -7,12 +7,13 @@ defmodule KittAgentWeb.HomeLive do
 
   @events_unit 5
 
-  defp events_page(i) do
+  defp events_page(%Kitt{} = kitt, i) do
     b = (i - 1) * @events_unit
     e = b + @events_unit - 1
 
-    {events, {_, len}} =
+    {events, {_, len}} = 
       Events.list_events(b..e, nil, %{order_by: [desc: :inserted_at, desc: :id]})
+      |> Events.with_timestamp(kitt)
 
     if len > 0 do
       pl = ceil(len / @events_unit)
@@ -27,12 +28,13 @@ defmodule KittAgentWeb.HomeLive do
 
   def mount(_params, _session, socket) do
     if connected?(socket), do: Events.subscribe()
-    kitts = Kitts.all_kitts()
-    {events, pa, pz, pl} = events_page(1)
+    [kitt | _] = kitts = Kitts.all_kitts()
+    {events, pa, pz, pl} = events_page(kitt, 1)
 
     socket
     |> assign(page_title: "Dashboard")
     |> assign(kitts: kitts)
+    |> assign(kitt: kitt)
     |> assign(events: events)
     |> assign(p: 1)
     |> assign(pa: pa)
@@ -43,15 +45,7 @@ defmodule KittAgentWeb.HomeLive do
 
   def handle_info({[:event, :created], _}, socket) do
     # Refresh the current page
-    page = socket.assigns.p
-    {events, pa, pz, pl} = events_page(page)
-
-    socket
-    |> assign(events: events)
-    |> assign(pa: pa)
-    |> assign(pz: pz)
-    |> assign(pl: pl)
-    |> then(&{:noreply, &1})
+    handle_event("page", %{"i" => socket.assigns.p}, socket)
   end
 
   def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do
@@ -62,13 +56,22 @@ defmodule KittAgentWeb.HomeLive do
     {:noreply, socket}
   end
 
+  def handle_event("kitt", %{"id" => id}, socket) do
+    socket
+    |> assign(kitt: Kitts.get_kitt(id))
+    |> then(&handle_event("page", %{"i" => 1}, &1))
+  end
+
+  def handle_event("page", %{"i" => i}, socket) when is_binary(i) do
+    handle_event("page", %{"i" => String.to_integer(i)}, socket)
+  end
   def handle_event("page", %{"i" => i}, socket) do
-    idx = String.to_integer(i)
-    {events, pa, pz, pl} = events_page(idx)
+    kitt = socket.assigns.kitt
+    {events, pa, pz, pl} = events_page(kitt, i)
 
     socket
     |> assign(events: events)
-    |> assign(p: idx)
+    |> assign(p: i)
     |> assign(pa: pa)
     |> assign(pz: pz)
     |> assign(pl: pl)

@@ -15,7 +15,8 @@ defmodule KittAgent.Datasets.Event do
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:role])
-    |> validate_required([:role])
+    |> cast(attrs, [:role, :kitt_id])
+    |> validate_required([:role, :kitt_id])
+    |> cast_assoc(:content)
   end
 end

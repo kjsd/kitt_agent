@@ -33,7 +33,7 @@
     <main class="p-6">
       <form phx-submit="talk">
         <div class="flex flex-col p-6 w-full">
-          <select name="id" class="select">
+          <select name="id" class="select" phx-change="kitt" phx-target="{@myself}">
             <%= for kitt <- @kitts do %>
               <option value={kitt.id}>{kitt.name}@{kitt.id}</option>
             <% end %>
@@ -81,8 +81,7 @@
                     <th>Role</th>
                     <th>Message</th>
                     <th>Action</th>
-                    <th>Params</th>
-                    <th>Target</th>
+                    <th>Listener</th>
                     <th>Mood</th>
                     <th>Timestamp</th>
                   </tr>
@@ -99,10 +98,9 @@
                       <td>{ev.role}</td>
                       <td>{ev.content.message}</td>
                       <td>{ev.content.action}</td>
-                      <td>{ev.content.parameters}</td>
-                      <td>{ev.content.target}</td>
+                      <td>{ev.content.listener}</td>
                       <td>{ev.content.mood}</td>
-                      <td>{ev.content.timestamp}</td>
+                      <td>{ev.timestamp}</td>
                     </tr>
                   <% end %>
                 </tbody>

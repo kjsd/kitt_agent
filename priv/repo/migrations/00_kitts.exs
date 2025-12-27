@@ -9,6 +9,8 @@ defmodule KittAgent.Repo.Migrations.Kitts do
       add :vendor, :string
       add :birthday, :date
       add :hometown, :string
+      add :lang, :string, null: false
+      add :timezone, :string, null: false
 
       timestamps()
     end

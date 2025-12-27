@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+
 config :kitt_agent,
   api_urls: [
     openrouter: "https://openrouter.ai/api/v1/chat/completions",

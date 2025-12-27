@@ -4,24 +4,24 @@ defmodule KittAgent.Prompts do
   alias KittAgent.Events
   alias KittAgent.Memories
 
-  defp head(%Kitt{} = kitt) do
-    bio = kitt.biography
+  defp head(%Kitt{biography: bio} = kitt) do
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
     memory = kitt |> Memories.last_content()
 
     """
     <character>
-    <name>%%NAME%%</name>
-    <model>%%MODEL%%</model>
-    <vendor>%%VENDOR%%</vendor>
-    <birthday>%%BIRTHDAY%%</birthday>
-    <hometown>%%HOMETOWN%%</hometown>
+    <name>#{kitt.name}</name>
+    <model>#{kitt.model}</model>
+    <vendor>#{kitt.vendor}</vendor>
+    <birthday>#{Date.to_string(kitt.birthday)}</birthday>
+    <hometown>#{kitt.hometown}</hometown>
+    <timezone>#{kitt.timezone}</timezone>
     <personality>
-    %%PERSONALITY%%
+    #{personality}
     </personality>
     </character>
     <middle-term-memory>
-    %%MEMORY%%
+    #{memory}
     </middle-term-memory>
 
     <available_actions_list>
@@ -35,33 +35,27 @@ defmodule KittAgent.Prompts do
     AVAILABLE ACTION: Stop (parameters: "none")
     </available_actions_list>'
     """
-    |> String.replace("%%NAME%%", kitt.name)
-    |> String.replace("%%MODEL%%", kitt.model)
-    |> String.replace("%%VENDOR%%", kitt.vendor)
-    |> String.replace("%%BIRTHDAY%%", kitt.birthday |> Date.to_string())
-    |> String.replace("%%HOMETOWN%%", kitt.hometown)
-    |> String.replace("%%PERSONALITY%%", personality)
-    |> String.replace("%%MEMORY%%", memory)
   end
 
-  @prop_message "Concise Japanese dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
-
+  defp prop_message(%Kitt{lang: lang}) do
+     "Concise #{lang} dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+  end
+     
   defp tail(%Kitt{} = kitt) do
     """
-    (If %%NAME%% is just speaking, use action "Talk". If another action is even remotely
+    (If #{kitt.name} is just speaking, use action "Talk". If another action is even remotely
     contextually appropriate, use it, even if in doubt).  Use ONLY this JSON object to
     give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk", "target":"action target", "parameters": "parameters (e.g. 5s) or none", "message":"#{@prop_message}"}
+    "action":"Talk", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
-    |> String.replace("%%NAME%%", kitt.name)
   end
 
   @standard_model "google/gemini-2.5-flash-lite-preview-09-2025"
   @summary_model "google/gemini-3-flash-preview"
 
-  def llm_opts(model) do
+  def llm_opts(%Kitt{} = kitt, model) do
     %{
       model: model,
       provider: %{
@@ -79,7 +73,7 @@ defmodule KittAgent.Prompts do
             properties: %{
               message: %{
                 type: "string",
-                description: @prop_message
+                description: prop_message(kitt)
               },
               mood: %{
                 type: "string",
@@ -117,21 +111,15 @@ defmodule KittAgent.Prompts do
                   "Stop"
                 ]
               },
-              target: %{
+              listener: %{
                 type: "string",
-                description: "action target actor or object"
-              },
-              parameters: %{
-                type: "string",
-                description:
-                  "action parameters (e.g. '5s', '10cm', '90deg'). Use 'none' if not applicable."
+                description: "target to talk"
               },
               required: [
                 "message",
                 "mood",
                 "action",
-                "target",
-                "parameters"
+                "listener",
               ],
               additionalProperties: false
             },
@@ -151,25 +139,23 @@ defmodule KittAgent.Prompts do
     |> then(&(&1 ++ [last_ev]))
     |> Enum.map(&%{role: &1.role, content: Jason.encode!(&1.content)})
     |> then(&([h | &1] ++ [t]))
-    |> then(&(llm_opts(@standard_model) |> Map.put(:messages, &1)))
+    |> then(&(llm_opts(kitt, @standard_model) |> Map.put(:messages, &1)))
   end
 
-  @summary_system_prompt """
-  You are an expert summarizer for the AI character "%%NAME%%".
-  Your task is to condense the provided conversation logs into a concise, narrative summary (Long-term Memory).
+  defp summary_system_prompt(%Kitt{name: name, lang: lang}) do
+    """
+    You are an expert summarizer for the AI character "#{name}".
+    Your task is to condense the provided conversation logs into a concise, narrative summary (Long-term Memory).
 
-  Guidelines:
-  1. Language: Japanese.
-  2. Perspective: Write from an objective perspective focusing on "%%NAME%%"'s experiences.
-  3. Focus: Key discussions, facts about the user, and "%%NAME%%"'s emotional journey.
-  4. Length: Concise (around 3-5 sentences).
-  """
+    Guidelines:
+    1. Language: #{lang}.
+    2. Perspective: Write from an objective perspective focusing on "#{name}"'s experiences.
+    3. Focus: Key discussions, facts about the user, and "#{name}"'s emotional journey.
+    4. Length: Concise (around 3-5 sentences).
+    """
+  end
 
   def summary(%Kitt{} = kitt, events) when is_list(events) do
-    system_content =
-      @summary_system_prompt
-      |> String.replace("%%NAME%%", kitt.name)
-
     memory = kitt |> Memories.last_content()
 
     conversation_text =
@@ -181,12 +167,12 @@ defmodule KittAgent.Prompts do
       |> Enum.join("\n")
 
     messages = [
-      %{role: "system", content: system_content},
+      %{role: "system", content: summary_system_prompt(kitt)},
       %{role: "user", content: "Middle term memory:\n" <> memory},
       %{role: "user", content: "Conversation Log:\n" <> conversation_text}
     ]
 
-    llm_opts(@summary_model)
+    llm_opts(kitt, @summary_model)
     |> Map.drop([:response_format, :structured_outputs])
     |> Map.put(:messages, messages)
   end
