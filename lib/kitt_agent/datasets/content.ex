@@ -2,24 +2,24 @@ defmodule KittAgent.Datasets.Content do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:action, :parameters, :message, :target, :mood, :timestamp]}
+  @derive {Jason.Encoder, only: [:action, :message, :listener, :mood]}
   schema "contents" do
     field :action, :string
-    field :parameters, :string
     field :message, :string
-    field :target, :string
+    field :listener, :string
     field :mood, :string
-    field :timestamp, :naive_datetime
 
     belongs_to :event, KittAgent.Datasets.Event
-
+    has_many :system_actions, KittAgent.Datasets.SystemAction
+    
     timestamps()
   end
 
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:action, :parameters, :message, :target, :mood, :timestamp])
+    |> cast(attrs, [:action, :message, :listener, :mood])
     |> validate_required([:action, :message])
+    |> cast_assoc(:system_actions)
   end
 end

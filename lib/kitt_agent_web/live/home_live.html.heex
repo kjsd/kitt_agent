@@ -33,7 +33,7 @@
     <main class="p-6">
       <form phx-submit="talk">
         <div class="flex flex-col p-6 w-full">
-          <select name="id" class="select">
+          <select name="id" class="select" phx-change="kitt" phx-target="{@myself}">
             <%= for kitt <- @kitts do %>
               <option value={kitt.id}>{kitt.name}@{kitt.id}</option>
             <% end %>
@@ -81,8 +81,7 @@
                     <th>Role</th>
                     <th>Message</th>
                     <th>Action</th>
-                    <th>Params</th>
-                    <th>Target</th>
+                    <th>Listener</th>
                     <th>Mood</th>
                     <th>Timestamp</th>
                   </tr>
@@ -98,11 +97,18 @@
                       <td>{ev.kitt.name}</td>
                       <td>{ev.role}</td>
                       <td>{ev.content.message}</td>
-                      <td>{ev.content.action}</td>
-                      <td>{ev.content.parameters}</td>
-                      <td>{ev.content.target}</td>
+                      <td>
+                        <%= if ev.content.action == "SystemActions" do %>
+                          <button class="btn btn-xs btn-info" phx-click="show_actions" phx-value-id={ev.id}>
+                            {length(ev.content.system_actions)}
+                          </button>
+                        <% else %>
+                          {ev.content.action}
+                        <% end %>
+                      </td>
+                      <td>{ev.content.listener}</td>
                       <td>{ev.content.mood}</td>
-                      <td>{ev.content.timestamp}</td>
+                      <td>{ev.timestamp}</td>
                     </tr>
                   <% end %>
                 </tbody>
@@ -129,6 +135,30 @@
         </div>
       </div>
     </main>
+    
+    <%= if @selected_system_actions do %>
+      <div class="modal modal-open">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg">System Actions</h3>
+          <div class="py-4">
+            <ul class="steps steps-vertical w-full">
+              <%= for action <- @selected_system_actions do %>
+                <li class="step step-primary w-full text-left" data-content="●">
+                  <div class="flex justify-between w-full pl-2">
+                    <span class="font-bold">{action.action}</span>
+                    <span class="badge badge-ghost">{action.parameter}</span>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+          <div class="modal-action">
+            <button class="btn" phx-click="close_actions">Close</button>
+          </div>
+        </div>
+        <div class="modal-backdrop" phx-click="close_actions"></div>
+      </div>
+    <% end %>
   </div>
   
 <!-- サイドバー (Drawer Side) -->

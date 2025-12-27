@@ -16,13 +16,6 @@ defmodule KittAgent.Kitts do
     last_fn: fn query, _ ->
       query
       |> preload(:biography)
-    end
-
-  def create(attr, bio \\ %{}) do
-    with {:ok, o} <- create_kitt(attr) do
-      o
-      |> Ecto.build_assoc(:biography, bio)
-      |> Repo.insert!()
-    end
   end
+
 end

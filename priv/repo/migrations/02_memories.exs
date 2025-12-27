@@ -3,7 +3,7 @@ defmodule KittAgent.Repo.Migrations.Memories do
 
   def change do
     create table("memories") do
-      add :content, :string
+      add :content, :text
 
       add :kitt_id, references(:kitts, type: :binary_id)
 

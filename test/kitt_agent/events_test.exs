@@ -26,14 +26,13 @@ defmodule KittAgent.EventsTest do
         role: "user",
         content: %KittAgent.Datasets.Content{
           action: "Talk",
-          parameters: "none",
-          timestamp: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-          target: "TestKitt",
-          message: "Hello"
+          listener: "TestKitt",
+          message: "Hello",
+          mood: "neutral"
         }
       }
 
-      {:ok, ev} = Events.create_event(kitt, event_params)
+      {:ok, ev} = Events.create_kitt_event(event_params, kitt)
 
       assert ev.content.message == "Hello"
 
@@ -44,13 +43,13 @@ defmodule KittAgent.EventsTest do
       Events.subscribe()
 
       content_attrs = %{
-        "action" => "Reply",
-        "parameters" => "none",
-        "target" => "User",
-        "message" => "Meow"
+        "action" => "Talk",
+        "listener" => "User",
+        "message" => "Meow",
+        "mood" => "happy"
       }
 
-      {:ok, ev} = Events.create_kitt_event(kitt, content_attrs)
+      {:ok, ev} = Events.create_kitt_event(Events.make_kitt_event(content_attrs), kitt)
 
       assert ev.content.message == "Meow"
 
@@ -58,9 +57,9 @@ defmodule KittAgent.EventsTest do
     end
 
     test "delete_events/1 deletes specified events", %{kitt: kitt} do
-      {:ok, ev1} = Events.create_event(kitt, Events.make_talk_event(kitt, "msg1"))
-      {:ok, ev2} = Events.create_event(kitt, Events.make_talk_event(kitt, "msg2"))
-      {:ok, ev3} = Events.create_event(kitt, Events.make_talk_event(kitt, "msg3"))
+      {:ok, ev1} = Events.create_kitt_event(Events.make_user_talk_event("msg1"), kitt)
+      {:ok, ev2} = Events.create_kitt_event(Events.make_user_talk_event("msg2"), kitt)
+      {:ok, ev3} = Events.create_kitt_event(Events.make_user_talk_event("msg3"), kitt)
 
       assert {2, _} = Events.delete_events([ev1.id, ev3.id])
 

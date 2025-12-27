@@ -3,13 +3,16 @@ defmodule KittAgent.Datasets.Kitt do
   import Ecto.Changeset
 
   @primary_key {:id, :binary_id, autogenerate: true}
-  @derive {Jason.Encoder, only: [:id, :name, :model, :vendor, :birthday, :hometown]}
+  @derive {Jason.Encoder, only: [:id, :name, :model, :vendor, :birthday, :hometown,
+                                 :lang, :timezone]}
   schema "kitts" do
     field :name, :string
     field :model, :string
     field :vendor, :string
     field :birthday, :date
     field :hometown, :string
+    field :lang, :string, default: "English"
+    field :timezone, :string, default: "Etc/UTC"
 
     has_one :biography, KittAgent.Datasets.Biography
     has_many :events, KittAgent.Datasets.Event
@@ -21,7 +24,7 @@ defmodule KittAgent.Datasets.Kitt do
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:id, :name, :model, :vendor, :birthday, :hometown])
+    |> cast(attrs, [:id, :name, :model, :vendor, :birthday, :hometown, :lang, :timezone])
     |> validate_required([:name])
     |> cast_assoc(:biography)
   end

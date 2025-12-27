@@ -9,7 +9,7 @@ defmodule KittAgent.Requests do
   def talk(%Kitt{} = kitt, user_text) do
     api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
 
-    last_ev = kitt |> Events.make_talk_event(user_text)
+    last_ev = Events.make_user_talk_event(user_text)
 
     case Req.post(Application.get_env(:kitt_agent, :api_urls)[:openrouter],
            json: kitt |> Prompts.make(last_ev),
@@ -22,8 +22,12 @@ defmodule KittAgent.Requests do
       {:ok, %{status: 200, body: resp_body}} ->
         with [choice | _] <- resp_body["choices"],
              {:ok, res} <- Jason.decode(choice["message"]["content"]) do
-          kitt |> Events.create_event(last_ev)
-          kitt |> Events.create_kitt_event(res)
+          last_ev |> Events.create_kitt_event(kitt)
+
+          res
+          |> Events.make_kitt_event()
+          |> Events.create_kitt_event(kitt)
+
           kitt.id |> Summarizer.exec()
 
           {:ok, res}

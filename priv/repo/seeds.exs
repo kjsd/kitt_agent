@@ -13,10 +13,7 @@
 alias KittAgent.Kitts
 
 today = BasicContexts.Utils.today_jpn()
-
-bio = %{
-  personality: "%%NAME%%'s tone is identical to Knight Rider's K.I.T.T."
-}
+personality = "%%NAME%%'s tone is identical to Knight Rider's K.I.T.T."
 
 %{
   id: "2d16ba43-3eb0-46c2-9583-e38dbb82c5fa",
@@ -24,6 +21,11 @@ bio = %{
   vendor: "Makeblock",
   model: "mBot2",
   birthday: today,
-  hometown: "東白川村，日本"
+  hometown: "東白川村，日本",
+  lang: "Japanese",
+  timezone: "Asia/Tokyo",
+  biography: %{
+    personality: personality
+  }
 }
-|> Kitts.create(bio)
+|> Kitts.create_kitt()
