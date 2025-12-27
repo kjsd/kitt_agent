@@ -23,7 +23,7 @@ defmodule KittAgent.Events do
     last_fn: fn query, args ->
       query
       |> add_if(args[:order_by], &(&2 |> order_by(^&1)))
-      |> preload([:kitt, :content])
+      |> preload([:kitt, content: :system_actions])
     end
 
   @recent 100

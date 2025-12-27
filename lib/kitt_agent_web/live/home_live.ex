@@ -40,12 +40,26 @@ defmodule KittAgentWeb.HomeLive do
     |> assign(pa: pa)
     |> assign(pz: pz)
     |> assign(pl: pl)
+    |> assign(selected_system_actions: nil)
     |> then(&{:ok, &1})
   end
 
   def handle_info({[:event, :created], _}, socket) do
     # Refresh the current page
     handle_event("page", %{"i" => socket.assigns.p}, socket)
+  end
+
+  def handle_event("show_actions", %{"id" => id}, socket) do
+    actions =
+      socket.assigns.events
+      |> Enum.find(&(&1.id == id))
+      |> then(& &1.content.system_actions)
+
+    {:noreply, assign(socket, selected_system_actions: actions)}
+  end
+
+  def handle_event("close_actions", _, socket) do
+    {:noreply, assign(socket, selected_system_actions: nil)}
   end
 
   def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do
