@@ -47,6 +47,7 @@
               <th>Hometown</th>
               <th>Lang</th>
               <th>Timezone</th>
+              <th>Biography</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -59,6 +60,9 @@
               <td>{kitt.hometown}</td>
               <td>{kitt.lang}</td>
               <td>{kitt.timezone}</td>
+              <td>
+                <.button phx-click="show_bio" phx-value-id={kitt.id} class="btn btn-sm btn-ghost">View</.button>
+              </td>
               <td>
                 <div class="join">
                   <.link
@@ -165,4 +169,9 @@
     kitt={@kitt}
     patch={~p"/kitt-web/kitts"}
   />
+</.modal>
+
+<.modal :if={@live_action == :show_bio} id="kitt-bio-modal" show on_cancel={JS.patch(~p"/kitt-web/kitts")}>
+  <h2 class="text-lg font-bold mb-4">Biography for <%= @kitt.name %></h2>
+  <div class="whitespace-pre-wrap"><%= @kitt.biography.personality %></div>
 </.modal>

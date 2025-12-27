@@ -100,7 +100,7 @@
                       <td>
                         <%= if ev.content.action == "SystemActions" do %>
                           <button class="btn btn-xs btn-info" phx-click="show_actions" phx-value-id={ev.id}>
-                            SystemActions ({length(ev.content.system_actions)})
+                            {length(ev.content.system_actions)}
                           </button>
                         <% else %>
                           {ev.content.action}

@@ -23,13 +23,23 @@ defmodule KittAgentWeb.KittLive.Index do
   defp apply_action(socket, :new, _params) do
     socket
     |> assign(:page_title, "New Kitt")
-    |> assign(:kitt, %Kitt{biography: %KittAgent.Datasets.Biography{}})
+    |> assign(:kitt, %Kitt{
+      lang: "Japanese",
+      timezone: "Asia/Tokyo",
+      biography: %KittAgent.Datasets.Biography{}
+    })
   end
 
   defp apply_action(socket, :index, _params) do
     socket
     |> assign(:page_title, "Listing Kitts")
     |> assign(:kitt, nil)
+  end
+
+  @impl true
+  def handle_event("show_bio", %{"id" => id}, socket) do
+    kitt = Kitts.get_kitt!(id)
+    {:noreply, assign(socket, kitt: kitt, live_action: :show_bio, page_title: "Show Biography")}
   end
 
   @impl true

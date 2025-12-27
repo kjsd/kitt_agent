@@ -24,8 +24,18 @@ defmodule KittAgentWeb.KittLive.FormComponent do
         <.input field={@form[:vendor]} type="text" label="Vendor" />
         <.input field={@form[:birthday]} type="date" label="Birthday" />
         <.input field={@form[:hometown]} type="text" label="Hometown" />
-        <.input field={@form[:lang]} type="text" value="Japanese" label="Lang" />
-        <.input field={@form[:timezone]} type="text" value="Asia/Tokyo" label="Timezone" />
+        <.input
+          field={@form[:lang]}
+          type="select"
+          label="Lang"
+          options={@languages}
+        />
+        <.input
+          field={@form[:timezone]}
+          type="select"
+          label="Timezone"
+          options={@timezones}
+        />
 
         <.inputs_for :let={bio_form} field={@form[:biography]}>
           <.input field={bio_form[:personality]} type="textarea" label="Personality" />
@@ -42,10 +52,33 @@ defmodule KittAgentWeb.KittLive.FormComponent do
   @impl true
   def update(%{kitt: kitt} = assigns, socket) do
     changeset = Kitts.change_kitt(kitt)
+    timezones = Tzdata.zone_list()
+    languages = [
+      "Arabic",
+      "Chinese",
+      "Dutch",
+      "English",
+      "French",
+      "German",
+      "Hindi",
+      "Indonesian",
+      "Italian",
+      "Japanese",
+      "Korean",
+      "Portuguese",
+      "Russian",
+      "Spanish",
+      "Swahili",
+      "Thai",
+      "Turkish",
+      "Vietnamese"
+    ]
 
     {:ok,
      socket
      |> assign(assigns)
+     |> assign(:timezones, timezones)
+     |> assign(:languages, languages)
      |> assign_form(changeset)}
   end
 

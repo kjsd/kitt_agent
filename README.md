@@ -2,38 +2,69 @@
 
 **KittAgent** is an advanced AI agent platform built with **Elixir** and **Phoenix LiveView**, designed to bring physical robots to life using Large Language Models (LLMs).
 
-It currently specializes in controlling **mBot2** robots, enabling them to engage in natural language conversations (Japanese) while autonomously deciding on physical actions like moving and turning based on context.
+It currently specializes in controlling **mBot2** robots, enabling them to engage in natural language conversations while autonomously deciding on physical actions like moving and turning based on context.
 
 ## 🚀 Key Features
 
-*   **LLM-Driven Intelligence**: Powered by **Google Gemini** (Flash/Pro) models for high-speed, context-aware responses.
-*   **Physical Agent Control (mBot2)**:
-    *   Translates natural conversation into structured JSON commands.
-    *   Supported Actions: `Talk`, `MoveForward`, `MoveBackward`, `TurnLeft`, `TurnRight`, `Stop`.
-    *   Parameter Support: Precise control with parameters like `5s` (duration), `10cm` (distance), or `90deg` (angle).
-*   **Advanced Memory System**:
-    *   **Short-term Memory**: Maintains immediate conversational context.
-    *   **Long-term Memory**: Automatically summarizes past interactions into narrative memories, allowing the agent to "remember" users and events over time.
-*   **Live Dashboard**:
-    *   Real-time monitoring of agent status and dialogue.
-    *   Visualization of internal thought processes, emotions (`mood`), and generated actions.
-    *   Transaction logs showing exact parameters sent to the hardware.
-*   **Configurable Personalities**: Define unique biographies, traits, and prompt structures for different agent instances ("Kitts").
+### 1. Advanced Agent Management ("Kitts")
+*   **Comprehensive Profiles**: Manage multiple agents with distinct profiles including Name, Model, Vendor, Birthday, and Hometown.
+*   **Localization Support**:
+    *   **Language Selection**: Choose from 18+ languages (Japanese, English, Swahili, etc.) for your agent's communication.
+    *   **Timezone Awareness**: Selectable timezone support (via `Tzdata`) to ground the agent in a specific locale.
+*   **Personality Engine**: Define complex biographies and behavioral traits ("Personality").
+*   **UI Enhancements**:
+    *   **Biography Popup**: Quickly view detailed agent personas via a modal in the list view.
+    *   **Smart Forms**: Dropdown selection for languages and timezones with sensible defaults (Japanese / Asia/Tokyo).
+
+### 2. LLM-Driven Intelligence & Control
+*   **State-of-the-Art Models**:
+    *   **Conversation**: Powered by **Google Gemini 2.5 Flash Lite Preview** for high-speed, low-latency responses.
+    *   **Summarization**: Utilizes **Google Gemini 3.0 Flash Preview** for distinct, high-quality memory consolidation.
+*   **Structured Outputs**: Enforces strict JSON Schema for all LLM responses to ensure reliable parsing.
+*   **Physical Capabilities (SystemActions)**:
+    *   The agent can decide to perform physical actions instead of or alongside talking.
+    *   **Supported Actions**: `MoveForward`, `MoveBackward`, `TurnLeft`, `TurnRight`, `Stop`.
+    *   **Parameter Control**: Precise execution with parameters like `duration_sec` (e.g., "5s"), `distance_cm` (e.g., "10cm"), or `angle_degrees` (e.g., "90deg").
+
+### 3. Dual-Layer Memory Architecture
+*   **Short-term Memory (Events)**:
+    *   Maintains a log of the last ~20-100 interactions to provide immediate context.
+    *   Stores detailed structured data including Mood, Message, and Action parameters.
+*   **Long-term Memory (Memories)**:
+    *   **Auto-Summarization**: A background `Summarizer` process monitors conversation flow.
+    *   **Trigger Logic**: Automatically condenses every ~20 new events into a narrative summary.
+    *   **Injection**: The most recent summary is injected into the system prompt, giving the agent a persistent sense of history.
+
+### 4. Interactive Dashboard
+*   **Real-time Chat**: interact directly with your Kitt agents via a web interface.
+*   **Live Monitoring**: Watch the agent's internal state, including:
+    *   **Mood**: (e.g., `sassy`, `playful`, `irritated`).
+    *   **Thought Process**: See the raw JSON decisions made by the LLM.
+    *   **Physical Logs**: Track the exact commands sent to the mBot2 hardware.
 
 ## 🛠 Tech Stack
 
-*   **Framework**: [Phoenix](https://www.phoenixframework.org/) (Elixir)
+*   **Core**: Elixir, Phoenix Framework (LiveView)
 *   **Database**: PostgreSQL
-*   **AI Provider**: Google Vertex AI (Gemini 2.5 Flash / 3.0 Flash)
-*   **Frontend**: Phoenix LiveView + Tailwind CSS
+*   **AI Provider**: Google Vertex AI (via OpenRouter or direct API)
+*   **Styling**: Tailwind CSS + DaisyUI
+*   **Infrastructure**: Docker & Docker Compose
+
+## 🗄 Database Schema Overview
+
+*   **kitts**: Core agent metadata (name, lang, timezone, etc.).
+*   **biographies**: Stores the detailed "Personality" text for each Kitt.
+*   **events**: The raw log of all interactions (user inputs and agent responses).
+*   **contents**: Detailed structured data for each event (message, action type, mood).
+*   **system_actions**: Specific parameters for physical actions (e.g., `MoveForward` 10cm).
+*   **memories**: Narrative summaries generated by the Summarizer.
 
 ## 📦 Installation & Setup
 
 ### Prerequisites
-*   Elixir ~> 1.15
-*   Docker
+*   Docker & Docker Compose
 
-### Steps
+### Quick Start
 
 1.  **Clone the repository:**
     ```bash
@@ -41,29 +72,28 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
     cd kitt_agent
     ```
 
-3.  **Install Dependencies:**
+2.  **Setup Environment & Dependencies:**
+    This command installs Elixir dependencies and sets up the database.
     ```bash
     docker compose run --rm app mix setup
     ```
 
-4.  **Configuration:**
-    *   Ensure your Google Vertex AI credentials/environment variables are set up (typically via GCloud auth or service account JSON).
+3.  **Configure Credentials:**
+    Ensure you have your Google Vertex AI / OpenRouter API keys configured.
+    (Check `config/runtime.exs` or `.env` files if applicable).
 
-5.  **Start the Server:**
+4.  **Start the Server:**
     ```bash
     docker compose up
     ```
 
     Visit `http://localhost:4000` to access the KittAgent Dashboard.
 
-## 🤖 Usage
-
-1.  **Dashboard**: Open the web interface to view active agents.
-2.  **Interaction**: Agents process incoming text/audio (depending on client implementation) and generate:
-    *   **Message**: Spoken response (Japanese).
-    *   **Mood**: Emotional state (e.g., `playful`, `sassy`, `neutral`).
-    *   **Action**: Physical command for the mBot2.
-3.  **Memory**: The system automatically triggers summarization tasks to condense old logs into long-term memory when the context window fills up.
+5.  **Run Tests:**
+    To ensure everything is working correctly:
+    ```bash
+    docker compose run --rm -e MIX_ENV=test app mix test
+    ```
 
 ## 📝 License
 
