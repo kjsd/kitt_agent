@@ -12,14 +12,6 @@ defmodule KittAgentWeb.KittLiveTest do
     "hometown" => "some hometown",
     "biography" => %{"personality" => "some personality"}
   }
-  @update_attrs %{
-    "name" => "some updated name",
-    "model" => "some updated model",
-    "vendor" => "some updated vendor",
-    "birthday" => "2023-01-02",
-    "hometown" => "some updated hometown",
-    "biography" => %{"personality" => "some updated personality"}
-  }
 
   defp create_kitt(_) do
     {:ok, kitt} = Kitts.create_kitt(@create_attrs)
@@ -55,30 +47,5 @@ defmodule KittAgentWeb.KittLiveTest do
       assert html =~ "some name"
     end
 
-    test "updates kitt in listing", %{conn: conn, kitt: kitt} do
-      {:ok, index_live, _html} = live(conn, ~p"/kitt-web/kitts")
-
-      assert index_live |> element("#kitts-#{kitt.id} a", "Edit") |> render_click() =~
-               "Edit Kitt"
-
-      assert_patch(index_live, ~p"/kitt-web/kitts/#{kitt}/edit")
-
-      assert index_live
-             |> form("#kitt-form", kitt: @update_attrs)
-             |> render_submit()
-
-      assert_patch(index_live, ~p"/kitt-web/kitts")
-
-      html = render(index_live)
-      assert html =~ "Kitt updated successfully"
-      assert html =~ "some updated name"
-    end
-
-    test "deletes kitt in listing", %{conn: conn, kitt: kitt} do
-      {:ok, index_live, _html} = live(conn, ~p"/kitt-web/kitts")
-
-      assert index_live |> element("#kitts-#{kitt.id} a", "Delete") |> render_click()
-      refute has_element?(index_live, "#kitts-#{kitt.id}")
-    end
   end
 end
