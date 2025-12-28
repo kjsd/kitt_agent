@@ -28,5 +28,7 @@ defmodule KittAgentWeb.Router do
 
     post "/talk/", KittController, :talk
     post "/tts", KittController, :tts
+    get "/actions/pending", SystemActionController, :pending
+    post "/actions/:content_id/complete", SystemActionController, :complete
   end
 end

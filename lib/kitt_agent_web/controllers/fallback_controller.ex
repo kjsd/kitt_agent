@@ -43,7 +43,9 @@ defmodule KittAgentWeb.FallbackController do
   def call(conn, {:error, :invalid_format}),
     do: call(conn, {:error, :unprocessable_entity})
 
-  def call(conn, {:error, %Ecto.Changeset{} = c}) do
+  def call(conn, {:error, %Ecto.Changeset{} = c} = e) do
+    e |> inspect |> Logger.error()
+
     conn
     |> put_status(:unprocessable_entity)
     |> put_view(KittAgentWeb.ErrorJSON)

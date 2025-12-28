@@ -5,11 +5,18 @@ defmodule KittAgent.Events do
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
   alias KittAgent.Datasets.Event
+  alias KittAgent.Datasets.Content
 
   use BasicContexts,
     repo: Repo,
     funcs: [:get, :create],
     attrs: [singular: :event, plural: :events, schema: Event, preload: :content]
+
+  use BasicContexts,
+    repo: Repo,
+    funcs: [:get, :update],
+    attrs: [singular: :content, plural: :contents, schema: Content,
+            preload: :system_actions]
 
   use BasicContexts.PartialList,
     repo: Repo,
@@ -53,10 +60,15 @@ defmodule KittAgent.Events do
       |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
       |> Map.update(:content, nil, fn
         %KittAgent.Datasets.Content{} = c ->
+          status = if match?([_ | _], c.system_actions), do: "pending", else: "completed"
+
           c
           |> Map.from_struct()
+          |> Map.put(:status, status)
           |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
-        other -> other
+
+        other ->
+          other
       end)
 
     ev_map
@@ -113,5 +125,10 @@ defmodule KittAgent.Events do
       _ -> event |> Map.put(:timestamp, ts)
     end
   end
+
+  def content_with_actions(%Event{content: %Content{system_actions: [_|_]} = x}), do: x
+  def content_with_actions(_), do: nil
+
+  def update_content_status(%Content{} = c, s), do: update_content(c, %{status: s})
   
 end

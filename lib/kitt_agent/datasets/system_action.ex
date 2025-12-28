@@ -2,7 +2,7 @@ defmodule KittAgent.Datasets.SystemAction do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:action, :parameter, :target]}
+  @derive {Jason.Encoder, only: [:action, :parameter, :target, :content_id]}
   schema "system_actions" do
     field :action, :string
     field :parameter, :string
