@@ -179,7 +179,7 @@ defmodule KittAgent.Prompts do
     conversation_text =
       events
       |> Enum.map(&Events.with_timestamp(&1, kitt))
-      |> Enum.map(&("[#{&1.timestampts}] #{&1.role}: #{&1.content.message} (Mood: #{&1.content.mood})"))
+      |> Enum.map(&("[#{&1.timestamp}] #{&1.role}: #{&1.content.message} (Mood: #{&1.content.mood})"))
       |> Enum.join("\n")
 
     messages = [
