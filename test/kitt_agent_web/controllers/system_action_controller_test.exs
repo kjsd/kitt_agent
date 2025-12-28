@@ -21,16 +21,16 @@ defmodule KittAgentWeb.SystemActionControllerTest do
     {:ok, event} = Events.make_kitt_event(actions_content) |> Events.create_kitt_event(kitt)
     
     # Queueに入れる
-    Queue.enqueue(kitt.id, event.content.system_actions)
+    Queue.enqueue(kitt.id, event.content)
 
     %{conn: conn, kitt: kitt, content: event.content}
   end
 
-  describe "index (pending actions)" do
+  describe "pending actions" do
     test "GET /kitt/:id/actions/pending retrieves pending actions", %{conn: conn, kitt: kitt, content: content} do
       conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
       
-      assert %{"data" => [%{"action" => "test_action"}]} = json_response(conn, 200)
+      assert %{"system_actions" => [%{"action" => "test_action"}]} = json_response(conn, 200)
       
       # ステータスが processing になっていることを確認
       updated_content = Repo.get(Content, content.id)
@@ -43,7 +43,7 @@ defmodule KittAgentWeb.SystemActionControllerTest do
 
       # 2回目のGET
       conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
-      assert %{"data" => []} = json_response(conn, 200)
+      assert response(conn, 404)
     end
   end
 

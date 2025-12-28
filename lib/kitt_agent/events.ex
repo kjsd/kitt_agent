@@ -12,6 +12,12 @@ defmodule KittAgent.Events do
     funcs: [:get, :create],
     attrs: [singular: :event, plural: :events, schema: Event, preload: :content]
 
+  use BasicContexts,
+    repo: Repo,
+    funcs: [:get, :update],
+    attrs: [singular: :content, plural: :contents, schema: Content,
+            preload: :system_actions]
+
   use BasicContexts.PartialList,
     repo: Repo,
     plural: :events,
@@ -120,7 +126,9 @@ defmodule KittAgent.Events do
     end
   end
 
-  def system_actions(%Event{content: %Content{system_actions: [_|_] = x}}), do: x
-  def system_actions(_), do: []
+  def content_with_actions(%Event{content: %Content{system_actions: [_|_]} = x}), do: x
+  def content_with_actions(_), do: nil
+
+  def update_content_status(%Content{} = c, s), do: update_content(c, %{status: s})
   
 end

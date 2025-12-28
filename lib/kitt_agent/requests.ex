@@ -1,5 +1,6 @@
 defmodule KittAgent.Requests do
   alias KittAgent.Datasets.Kitt
+  alias KittAgent.Datasets.Content
   alias KittAgent.Prompts
   alias KittAgent.Events
   alias KittAgent.Summarizer
@@ -29,8 +30,8 @@ defmodule KittAgent.Requests do
           |> Events.make_kitt_event()
           |> Events.create_kitt_event(kitt)
           |> elem(1)
-          |> Events.system_actions()
-          |> then(&if(match?([_|_], &1), do: Queue.enqueue(kitt.id, &1)))
+          |> Events.content_with_actions()
+          |> then(&if(match?(%Content{}, &1), do: Queue.enqueue(kitt.id, &1)))
 
           kitt.id |> Summarizer.exec()
 

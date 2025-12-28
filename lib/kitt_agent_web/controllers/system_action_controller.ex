@@ -3,48 +3,28 @@ defmodule KittAgentWeb.SystemActionController do
 
   alias KittAgent.SystemActions.Queue
   alias KittAgent.Datasets.Content
-  alias KittAgent.Repo
+  alias KittAgent.Events
 
+  require Logger
+  
   action_fallback KittAgentWeb.FallbackController
 
-  def index(conn, %{"id" => kitt_id}) do
-    case Queue.dequeue(kitt_id) do
-      [_|_] = actions ->
-        # リストの先頭から content_id を取得（全部同じcontent_idのはず）
-        content_id = List.first(actions).content_id
+  def pending(conn, %{"id" => kitt_id}) do
+    with %Content{} = c <- Queue.dequeue(kitt_id) do
+      Events.update_content_status(c, "processing")
 
-        # DBのstatusをprocessingに更新
-        update_content_status(content_id, "processing")
-
-        json(conn, %{data: actions})
-
-      _ ->
-        json(conn, %{data: []})
+      conn
+      |> json(c)
     end
   end
 
   def complete(conn, %{"id" => _kitt_id, "content_id" => content_id}) do
-    case update_content_status(content_id, "completed") do
-      {:ok, _content} ->
-        send_resp(conn, :ok, "")
-      
-      {:error, _} ->
-        conn
-        |> put_status(:not_found)
-        |> put_view(json: KittAgentWeb.ErrorJSON)
-        |> render(:"404")
+    with %Content{} = c <- Events.get_content(content_id),
+         {:ok, _} <- Events.update_content_status(c, "completed") do
+
+      conn
+      |> json(%{status: "OK"})
     end
   end
 
-  defp update_content_status(content_id, status) do
-    case Repo.get(Content, content_id) do
-      nil ->
-        {:error, :not_found}
-        
-      content ->
-        content
-        |> Content.changeset(%{status: status})
-        |> Repo.update()
-    end
-  end
 end
