@@ -45,7 +45,7 @@ defmodule KittAgentWeb.KittLive.Index do
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     kitt = Kitts.get_kitt!(id)
-    {:ok, _} = Kitts.delete_kitt(kitt)
+    {:ok, _} = Kitts.delete(kitt)
 
     {:noreply, stream_delete(socket, :kitts, kitt)}
   end

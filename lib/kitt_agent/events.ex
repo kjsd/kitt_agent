@@ -5,6 +5,7 @@ defmodule KittAgent.Events do
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
   alias KittAgent.Datasets.Event
+  alias KittAgent.Datasets.Content
 
   use BasicContexts,
     repo: Repo,
@@ -113,5 +114,8 @@ defmodule KittAgent.Events do
       _ -> event |> Map.put(:timestamp, ts)
     end
   end
+
+  def system_actions(%Event{content: %Content{system_actions: [_|_] = x}}), do: x
+  def system_actions(_), do: []
   
 end

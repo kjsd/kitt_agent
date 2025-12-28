@@ -41,6 +41,7 @@ defmodule KittAgent.MixProject do
   defp deps do
     [
       {:req, "~> 0.5"},
+      {:rpcsdk, "~> 0.5.0"},
       {:basic_contexts, "~> 0.1.8"},
       {:phoenix, "~> 1.8.2"},
       {:phoenix_ecto, "~> 4.5"},

@@ -13,6 +13,7 @@ defmodule KittAgent.Application do
       {DNSCluster, query: Application.get_env(:kitt_agent, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: KittAgent.PubSub},
       KittAgent.Summarizer,
+      KittAgent.SystemActions,
       KittAgentWeb.Endpoint
     ]
 

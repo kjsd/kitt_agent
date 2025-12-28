@@ -3,6 +3,7 @@ defmodule KittAgent.Kitts do
 
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
+  alias KittAgent.SystemActions.Queue
 
   use BasicContexts,
     repo: Repo,
@@ -18,4 +19,9 @@ defmodule KittAgent.Kitts do
       |> preload(:biography)
   end
 
+  def delete(%Kitt{} = kitt) do
+    Queue.terminate(kitt.id)
+    delete_kitt(kitt)
+  end
+  
 end

@@ -3,6 +3,7 @@ defmodule KittAgent.Requests do
   alias KittAgent.Prompts
   alias KittAgent.Events
   alias KittAgent.Summarizer
+  alias KittAgent.SystemActions.Queue
 
   require Logger
 
@@ -27,6 +28,9 @@ defmodule KittAgent.Requests do
           res
           |> Events.make_kitt_event()
           |> Events.create_kitt_event(kitt)
+          |> elem(1)
+          |> Events.system_actions()
+          |> then(&if(match?([_|_], &1), do: Queue.enqueue(kitt.id, &1)))
 
           kitt.id |> Summarizer.exec()
 
