@@ -54,10 +54,15 @@ defmodule KittAgent.Events do
       |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
       |> Map.update(:content, nil, fn
         %KittAgent.Datasets.Content{} = c ->
+          status = if match?([_ | _], c.system_actions), do: "pending", else: "completed"
+
           c
           |> Map.from_struct()
+          |> Map.put(:status, status)
           |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
-        other -> other
+
+        other ->
+          other
       end)
 
     ev_map
