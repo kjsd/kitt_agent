@@ -22,7 +22,7 @@ defmodule KittAgentWeb.Router do
     live "/kitts/new", KittLive.Index, :new
     live "/kitts/:id/edit", KittLive.Index, :edit
 
-    live "/reports", ReportLive.Index, :index
+    live "/activities", ActivityLive.Index, :index
     live "/settings", SettingsLive.Index, :index
   end
 

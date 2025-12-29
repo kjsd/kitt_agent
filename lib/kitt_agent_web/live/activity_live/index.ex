@@ -1,4 +1,4 @@
-defmodule KittAgentWeb.ReportLive.Index do
+defmodule KittAgentWeb.ActivityLive.Index do
   use KittAgentWeb, :live_view
 
   alias KittAgent.Events
@@ -20,11 +20,13 @@ defmodule KittAgentWeb.ReportLive.Index do
   @impl true
   def handle_params(params, _url, socket) do
     kitt_id = params["kitt_id"]
+    kitt = if kitt_id, do: Kitts.get_kitt(kitt_id), else: nil
+    
     status = params["status"]
     page = String.to_integer(params["page"] || "1")
     
     filter = %{role: "assistant"}
-    filter = if kitt_id && kitt_id != "", do: Map.put(filter, :kitt_id, kitt_id), else: filter
+    filter = if kitt, do: Map.put(filter, :kitt_id, kitt_id), else: filter
     filter = if status && status != "", do: Map.put(filter, :status, status), else: filter
     
     offset = (page - 1) * @per_page
@@ -32,7 +34,7 @@ defmodule KittAgentWeb.ReportLive.Index do
     
     {contents, {_off, total}} = 
       Events.list_contents(range, filter, [order_by: [desc: :inserted_at]])
-      |> Events.with_timestamp()
+      |> Events.with_timestamp(kitt)
 
     pl = ceil(total / @per_page)
     pl = if pl == 0, do: 1, else: pl
@@ -56,7 +58,7 @@ defmodule KittAgentWeb.ReportLive.Index do
   def handle_event("filter_change", %{"kitt_id" => kitt_id, "status" => status}, socket) do
     params = %{kitt_id: kitt_id, status: status, page: 1}
     params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
-    {:noreply, push_patch(socket, to: ~p"/kitt-web/reports?#{params}")}
+    {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
   end
 
   def handle_event("change_status", %{"id" => id, "status" => new_status}, socket) do
@@ -69,7 +71,7 @@ defmodule KittAgentWeb.ReportLive.Index do
       page: socket.assigns.page
     }
     params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
-    {:noreply, push_patch(socket, to: ~p"/kitt-web/reports?#{params}")}
+    {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
   end
   
   def handle_event("page", %{"i" => page}, socket) do
@@ -79,7 +81,7 @@ defmodule KittAgentWeb.ReportLive.Index do
       page: page
     }
     params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
-    {:noreply, push_patch(socket, to: ~p"/kitt-web/reports?#{params}")}
+    {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
   end
   
   def handle_event("show_actions", %{"id" => id}, socket) do

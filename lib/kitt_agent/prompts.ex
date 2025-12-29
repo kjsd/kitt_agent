@@ -64,11 +64,6 @@ defmodule KittAgent.Prompts do
   def llm_opts(%Kitt{} = kitt, model) do
     %{
       model: model,
-      provider: %{
-        order: [
-          "google-vertex"
-        ]
-      },
       structured_outputs: true,
       response_format: %{
         type: "json_schema",
@@ -181,7 +176,7 @@ defmodule KittAgent.Prompts do
 
     conversation_text =
       events
-      |> Enum.map(&Events.with_timestamp(&1, kitt))
+      |> Events.with_timestamp(kitt)
       |> Enum.map(&("[#{&1.timestamp}] #{&1.role}: #{&1.content.message} (Mood: #{&1.content.mood})"))
       |> Enum.join("\n")
 

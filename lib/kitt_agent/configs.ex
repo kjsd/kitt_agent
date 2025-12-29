@@ -3,10 +3,13 @@ defmodule KittAgent.Configs do
   alias KittAgent.Repo
   alias KittAgent.Datasets.Config
 
+  def get(key), do: Repo.get_by(Config, key: to_string(key))
+    
   def get_config(key, default \\ nil) do
-    case Repo.get_by(Config, key: to_string(key)) do
-      nil -> default
-      config -> config.value
+    with %Config{value: v} when not is_nil(v) <- get(key) do
+      v
+    else
+      _ -> default
     end
   end
 
