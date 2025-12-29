@@ -2,7 +2,7 @@ defmodule KittAgent.Datasets.Event do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:role]}
+  @derive {Jason.Encoder, only: [:role, :content]}
   schema "events" do
     field :role, :string
 

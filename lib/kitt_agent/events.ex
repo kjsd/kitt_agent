@@ -138,9 +138,9 @@ defmodule KittAgent.Events do
 
   def with_timestamp(x) when is_list(x), do: x |> Enum.map(&with_timestamp/1)
   def with_timestamp(%Content{inserted_at: ts} = content),
-    do: with_timestamp(content, ts)
+    do: Map.put(content, :timestamp, to_datetime(ts))
   def with_timestamp(%Event{inserted_at: ts} = event),
-    do: with_timestamp(event, ts)
+    do: Map.put(event, :timestamp, to_datetime(ts))
 
   def with_timestamp({list, opt}, %Kitt{} = kitt) when is_list(list) do
     list
@@ -164,12 +164,10 @@ defmodule KittAgent.Events do
     |> to_datetime(tz)
     |> then(&Map.put(event, :timestamp, &1))
   end
-  def with_timestamp(x, %NaiveDateTime{} = ts) do
-    ts
-    |> DateTime.from_naive!("Etc/UTC")
-    |> then(&Map.put(x, :timestamp, &1))
+  def with_timestamp(content, %Kitt{timezone: tz}) do
+    to_datetime(nil, tz)
+    |> then(&Map.put(content, :timestamp, &1))
   end
-  def with_timestamp(x, %DateTime{} = ts), do: Map.put(x, :timestamp, ts)
 
   def content_with_actions(%Event{content: %Content{system_actions: [_|_]} = x}), do: x
   def content_with_actions(_), do: nil
@@ -183,11 +181,13 @@ defmodule KittAgent.Events do
   def content_failed(%Content{} = c),
     do: update_content(c, %{status: Content.status_failed})
 
+  defp to_datetime(%NaiveDateTime{} = ts), do: DateTime.from_naive!(ts, "Etc/UTC")
+
   defp to_datetime(%NaiveDateTime{} = ts, tz) do
     ts
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.shift_zone!(tz)
   end
-  defp to_datetime(_, tz), do: DateTime.now(tz) 
+  defp to_datetime(_, tz), do: DateTime.now!(tz) 
   
 end
