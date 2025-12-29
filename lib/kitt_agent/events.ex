@@ -7,6 +7,8 @@ defmodule KittAgent.Events do
   alias KittAgent.Datasets.Event
   alias KittAgent.Datasets.Content
 
+  require Content
+  
   use BasicContexts,
     repo: Repo,
     funcs: [:get, :create],
@@ -53,25 +55,26 @@ defmodule KittAgent.Events do
   end
   
   def create_kitt_event(%Event{} = ev, %Kitt{} = kitt) do
-    ev_map =
-      kitt
-      |> Ecto.build_assoc(:events, ev)
+    update_fn = fn
+      %KittAgent.Datasets.Content{} = c ->
+        status = if match?([_ | _], c.system_actions),
+        do: Content.status_pending, else: Content.status_completed
+      
+
+      c
       |> Map.from_struct()
+      |> Map.put(:status, status)
       |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
-      |> Map.update(:content, nil, fn
-        %KittAgent.Datasets.Content{} = c ->
-          status = if match?([_ | _], c.system_actions), do: "pending", else: "completed"
 
-          c
-          |> Map.from_struct()
-          |> Map.put(:status, status)
-          |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
+      other ->
+        other
+    end
 
-        other ->
-          other
-      end)
-
-    ev_map
+    kitt
+    |> Ecto.build_assoc(:events, ev)
+    |> Map.from_struct()
+    |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
+    |> Map.update(:content, nil, update_fn)
     |> create_event()
     |> broadcast_change([:event, :created])
   end
@@ -128,7 +131,12 @@ defmodule KittAgent.Events do
 
   def content_with_actions(%Event{content: %Content{system_actions: [_|_]} = x}), do: x
   def content_with_actions(_), do: nil
-
-  def update_content_status(%Content{} = c, s), do: update_content(c, %{status: s})
+ 
+  def content_pending(%Content{} = c),
+    do: update_content(c, %{status: Content.status_pending})
+  def content_processing(%Content{} = c),
+    do: update_content(c, %{status: Content.status_processing})
+  def content_completed(%Content{} = c),
+    do: update_content(c, %{status: Content.status_completed})
   
 end

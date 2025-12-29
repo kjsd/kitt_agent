@@ -4,9 +4,10 @@ defmodule KittAgent.Repo.Migrations.Contents do
   def change do
     create table("contents") do
       add :action, :string, null: false
-      add :message, :string, null: false
+      add :message, :text, null: false
       add :listener, :string
       add :mood, :string
+      add :status, :string, default: "completed", null: false
 
       add :event_id, references(:events, on_delete: :delete_all), null: false
 
