@@ -35,6 +35,23 @@ defmodule KittAgent.Events do
       |> preload([:kitt, content: :system_actions])
     end
 
+  use BasicContexts.PartialList,
+    repo: Repo,
+    plural: :contents,
+    schema: Content,
+    where_fn: fn query, attrs ->
+      query
+      |> join(:inner, [c], e in assoc(c, :event))
+      |> add_if(attrs[:kitt_id], &where(&2, [c, e], e.kitt_id == ^&1))
+      |> add_if(attrs[:role], &where(&2, [c, e], e.role == ^&1))
+      |> add_if(attrs[:status], &where(&2, [c], c.status == ^&1))
+    end,
+    last_fn: fn query, args ->
+      query
+      |> add_if(args[:order_by], &(&2 |> order_by(^&1)))
+      |> preload([:system_actions, event: :kitt])
+    end
+
   @recent 100
 
   def make_user_talk_event(text) do
@@ -56,18 +73,22 @@ defmodule KittAgent.Events do
   
   def create_kitt_event(%Event{} = ev, %Kitt{} = kitt) do
     update_fn = fn
-      %KittAgent.Datasets.Content{} = c ->
-        status = if match?([_ | _], c.system_actions),
-        do: Content.status_pending, else: Content.status_completed
-      
+      %Content{system_actions: [_|_]} = c ->
+        c
+        |> Map.from_struct()
+        |> Map.put("status", Content.status_pending)
+        |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
 
-      c
-      |> Map.from_struct()
-      |> Map.put(:status, status)
-      |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
+      %Content{} = c ->
+        c
+        |> Map.from_struct()
+        |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
 
-      other ->
-        other
+      %{"system_actions" => [_|_]} = c ->
+        c |> Map.put("status", Content.status_pending)
+
+      x ->
+        x
     end
 
     kitt
@@ -115,19 +136,40 @@ defmodule KittAgent.Events do
     |> elem(0)
   end
 
-  def with_timestamp({list, opt}, %Kitt{} = kitt) do
+  def with_timestamp(x) when is_list(x), do: x |> Enum.map(&with_timestamp/1)
+  def with_timestamp(%Content{inserted_at: ts} = content),
+    do: with_timestamp(content, ts)
+  def with_timestamp(%Event{inserted_at: ts} = event),
+    do: with_timestamp(event, ts)
+
+  def with_timestamp({list, opt}, %Kitt{} = kitt) when is_list(list) do
     list
-    |> Enum.map(&with_timestamp(&1, kitt))
+    |> with_timestamp(kitt)
     |> then(&{&1, opt})
   end
-  def with_timestamp(%Event{inserted_at: ts} = event, %Kitt{timezone: tz}) do
-    with {:ok, utc} <- ts |> DateTime.from_naive("Etc/UTC"),
-         {:ok, x} <- utc |> DateTime.shift_zone(tz) do
-      event |> Map.put(:timestamp, x)
-    else
-      _ -> event |> Map.put(:timestamp, ts)
-    end
+  def with_timestamp({list, opt}, _) when is_list(list) do
+    list
+    |> with_timestamp()
+    |> then(&{&1, opt})
   end
+  def with_timestamp(x, %Kitt{} = kitt) when is_list(x),
+    do: x |> Enum.map(&with_timestamp(&1, kitt))
+  def with_timestamp(%Content{inserted_at: ts} = content, %Kitt{timezone: tz}) do
+    ts
+    |> to_datetime(tz)
+    |> then(&Map.put(content, :timestamp, &1))
+  end
+  def with_timestamp(%Event{inserted_at: ts} = event, %Kitt{timezone: tz}) do
+    ts
+    |> to_datetime(tz)
+    |> then(&Map.put(event, :timestamp, &1))
+  end
+  def with_timestamp(x, %NaiveDateTime{} = ts) do
+    ts
+    |> DateTime.from_naive!("Etc/UTC")
+    |> then(&Map.put(x, :timestamp, &1))
+  end
+  def with_timestamp(x, %DateTime{} = ts), do: Map.put(x, :timestamp, ts)
 
   def content_with_actions(%Event{content: %Content{system_actions: [_|_]} = x}), do: x
   def content_with_actions(_), do: nil
@@ -138,5 +180,14 @@ defmodule KittAgent.Events do
     do: update_content(c, %{status: Content.status_processing})
   def content_completed(%Content{} = c),
     do: update_content(c, %{status: Content.status_completed})
+  def content_failed(%Content{} = c),
+    do: update_content(c, %{status: Content.status_failed})
+
+  defp to_datetime(%NaiveDateTime{} = ts, tz) do
+    ts
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.shift_zone!(tz)
+  end
+  defp to_datetime(_, tz), do: DateTime.now(tz) 
   
 end

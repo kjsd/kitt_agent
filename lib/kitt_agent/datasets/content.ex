@@ -19,10 +19,13 @@ defmodule KittAgent.Datasets.Content do
     timestamps()
   end
 
+  define action_talk, "Talk"
+  define action_system, "SystemActions"
+
   define status_pending, "pending"
   define status_processing, "processing"
   define status_completed, "completed"
-  define status_fail, "fail"
+  define status_failed, "failed"
 
   @doc false
   def changeset(o, attrs) do

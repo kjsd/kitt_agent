@@ -24,8 +24,8 @@ defmodule KittAgentWeb.KittLive.Index do
     socket
     |> assign(:page_title, "New Kitt")
     |> assign(:kitt, %Kitt{
-      lang: "Japanese",
-      timezone: "Asia/Tokyo",
+      lang: KittAgent.Configs.get_config("default_lang", "Japanese"),
+      timezone: KittAgent.Configs.get_config("default_timezone", "Asia/Tokyo"),
       biography: %KittAgent.Datasets.Biography{}
     })
   end
