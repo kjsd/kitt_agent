@@ -36,16 +36,9 @@ if config_env() == :prod do
       environment variable OPENROUTER_KEY is missing.
       """
 
-  cartesia_key =
-    System.get_env("CARTESIA_KEY") ||
-      raise """
-      environment variable CARTESIA_KEY is missing.
-      """
-
   config :kitt_agent,
     keys: [
-      openrouter: openrouter_key,
-      cartesia: cartesia_key
+      openrouter: openrouter_key
     ]
 
   config :kitt_agent, KittAgent.Repo,

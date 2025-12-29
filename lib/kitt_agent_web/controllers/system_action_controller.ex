@@ -11,7 +11,7 @@ defmodule KittAgentWeb.SystemActionController do
 
   def pending(conn, %{"id" => kitt_id}) do
     with %Content{} = c <- Queue.dequeue(kitt_id) do
-      Events.update_content_status(c, "processing")
+      Events.content_processing(c)
 
       conn
       |> json(c)
@@ -20,7 +20,7 @@ defmodule KittAgentWeb.SystemActionController do
 
   def complete(conn, %{"id" => _kitt_id, "content_id" => content_id}) do
     with %Content{} = c <- Events.get_content(content_id),
-         {:ok, _} <- Events.update_content_status(c, "completed") do
+         {:ok, _} <- Events.content_completed(c) do
 
       conn
       |> json(%{status: "OK"})
