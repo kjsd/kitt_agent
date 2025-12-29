@@ -30,15 +30,9 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  openrouter_key =
-    System.get_env("OPENROUTER_KEY") ||
-      raise """
-      environment variable OPENROUTER_KEY is missing.
-      """
-
   config :kitt_agent,
     keys: [
-      openrouter: openrouter_key
+      openrouter: System.get_env("OPENROUTER_KEY")
     ]
 
   config :kitt_agent, KittAgent.Repo,
