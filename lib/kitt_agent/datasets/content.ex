@@ -5,13 +5,14 @@ defmodule KittAgent.Datasets.Content do
   use BasicContexts.Constants
   
   @derive {Jason.Encoder, only: [:id, :action, :message, :listener, :mood, :status,
-                                 :system_actions]}
+                                 :timestamp, :system_actions]}
   schema "contents" do
     field :action, :string
     field :message, :string
     field :listener, :string
     field :mood, :string
     field :status, :string, default: "completed"
+    field :timestamp, :utc_datetime, virtual: true
 
     belongs_to :event, KittAgent.Datasets.Event
     has_many :system_actions, KittAgent.Datasets.SystemAction

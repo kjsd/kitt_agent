@@ -150,10 +150,15 @@ defmodule KittAgent.Prompts do
     h = %{role: "system", content: head(kitt)}
     t = %{role: "user", content: tail(kitt)}
 
+    encode = fn x ->
+      Events.with_timestamp(x, kitt)
+      |> Jason.encode!()
+    end
+    
     kitt
     |> Events.recents()
     |> then(&(&1 ++ [last_ev]))
-    |> Enum.map(&%{role: &1.role, content: Jason.encode!(&1.content)})
+    |> Enum.map(&%{role: &1.role, content: encode.(&1.content)})
     |> then(&([h | &1] ++ [t]))
     |> then(&(llm_opts(kitt, get_main_model()) |> Map.put(:messages, &1)))
   end
