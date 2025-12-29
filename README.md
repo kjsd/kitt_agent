@@ -12,52 +12,53 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
     *   **Language Selection**: Choose from 18+ languages (Japanese, English, Swahili, etc.) for your agent's communication.
     *   **Timezone Awareness**: Selectable timezone support (via `Tzdata`) to ground the agent in a specific locale.
 *   **Personality Engine**: Define complex biographies and behavioral traits ("Personality").
-*   **UI Enhancements**:
-    *   **Biography Popup**: Quickly view detailed agent personas via a modal in the list view.
-    *   **Smart Forms**: Dropdown selection for languages and timezones with sensible defaults (Japanese / Asia/Tokyo).
+*   **Smart Defaults**: Automatically applies system-wide default language and timezone settings to new agents.
 
 ### 2. LLM-Driven Intelligence & Control
-*   **State-of-the-Art Models**:
-    *   **Conversation**: Powered by **Google Gemini 2.5 Flash Lite Preview** for high-speed, low-latency responses.
-    *   **Summarization**: Utilizes **Google Gemini 3.0 Flash Preview** for distinct, high-quality memory consolidation.
+*   **Flexible Model Selection**:
+    *   **Main Conversation Model**: Choose any model supported by your provider (e.g., Gemini 2.0 Flash) for agent dialogue.
+    *   **Summarization Model**: Select a specialized model for high-quality memory consolidation.
+*   **Custom LLM Providers**: Configure custom API endpoints and keys (e.g., OpenRouter) directly from the settings menu.
 *   **Structured Outputs**: Enforces strict JSON Schema for all LLM responses to ensure reliable parsing.
 *   **Physical Capabilities (SystemActions)**:
-    *   The agent can decide to perform physical actions instead of or alongside talking.
     *   **Supported Actions**: `MoveForward`, `MoveBackward`, `TurnLeft`, `TurnRight`, `Stop`.
     *   **Parameter Control**: Precise execution with parameters like `duration_sec` (e.g., "5s"), `distance_cm` (e.g., "10cm"), or `angle_degrees` (e.g., "90deg").
 
-### 3. Dual-Layer Memory Architecture
-*   **Short-term Memory (Events)**:
-    *   Maintains a log of the last ~20-100 interactions to provide immediate context.
-    *   Stores detailed structured data including Mood, Message, and Action parameters.
-*   **Long-term Memory (Memories)**:
-    *   **Auto-Summarization**: A background `Summarizer` process monitors conversation flow.
-    *   **Trigger Logic**: Automatically condenses every ~20 new events into a narrative summary.
-    *   **Injection**: The most recent summary is injected into the system prompt, giving the agent a persistent sense of history.
+### 3. Comprehensive Activity Monitoring ("Activities")
+*   **Live Audit Log**: A dedicated "Activities" dashboard to track all agent responses and decisions.
+*   **Status Management**: Monitor and manually override action statuses (`pending`, `processing`, `completed`, `failed`).
+*   **Action Debugging**: View exact parameters and sequences for `SystemActions` performed by the agent.
+*   **Advanced Filtering**: Filter logs by Kitt, Status, or Role to pinpoint specific events.
+*   **Timezone Integration**: All timestamps are automatically converted to the specific Kitt's local timezone for clarity.
 
-### 4. Interactive Dashboard
-*   **Real-time Chat**: interact directly with your Kitt agents via a web interface.
-*   **Live Monitoring**: Watch the agent's internal state, including:
-    *   **Mood**: (e.g., `sassy`, `playful`, `irritated`).
-    *   **Thought Process**: See the raw JSON decisions made by the LLM.
-    *   **Physical Logs**: Track the exact commands sent to the mBot2 hardware.
+### 4. Dual-Layer Memory Architecture
+*   **Short-term Memory (Events)**: Maintains a log of recent interactions for immediate context.
+*   **Long-term Memory (Memories)**:
+    *   **Auto-Summarization**: A background process condense new events into narrative summaries.
+    *   **Persistent Context**: Summaries are injected into the system prompt, providing a persistent sense of history.
+
+### 5. Centralized Configuration ("Settings")
+*   **System Defaults**: Set global defaults for new agent creation.
+*   **LLM Provider Setup**: Update API keys and Base URLs without touching environment variables or restarting the server.
+*   **Model Management**: Switch between different LLM models for conversation and summarization on the fly.
 
 ## 🛠 Tech Stack
 
 *   **Core**: Elixir, Phoenix Framework (LiveView)
 *   **Database**: PostgreSQL
-*   **AI Provider**: Google Vertex AI (via OpenRouter or direct API)
+*   **AI Provider**: OpenRouter (default), or any OpenAI-compatible API
 *   **Styling**: Tailwind CSS + DaisyUI
 *   **Infrastructure**: Docker & Docker Compose
 
 ## 🗄 Database Schema Overview
 
-*   **kitts**: Core agent metadata (name, lang, timezone, etc.).
-*   **biographies**: Stores the detailed "Personality" text for each Kitt.
-*   **events**: The raw log of all interactions (user inputs and agent responses).
-*   **contents**: Detailed structured data for each event (message, action type, mood).
-*   **system_actions**: Specific parameters for physical actions (e.g., `MoveForward` 10cm).
-*   **memories**: Narrative summaries generated by the Summarizer.
+*   **kitts**: Core agent metadata.
+*   **biographies**: Detailed "Personality" text.
+*   **events**: Raw log of interactions.
+*   **contents**: Structured data for each event (message, action, mood, status).
+*   **system_actions**: Specific parameters for physical movements.
+*   **memories**: Narrative summaries generated by the agent.
+*   **configs**: Global key-value settings (LLM models, API credentials, defaults).
 
 ## 📦 Installation & Setup
 
@@ -66,34 +67,21 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 
 ### Quick Start
 
-1.  **Clone the repository:**
+1.  **Clone & Setup:**
     ```bash
     git clone <repository_url>
     cd kitt_agent
-    ```
-
-2.  **Setup Environment & Dependencies:**
-    This command installs Elixir dependencies and sets up the database.
-    ```bash
     docker compose run --rm app mix setup
     ```
 
-3.  **Configure Credentials:**
-    Ensure you have your Google Vertex AI / OpenRouter API keys configured.
-    (Check `config/runtime.exs` or `.env` files if applicable).
+2.  **Initial Configuration:**
+    1. Start the server: `docker compose up`
+    2. Visit `http://localhost:4000/kitt-web/settings`
+    3. Configure your **API Key** and **API Base URL** (OpenRouter default: `https://openrouter.ai/api/v1/chat/completions`).
+    4. Select your preferred **Main** and **Summary** models.
 
-4.  **Start the Server:**
-    ```bash
-    docker compose up
-    ```
-
-    Visit `http://localhost:4000` to access the KittAgent Dashboard.
-
-5.  **Run Tests:**
-    To ensure everything is working correctly:
-    ```bash
-    docker compose run --rm -e MIX_ENV=test app mix test
-    ```
+3.  **Create your first Kitt:**
+    Navigate to the **KITTs** page and click **New Kitt**.
 
 ## 📝 License
 

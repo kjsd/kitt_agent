@@ -8,12 +8,29 @@ defmodule KittAgent.Requests do
 
   require Logger
 
+  def list_models() do
+    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
+    headers = if api_key, do: [{"Authorization", "Bearer #{api_key}"}], else: []
+
+    case Req.get("https://openrouter.ai/api/v1/models", headers: headers) do
+      {:ok, %{status: 200, body: %{"data" => models}}} ->
+        {:ok, Enum.map(models, fn m -> %{id: m["id"], name: m["name"]} end)}
+
+      {:ok, e} ->
+        {:error, e}
+
+      {:error, e} ->
+        {:error, e}
+    end
+  end
+
   def talk(%Kitt{} = kitt, user_text) do
-    api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_url = KittAgent.Configs.get_config("api_url") || Application.get_env(:kitt_agent, :api_urls)[:openrouter]
 
     last_ev = Events.make_user_talk_event(user_text)
 
-    case Req.post(Application.get_env(:kitt_agent, :api_urls)[:openrouter],
+    case Req.post(api_url,
            json: kitt |> Prompts.make(last_ev),
            headers: [
              {"Authorization", "Bearer #{api_key}"},
@@ -49,9 +66,10 @@ defmodule KittAgent.Requests do
   end
 
   def summary(%Kitt{} = kitt, [_ | _] = events) do
-    api_key = Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_url = KittAgent.Configs.get_config("api_url") || Application.get_env(:kitt_agent, :api_urls)[:openrouter]
 
-    case Req.post(Application.get_env(:kitt_agent, :api_urls)[:openrouter],
+    case Req.post(api_url,
            json: Prompts.summary(kitt, events),
            headers: [
              {"Authorization", "Bearer #{api_key}"},

@@ -35,6 +35,23 @@ defmodule KittAgent.Events do
       |> preload([:kitt, content: :system_actions])
     end
 
+  use BasicContexts.PartialList,
+    repo: Repo,
+    plural: :contents,
+    schema: Content,
+    where_fn: fn query, attrs ->
+      query
+      |> join(:inner, [c], e in assoc(c, :event))
+      |> add_if(attrs[:kitt_id], &where(&2, [c, e], e.kitt_id == ^&1))
+      |> add_if(attrs[:role], &where(&2, [c, e], e.role == ^&1))
+      |> add_if(attrs[:status], &where(&2, [c], c.status == ^&1))
+    end,
+    last_fn: fn query, args ->
+      query
+      |> add_if(args[:order_by], &(&2 |> order_by(^&1)))
+      |> preload([:system_actions, event: :kitt])
+    end
+
   @recent 100
 
   def make_user_talk_event(text) do
@@ -118,6 +135,22 @@ defmodule KittAgent.Events do
     list_events(nil, %{kitt: kitt}, asc: :inserted_at)
     |> elem(0)
   end
+
+  def with_timestamp({list, opt}) when is_list(list) do
+    list
+    |> Enum.map(&with_timestamp/1)
+    |> then(&{&1, opt})
+  end
+  def with_timestamp(%Content{event: %Event{kitt: %Kitt{timezone: tz}, inserted_at: ts}} = content) do
+    with {:ok, utc} <- ts |> DateTime.from_naive("Etc/UTC"),
+         {:ok, x} <- utc |> DateTime.shift_zone(tz) do
+      content |> Map.put(:timestamp, x)
+    else
+      _ -> content |> Map.put(:timestamp, ts)
+    end
+  end
+  def with_timestamp(%Content{event: %Event{inserted_at: ts}} = content), 
+    do: content |> Map.put(:timestamp, ts)
 
   def with_timestamp({list, opt}, %Kitt{} = kitt) do
     list

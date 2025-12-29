@@ -21,6 +21,9 @@ defmodule KittAgentWeb.Router do
     live "/kitts", KittLive.Index, :index
     live "/kitts/new", KittLive.Index, :new
     live "/kitts/:id/edit", KittLive.Index, :edit
+
+    live "/reports", ReportLive.Index, :index
+    live "/settings", SettingsLive.Index, :index
   end
 
   scope "/kitt/:id", KittAgentWeb do

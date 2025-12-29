@@ -1,0 +1,128 @@
+<div class="drawer lg:drawer-open">
+  <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+  <div class="drawer-content flex flex-col bg-base-100 min-h-screen">
+    <div class="navbar bg-base-100 border-b border-base-200 w-full sticky top-0 z-10">
+      <div class="flex-none lg:hidden">
+        <label for="my-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </label>
+      </div>
+      <div class="flex-1">
+        <a class="btn btn-ghost text-xl">{@page_title}</a>
+      </div>
+    </div>
+    
+    <main class="p-6 max-w-4xl mx-auto w-full">
+      <.flash kind={:info} title="Success!" flash={@flash} />
+      <.flash kind={:error} title="Error!" flash={@flash} />
+
+      <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+          <h2 class="card-title mb-4">Default Kitt Settings</h2>
+          <form phx-submit="save_all" class="space-y-4">
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Default Language</span></label>
+              <select name="default_lang" class="select select-bordered w-full">
+                <%= for val <- @languages do %>
+                  <option value={val} selected={@configs["default_lang"] == val}>{val}</option>
+                <% end %>
+              </select>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Default Timezone</span></label>
+              <select name="default_timezone" class="select select-bordered w-full">
+                <%= for tz <- @timezones do %>
+                  <option value={tz} selected={@configs["default_timezone"] == tz}>{tz}</option>
+                <% end %>
+              </select>
+            </div>
+
+            <div class="divider">LLM Configuration</div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">API Base URL</span>
+                <span class="label-text-alt text-gray-500">e.g. https://openrouter.ai/api/v1/chat/completions</span>
+              </label>
+              <input type="text" name="api_url" value={@configs["api_url"]} class="input input-bordered w-full" placeholder="https://openrouter.ai/api/v1/chat/completions" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">API Key</span>
+              </label>
+              <input type="password" name="api_key" value={@configs["api_key"]} class="input input-bordered w-full" placeholder="sk-or-v1-..." />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">Main LLM Model</span>
+                <span class="label-text-alt text-gray-500">Used for talking to Kitts</span>
+              </label>
+              <select name="main_model" class="select select-bordered w-full">
+                <option value="">Select a model...</option>
+                <%= for model <- @models do %>
+                  <option value={model.id} selected={@configs["main_model"] == model.id}>{model.name} ({model.id})</option>
+                <% end %>
+              </select>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">Summary LLM Model</span>
+                <span class="label-text-alt text-gray-500">Used for generating memories</span>
+              </label>
+              <select name="summary_model" class="select select-bordered w-full">
+                <option value="">Select a model...</option>
+                <%= for model <- @models do %>
+                  <option value={model.id} selected={@configs["summary_model"] == model.id}>{model.name} ({model.id})</option>
+                <% end %>
+              </select>
+            </div>
+
+            <div class="card-actions justify-end mt-6">
+              <button type="submit" class="btn btn-primary">Save All Settings</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <div class="drawer-side z-20">
+    <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+    <ul class="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
+      <li class="mb-4 text-lg font-bold px-4">KITT Agent</li>
+      <li>
+        <a href={~p"/kitt-web"}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Dashboard
+        </a>
+      </li>
+      <li>
+        <a href={~p"/kitt-web/kitts"}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          KITTs
+        </a>
+      </li>
+      <li>
+        <a href={~p"/kitt-web/reports"}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Activities
+        </a>
+      </li>
+      <div class="divider"></div>
+      <li>
+        <a class="active" href={~p"/kitt-web/settings"}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Settings
+        </a>
+      </li>
+      <li><a href="https://github.com/kjsd/kitt_agent" target="_blank">Documentation</a></li>
+    </ul>
+  </div>
+</div>
