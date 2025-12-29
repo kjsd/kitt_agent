@@ -1,8 +1,11 @@
 defmodule KittAgent.Prompts do
   alias KittAgent.Datasets.Kitt
   alias KittAgent.Datasets.Event
+  alias KittAgent.Datasets.Content
   alias KittAgent.Events
   alias KittAgent.Memories
+
+  require Content
 
   defp head(%Kitt{biography: bio} = kitt) do
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
@@ -27,10 +30,10 @@ defmodule KittAgent.Prompts do
     <available_actions_list>
     #Available Actions
     Use if your character needs to perform an action:
-    AVAILABLE ACTION: Talk (Use this for normal conversation)
-    AVAILABLE ACTION: SystemActions (Use this to perform physical movements)
+    AVAILABLE ACTION: #{Content.action_talk} (Use this for normal conversation)
+    AVAILABLE ACTION: #{Content.action_system} (Use this to perform physical movements)
 
-    If you choose "SystemActions", you must provide a list of actions in the "system_actions" field.
+    If you choose "#{Content.action_system}", you must provide a list of actions in the "system_actions" field.
     Supported physical actions:
     - MoveForward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
     - MoveBackward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
@@ -51,7 +54,7 @@ defmodule KittAgent.Prompts do
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"Talk|SystemActions", "system_actions": [{"action": "MoveForward", "parameter": "10cm"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"#{Content.action_talk}|#{Content.action_system}", "system_actions": [{"action": "MoveForward", "parameter": "10cm"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
@@ -104,15 +107,15 @@ defmodule KittAgent.Prompts do
               },
               action: %{
                 type: "string",
-                description: "Choose 'Talk' for dialogue, or 'SystemActions' to perform physical movements.",
+                description: "Choose '#{Content.action_talk}' for dialogue, or '#{Content.action_system}' to perform physical movements.",
                 enum: [
-                  "Talk",
-                  "SystemActions"
+                  "#{Content.action_talk}",
+                  "#{Content.action_system}"
                 ]
               },
               system_actions: %{
                 type: "array",
-                description: "List of actions to perform if action is 'SystemActions'",
+                description: "List of actions to perform if action is '#{Content.action_system}'",
                 items: %{
                   type: "object",
                   properties: %{

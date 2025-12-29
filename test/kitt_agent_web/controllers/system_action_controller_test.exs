@@ -12,14 +12,14 @@ defmodule KittAgentWeb.SystemActionControllerTest do
     
     # テスト用のアクションを作成
     actions_content = %{
-      action: "SystemActions",
-      message: "Test",
-      system_actions: [
+      "action" => "SystemActions",
+      "message" => "Test",
+      "system_actions" => [
         %{action: "test_action", parameter: "param1"}
       ]
     }
     {:ok, event} = Events.make_kitt_event(actions_content) |> Events.create_kitt_event(kitt)
-    
+
     # Queueに入れる
     Queue.enqueue(kitt.id, event.content)
 
@@ -35,6 +35,7 @@ defmodule KittAgentWeb.SystemActionControllerTest do
       # ステータスが processing になっていることを確認
       updated_content = Repo.get(Content, content.id)
       assert updated_content.status == "processing"
+      Queue.clear(kitt.id)
     end
 
     test "GET /kitt/:id/actions/pending returns empty if queue is empty", %{conn: conn, kitt: kitt} do
@@ -44,6 +45,7 @@ defmodule KittAgentWeb.SystemActionControllerTest do
       # 2回目のGET
       conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
       assert response(conn, 404)
+      Queue.clear(kitt.id)
     end
   end
 
@@ -60,6 +62,7 @@ defmodule KittAgentWeb.SystemActionControllerTest do
       # ステータスが completed になっていることを確認
       updated_content = Repo.get(Content, content.id)
       assert updated_content.status == "completed"
+      Queue.clear(kitt.id)
     end
   end
 end

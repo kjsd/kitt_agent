@@ -56,18 +56,22 @@ defmodule KittAgent.Events do
   
   def create_kitt_event(%Event{} = ev, %Kitt{} = kitt) do
     update_fn = fn
-      %KittAgent.Datasets.Content{} = c ->
-        status = if match?([_ | _], c.system_actions),
-        do: Content.status_pending, else: Content.status_completed
-      
+      %Content{system_actions: [_|_]} = c ->
+        c
+        |> Map.from_struct()
+        |> Map.put("status", Content.status_pending)
+        |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
 
-      c
-      |> Map.from_struct()
-      |> Map.put(:status, status)
-      |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
+      %Content{} = c ->
+        c
+        |> Map.from_struct()
+        |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
 
-      other ->
-        other
+      %{"system_actions" => [_|_]} = c ->
+        c |> Map.put("status", Content.status_pending)
+
+      x ->
+        x
     end
 
     kitt
@@ -138,5 +142,7 @@ defmodule KittAgent.Events do
     do: update_content(c, %{status: Content.status_processing})
   def content_completed(%Content{} = c),
     do: update_content(c, %{status: Content.status_completed})
+  def content_failed(%Content{} = c),
+    do: update_content(c, %{status: Content.status_failed})
   
 end
