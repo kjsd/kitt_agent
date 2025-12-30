@@ -15,5 +15,6 @@ defmodule KittAgent.Datasets.Biography do
   def changeset(o, attrs) do
     o
     |> cast(attrs, [:personality])
+    |> validate_required([:personality])
   end
 end
