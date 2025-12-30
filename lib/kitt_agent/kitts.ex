@@ -44,7 +44,7 @@ defmodule KittAgent.Kitts do
     
   defp delete_audio(path) when is_binary(path) do
     filename = Path.basename(path)
-    local_path = Path.join("uploads", filename)
+    local_path = Path.join("/app/uploads", filename)
 
     if File.exists?(local_path) do
       File.rm(local_path)
