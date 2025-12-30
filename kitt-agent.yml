@@ -1,5 +1,5 @@
 services:
-  kitt-agent:
+  kitt-agent-prod:
     image: kjsdhub/kitt-agent
     environment:
       PORT: 8080
