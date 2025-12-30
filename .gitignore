@@ -36,4 +36,6 @@ npm-debug.log
 /assets/node_modules/
 
 /config/*.secret.exs
-kitt-agent.yaml
+*.wav
+/priv/static/uploads/*
+!/priv/static/uploads/.keep
