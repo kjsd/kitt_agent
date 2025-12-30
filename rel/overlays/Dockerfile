@@ -60,8 +60,6 @@ RUN \
    -G "${USER}" \
    -h "/home/${USER}" \
    -D "${USER}" \
-  && mkdir -p /app/uploads \
-  && chown -R "${USER}:${USER}" /app/uploads \
   && su "${USER}"
 
 # Everything from this line onwards will run in the context of the unprivileged user.
