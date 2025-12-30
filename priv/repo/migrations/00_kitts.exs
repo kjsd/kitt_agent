@@ -11,6 +11,7 @@ defmodule KittAgent.Repo.Migrations.Kitts do
       add :hometown, :string
       add :lang, :string, null: false
       add :timezone, :string, null: false
+      add :audio_path, :string
 
       timestamps()
     end

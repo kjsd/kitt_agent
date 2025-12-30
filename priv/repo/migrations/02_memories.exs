@@ -5,7 +5,7 @@ defmodule KittAgent.Repo.Migrations.Memories do
     create table("memories") do
       add :content, :text
 
-      add :kitt_id, references(:kitts, type: :binary_id)
+      add :kitt_id, references(:kitts, type: :binary_id, on_delete: :delete_all)
 
       timestamps()
     end

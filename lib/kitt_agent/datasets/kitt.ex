@@ -13,6 +13,7 @@ defmodule KittAgent.Datasets.Kitt do
     field :hometown, :string
     field :lang, :string, default: "English"
     field :timezone, :string, default: "Etc/UTC"
+    field :audio_path, :string
 
     has_one :biography, KittAgent.Datasets.Biography
     has_many :events, KittAgent.Datasets.Event
@@ -24,7 +25,7 @@ defmodule KittAgent.Datasets.Kitt do
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:id, :name, :model, :vendor, :birthday, :hometown, :lang, :timezone])
+    |> cast(attrs, [:id, :name, :model, :vendor, :birthday, :hometown, :lang, :timezone, :audio_path])
     |> validate_required([:name])
     |> cast_assoc(:biography)
   end
