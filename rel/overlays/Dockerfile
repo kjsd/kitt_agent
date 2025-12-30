@@ -42,12 +42,13 @@ RUN mix release
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
 FROM alpine:3.23.0 AS app
-RUN apk add --no-cache libstdc++ openssl ncurses-libs coreutils
+RUN apk add --no-cache libstdc++ openssl ncurses-libs
 
 ARG MIX_ENV
 ENV USER="elixir"
 
 WORKDIR "/home/${USER}/app"
+
 # Creates an unprivileged user to be used exclusively to run the Phoenix app
 RUN \
   addgroup \

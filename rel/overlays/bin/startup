@@ -1,5 +1,4 @@
 #!/bin/sh
 
-mkdir -p priv/static/uploads
 bin/migrate
 bin/server
