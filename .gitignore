@@ -39,3 +39,4 @@ npm-debug.log
 *.wav
 /priv/static/uploads/*
 !/priv/static/uploads/.keep
+/kitt-agent.yml
