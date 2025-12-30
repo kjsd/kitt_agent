@@ -1,5 +1,5 @@
 services:
-  kitt-agent-prod:
+  prod:
     image: kjsdhub/kitt-agent
     environment:
       PORT: 8080
@@ -7,8 +7,12 @@ services:
       SECRET_KEY_BASE: L0me4sKjfzqHJrHZ6ebZ0n8fi+PhnVmtoE+M+sKRASi2JnDyWRXx1C+yVWrDwrvo
     ports:
       - '8080:8080'
+    networks:
+      - prod-network
     volumes:
       - upload_data:/app/priv/static/uploads
 
 volumes:
   upload_data:
+networks:
+  prod-network:
