@@ -168,7 +168,7 @@ defmodule KittAgentWeb.KittLive.FormComponent do
       [entry | _] ->
         ext = Path.extname(entry.client_name)
         filename = "#{Ecto.UUID.generate()}#{ext}"
-        dest = Path.join("uploads", filename)
+        dest = Path.join("/app/uploads", filename)
 
         consume_uploaded_entries(socket, :audio, fn %{path: path}, _entry ->
           File.cp!(path, dest)
