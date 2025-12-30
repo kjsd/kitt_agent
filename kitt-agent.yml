@@ -10,7 +10,7 @@ services:
     networks:
       - prod-network
     volumes:
-      - upload_data:/app/priv/static/uploads
+      - upload_data:/app/uploads
 
 volumes:
   upload_data:
