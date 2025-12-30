@@ -64,7 +64,6 @@ RUN \
 # Everything from this line onwards will run in the context of the unprivileged user.
 USER "${USER}"
 
-RUN mkdir -p priv/static/uploads
 COPY --from=build --chown="${USER}":"${USER}" /app/_build/"${MIX_ENV}"/rel/kitt_agent ./
 
 ENTRYPOINT ["bin/startup"]
