@@ -37,4 +37,4 @@ npm-debug.log
 
 /config/*.secret.exs
 *.wav
-kitt-agent.yml
+/kitt-agent.yml

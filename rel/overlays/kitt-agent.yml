@@ -1,0 +1,18 @@
+services:
+  prod:
+    image: kjsdhub/kitt-agent
+    environment:
+      PORT: 8080
+      DATABASE_URL: ecto://USER:PASS@HOST/kitt_agent
+      SECRET_KEY_BASE: 
+    ports:
+      - '8080:8080'
+    networks:
+      - prod-network
+    volumes:
+      - upload_data:/app/uploads
+
+volumes:
+  upload_data:
+networks:
+  prod-network:
