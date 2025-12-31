@@ -34,15 +34,17 @@ defmodule KittAgent.Kitts do
   end
 
   defp path2resource(path, %Kitt{} = kitt) when is_binary(path) do
-    kitt
-    |> resource()
-    |> File.mkdir_p!()
-
     fname = Path.basename(path)
-
     src = Application.get_env(:kitt_agent, :uploads_dir) |> Path.join(fname)
-    File.cp!(src, resource(kitt, fname))
-    File.rm!(src)
+
+    if File.exists?(src) do
+      kitt
+      |> resource()
+      |> File.mkdir_p!()
+
+      File.cp!(src, resource(kitt, fname))
+      File.rm!(src)
+    end
   end
   defp path2resource(_, _), do: :ok
       
@@ -80,7 +82,7 @@ defmodule KittAgent.Kitts do
 
   defp delete_audio(%Kitt{audio_path: path} = kitt) when is_binary(path) do
     resource(kitt, Path.basename(path))
-    |> File.rm!()
+    |> File.rm()
   end
   defp delete_audio(_), do: :ok
 

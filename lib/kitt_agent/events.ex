@@ -114,7 +114,7 @@ defmodule KittAgent.Events do
     Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {[:event, :created], x})
     result
   end
-  def broadcast_change(result, _), do: result
+  def broadcast_change(result), do: result
 
   def delete_events([_ | _] = ids) do
     Event
