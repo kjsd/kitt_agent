@@ -7,6 +7,7 @@ See README.md for more infomations.
 Dockerで開発する．環境定義は./Dockerfile，./docker-compose.ymlにある．
 デフォルトではMIX_ENV=devなので，テストのときは次のようにする．
 - `docker compose run --rm -e MIX_ENV=test app mix test`
+クライアントであるmbot2用のコードベースは../kittにある．
 
 # 本番環境
 このPCが本番環境である．Docker + PostgreSQL環境がセットアップされている．

@@ -9,7 +9,8 @@ defmodule KittAgent.Requests do
   require Logger
 
   def list_models() do
-    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_key = KittAgent.Configs.get_config("api_key") ||
+      Application.get_env(:kitt_agent, :keys)[:openrouter]
     headers = if api_key, do: [{"Authorization", "Bearer #{api_key}"}], else: []
 
     case Req.get("https://openrouter.ai/api/v1/models", headers: headers) do
@@ -25,8 +26,10 @@ defmodule KittAgent.Requests do
   end
 
   def talk(%Kitt{} = kitt, user_text) do
-    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
-    api_url = KittAgent.Configs.get_config("api_url") || Application.get_env(:kitt_agent, :api_urls)[:openrouter]
+    api_key = KittAgent.Configs.get_config("api_key") ||
+      Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_url = KittAgent.Configs.get_config("api_url") ||
+      Application.get_env(:kitt_agent, :api_urls)[:openrouter]
 
     last_ev = Events.make_user_talk_event(user_text)
 
@@ -50,7 +53,7 @@ defmodule KittAgent.Requests do
           |> Events.content_with_actions()
           |> then(&if(match?(%Content{}, &1), do: Queue.enqueue(kitt.id, &1)))
 
-          kitt.id |> Summarizer.exec()
+          kitt |> Summarizer.exec()
 
           {:ok, res}
         else

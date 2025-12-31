@@ -14,6 +14,7 @@ defmodule KittAgent.Application do
       {Phoenix.PubSub, name: KittAgent.PubSub},
       KittAgent.Summarizer,
       KittAgent.SystemActions,
+      KittAgent.TTS,
       KittAgentWeb.Endpoint
     ]
 

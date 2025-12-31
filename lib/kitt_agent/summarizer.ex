@@ -14,7 +14,7 @@ defmodule KittAgent.Summarizer do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def exec(id), do: GenServer.cast(__MODULE__, {:exec, id})
+  def exec(%Kitt{id: id}), do: GenServer.cast(__MODULE__, {:exec, id})
 
   @impl GenServer
   def init(:ok), do: {:ok, :ok}
