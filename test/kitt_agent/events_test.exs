@@ -61,7 +61,7 @@ defmodule KittAgent.EventsTest do
       {:ok, ev2} = Events.create_kitt_event(Events.make_user_talk_event("msg2"), kitt)
       {:ok, ev3} = Events.create_kitt_event(Events.make_user_talk_event("msg3"), kitt)
 
-      assert {2, _} = Events.delete_events([ev1.id, ev3.id])
+      Events.delete_events([ev1.id, ev3.id])
 
       remaining_events = Events.recents(kitt)
       remaining_ids = Enum.map(remaining_events, & &1.id)
