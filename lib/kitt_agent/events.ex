@@ -3,15 +3,14 @@ defmodule KittAgent.Events do
   import BasicContexts.Query
 
   alias KittAgent.Repo
-  alias KittAgent.Datasets.Kitt
-  alias KittAgent.Datasets.Event
-  alias KittAgent.Datasets.Content
+  alias KittAgent.Datasets.{Kitt, Event, Content}
+  alias KittAgent.Kitts
 
   require Content
   
   use BasicContexts,
     repo: Repo,
-    funcs: [:get, :create],
+    funcs: [:get, :create, :delete],
     attrs: [singular: :event, plural: :events, schema: Event, preload: :content]
 
   use BasicContexts,
@@ -116,10 +115,25 @@ defmodule KittAgent.Events do
   end
   def broadcast_change(result), do: result
 
+  def delete(%Event{kitt: %Kitt{} = kitt, content: %Content{audio_path: path}} = ev) do
+    with {:ok, _} = x <- delete_event(ev) do
+      delete_audio(path, kitt)
+      x
+    end
+  end
+
+  defp delete_audio(path, %Kitt{} = kitt) when is_binary(path) do
+    Kitts.resource(kitt, Path.basename(path))
+    |> File.rm()
+  end
+  defp delete_audio(_, _), do: :ok
+
   def delete_events([_ | _] = ids) do
     Event
     |> where([t], t.id in ^ids)
-    |> Repo.delete_all()
+    |> preload([:kitt, :content])
+    |> Repo.all()
+    |> Enum.map(&delete/1)
   end
 
   def delete_events(_), do: {0, nil}
