@@ -10,6 +10,8 @@ import Config
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :kitt_agent,
+  uploads_path: "/uploads",
+  uploads_dir: "/app/uploads",
   api_urls: [
     openrouter: "https://openrouter.ai/api/v1/chat/completions",
     cartesia: "https://api.cartesia.ai/tts/bytes"

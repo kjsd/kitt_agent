@@ -147,7 +147,7 @@ defmodule KittAgentWeb.KittLive.FormComponent do
   defp save_kitt(socket, :new, kitt_params) do
     kitt_params = put_audio_path(socket, kitt_params)
 
-    case Kitts.create_kitt(kitt_params) do
+    case Kitts.create(kitt_params) do
       {:ok, kitt} ->
         notify_parent({:saved, kitt})
 
@@ -168,7 +168,9 @@ defmodule KittAgentWeb.KittLive.FormComponent do
       [entry | _] ->
         ext = Path.extname(entry.client_name)
         filename = "#{Ecto.UUID.generate()}#{ext}"
-        dest = Path.join("/app/uploads", filename)
+
+        dest = Application.get_env(:kitt_agent, :uploads_dir)
+        |> Path.join(filename)
 
         consume_uploaded_entries(socket, :audio, fn %{path: path}, _entry ->
           File.cp!(path, dest)

@@ -97,7 +97,7 @@ defmodule KittAgent.Events do
     |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
     |> Map.update(:content, nil, update_fn)
     |> create_event()
-    |> broadcast_change([:event, :created])
+    |> broadcast_change()
   end
 
   @topic "events"
@@ -106,11 +106,15 @@ defmodule KittAgent.Events do
     Phoenix.PubSub.subscribe(KittAgent.PubSub, @topic)
   end
 
-  defp broadcast_change({:ok, %Event{} = result}, event) do
-    Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {event, result})
-    {:ok, result}
+  def broadcast_change({:ok, %Event{} = x} = result) do
+    Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {[:event, :created], x})
+    result
   end
-  defp broadcast_change(result, _), do: result
+  def broadcast_change({:ok, %Content{} = x} = result) do
+    Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {[:event, :created], x})
+    result
+  end
+  def broadcast_change(result), do: result
 
   def delete_events([_ | _] = ids) do
     Event

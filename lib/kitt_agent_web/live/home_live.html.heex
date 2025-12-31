@@ -98,7 +98,14 @@
                         </label>
                       </th>
                       <td>{ev.role}</td>
-                      <td>{ev.content.message}</td>
+                      <td>
+                        <div>{ev.content.message}</div>
+                        <%= if ev.content.audio_path do %>
+                           <div class="mt-2">
+                             <audio src={ev.content.audio_path} controls preload="none" class="h-8 w-full max-w-xs"></audio>
+                           </div>
+                        <% end %>
+                      </td>
                       <td>
                         <%= if ev.content.action == "SystemActions" do %>
                           <button class="btn btn-xs btn-outline btn-info whitespace-nowrap" phx-click="show_actions" phx-value-id={ev.id}>
