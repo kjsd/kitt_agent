@@ -1,101 +1,12 @@
 defmodule KittAgent.Requests do
-  alias KittAgent.Datasets.Kitt
-  alias KittAgent.Datasets.Content
-  alias KittAgent.Prompts
-  alias KittAgent.Events
-  alias KittAgent.Summarizer
-  alias KittAgent.SystemActions.Queue
+  alias KittAgent.Requests.OpenRouter
+  alias KittAgent.Requests.ZonosGradio
 
-  require Logger
+  alias KittAgent.Datasets.{Kitt,Content}
 
-  def list_models() do
-    api_key = KittAgent.Configs.get_config("api_key") ||
-      Application.get_env(:kitt_agent, :keys)[:openrouter]
-    headers = if api_key, do: [{"Authorization", "Bearer #{api_key}"}], else: []
+  def list_models(), do: OpenRouter.list_models()
+  def talk(%Kitt{} = k, t), do: OpenRouter.talk(k, t)
+  def summary(%Kitt{} = k, [_ | _] = e), do: OpenRouter.summary(k, e)
+  def process_tts(%Content{} = c, %Kitt{} = k), do: ZonosGradio.process(c, k)
 
-    case Req.get("https://openrouter.ai/api/v1/models", headers: headers) do
-      {:ok, %{status: 200, body: %{"data" => models}}} ->
-        {:ok, Enum.map(models, fn m -> %{id: m["id"], name: m["name"]} end)}
-
-      {:ok, e} ->
-        {:error, e}
-
-      {:error, e} ->
-        {:error, e}
-    end
-  end
-
-  def talk(%Kitt{} = kitt, user_text) do
-    api_key = KittAgent.Configs.get_config("api_key") ||
-      Application.get_env(:kitt_agent, :keys)[:openrouter]
-    api_url = KittAgent.Configs.get_config("api_url") ||
-      Application.get_env(:kitt_agent, :api_urls)[:openrouter]
-
-    last_ev = Events.make_user_talk_event(user_text)
-
-    case Req.post(api_url,
-           json: kitt |> Prompts.make(last_ev),
-           headers: [
-             {"Authorization", "Bearer #{api_key}"},
-             {"HTTP-Referer", "https://www.kandj.org"},
-             {"X-Title", "KJSD"}
-           ]
-         ) do
-      {:ok, %{status: 200, body: resp_body}} ->
-        with [choice | _] <- resp_body["choices"],
-             {:ok, res} <- Jason.decode(choice["message"]["content"]) do
-          last_ev |> Events.create_kitt_event(kitt)
-
-          res
-          |> Events.make_kitt_event()
-          |> Events.create_kitt_event(kitt)
-          |> then(fn {:ok, event} ->
-            if event.content do
-              KittAgent.TTS.RequestBroker.exec(event.content)
-            end
-            event
-          end)
-          |> Events.content_with_actions()
-          |> then(&if(match?(%Content{}, &1), do: Queue.enqueue(kitt.id, &1)))
-
-          kitt |> Summarizer.exec()
-
-          {:ok, res}
-        else
-          e ->
-            Logger.error(inspect(e))
-            {:error, e}
-        end
-
-      {:ok, e} ->
-        Logger.error(inspect(e))
-        {:error, e}
-    end
-  end
-
-  def summary(%Kitt{} = kitt, [_ | _] = events) do
-    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
-    api_url = KittAgent.Configs.get_config("api_url") || Application.get_env(:kitt_agent, :api_urls)[:openrouter]
-
-    case Req.post(api_url,
-           json: Prompts.summary(kitt, events),
-           headers: [
-             {"Authorization", "Bearer #{api_key}"},
-             {"HTTP-Referer", "https://www.kandj.org"},
-             {"X-Title", "KJSD"}
-           ]
-         ) do
-      {:ok, %{status: 200, body: resp_body}} ->
-        with [choice | _] <- resp_body["choices"],
-             res <- choice["message"]["content"] do
-          {:ok, res}
-        else
-          e ->
-            {:error, e}
-        end
-
-      {:ok, e} ->
-        {:error, e}
-    end
-  end
 end

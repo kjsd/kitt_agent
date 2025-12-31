@@ -17,8 +17,8 @@ defmodule KittAgentWeb.Endpoint do
 
   # Serve uploaded files from "uploads" directory
   plug Plug.Static,
-    at: "/uploads",
-    from: "/app/uploads",
+    at: Application.compile_env(:kitt_agent, :uploads_path),
+    from: Application.compile_env(:kitt_agent, :uploads_dir),
     gzip: false
 
   # Serve at "/" the static files from "priv/static" directory.

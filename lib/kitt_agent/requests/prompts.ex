@@ -1,9 +1,6 @@
-defmodule KittAgent.Prompts do
-  alias KittAgent.Datasets.Kitt
-  alias KittAgent.Datasets.Event
-  alias KittAgent.Datasets.Content
-  alias KittAgent.Events
-  alias KittAgent.Memories
+defmodule KittAgent.Requests.Prompts do
+  alias KittAgent.Datasets.{Kitt, Event, Content}
+  alias KittAgent.{Events, Memories}
 
   require Content
 

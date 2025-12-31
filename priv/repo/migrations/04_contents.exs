@@ -8,6 +8,7 @@ defmodule KittAgent.Repo.Migrations.Contents do
       add :listener, :string
       add :mood, :string
       add :status, :string, default: "completed", null: false
+      add :audio_path, :string
 
       add :event_id, references(:events, on_delete: :delete_all), null: false
 
