@@ -38,3 +38,5 @@ npm-debug.log
 /config/*.secret.exs
 *.wav
 /kitt-agent.yml
+# Uploaded files
+/uploads/

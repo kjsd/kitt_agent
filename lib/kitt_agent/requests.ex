@@ -49,7 +49,12 @@ defmodule KittAgent.Requests do
           res
           |> Events.make_kitt_event()
           |> Events.create_kitt_event(kitt)
-          |> elem(1)
+          |> then(fn {:ok, event} ->
+            if event.content do
+              KittAgent.TTS.RequestBroker.exec(event.content)
+            end
+            event
+          end)
           |> Events.content_with_actions()
           |> then(&if(match?(%Content{}, &1), do: Queue.enqueue(kitt.id, &1)))
 
