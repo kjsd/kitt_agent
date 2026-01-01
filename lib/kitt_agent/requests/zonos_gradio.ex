@@ -18,7 +18,7 @@ defmodule KittAgent.Requests.ZonosGradio do
 
       Logger.info("TTS: Generating audio for Content #{content.id} (Lang: #{lang_code})...")
 
-      with {:ok, audio_url} <- call_gradio(content.message, lang_code, speaker_audio),
+      with {:ok, audio_url} <- call_gradio(content.message, content.mood, lang_code, speaker_audio),
            {:ok, local_path} <- download_audio(audio_url, kitt) do
         content
         |> Events.content_talk_completed(local_path)
@@ -113,9 +113,11 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
-  defp call_gradio(text, lang_code, speaker_audio) do
+  defp call_gradio(text, mood, lang_code, speaker_audio) do
     # API: generate_audio
     # Inputs: [Model, Text, Lang, SpeakerAudio, PrefixAudio, ...Emotions..., VQ, Fmax, Pitch, Rate, DNSMOS, Denoise, CFG, ...Sampling..., Seed, RandSeed, UncondKeys]
+    
+    emotions = resolve_emotions(mood)
 
     payload = %{
       data: [
@@ -130,21 +132,21 @@ defmodule KittAgent.Requests.ZonosGradio do
         # 7: Prefix Audio
         nil,
         # 48: Happiness
-        1.0,
+        emotions.happiness,
         # 49: Sadness
-        0.05,
+        emotions.sadness,
         # 50: Disgust
-        0.05,
+        emotions.disgust,
         # 51: Fear
-        0.05,
+        emotions.fear,
         # 54: Surprise
-        0.05,
+        emotions.surprise,
         # 55: Anger
-        0.05,
+        emotions.anger,
         # 56: Other
-        0.1,
+        emotions.other,
         # 57: Neutral
-        0.2,
+        emotions.neutral,
         # 17: VQ Score
         0.78,
         # 16: Fmax
@@ -191,6 +193,49 @@ defmodule KittAgent.Requests.ZonosGradio do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp resolve_emotions(mood) do
+    # Default based on Nina's personality (Optimistic/Happy)
+    base = %{
+      happiness: 1.0,
+      sadness: 0.05,
+      disgust: 0.05,
+      fear: 0.05,
+      surprise: 0.05,
+      anger: 0.05,
+      other: 0.1,
+      neutral: 0.2
+    }
+
+    mood = String.downcase(mood || "")
+
+    cond do
+      contains_any?(mood, ["sad", "cry", "grief", "sorrow", "depress"]) ->
+        %{base | sadness: 1.0, happiness: 0.05}
+
+      contains_any?(mood, ["angr", "mad", "rage", "furious"]) ->
+        %{base | anger: 1.0, happiness: 0.05}
+
+      contains_any?(mood, ["fear", "scar", "anxio", "terrified"]) ->
+        %{base | fear: 1.0, happiness: 0.05}
+
+      contains_any?(mood, ["surpris", "shock", "amaz"]) ->
+        %{base | surprise: 1.0, happiness: 0.5}
+
+      contains_any?(mood, ["disgust", "yuck"]) ->
+        %{base | disgust: 1.0, happiness: 0.05}
+
+      contains_any?(mood, ["neutral", "calm", "serious"]) ->
+        %{base | neutral: 1.0, happiness: 0.1}
+
+      true ->
+        base
+    end
+  end
+
+  defp contains_any?(text, keywords) do
+    Enum.any?(keywords, &String.contains?(text, &1))
   end
 
   defp wait_for_sse(event_id) do

@@ -3,6 +3,7 @@ services:
     image: kjsdhub/kitt-agent
     environment:
       PORT: 8080
+      OPENROUTER_KEY:
       DATABASE_URL: ecto://USER:PASS@HOST/kitt_agent
       SECRET_KEY_BASE: 
     ports:
