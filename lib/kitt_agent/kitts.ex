@@ -25,7 +25,9 @@ defmodule KittAgent.Kitts do
   def resource(%Kitt{id: id}) do
     Application.get_env(:kitt_agent, :uploads_dir) |> Path.join(id)
   end
-  def resource_audio(%Kitt{audio_path: path} = kitt), do: resource(kitt, path)
+  def resource_audio(%Kitt{audio_path: path} = kitt) when is_binary(path), 
+    do: resource(kitt, Path.basename(path))
+  def resource_audio(_), do: nil
 
   def path(%Kitt{} = kitt, x) when is_binary(x), do: path(kitt) |> Path.join(x)
   def path(_, _), do: nil
