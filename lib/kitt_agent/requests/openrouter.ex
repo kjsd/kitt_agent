@@ -1,4 +1,5 @@
 defmodule KittAgent.Requests.OpenRouter do
+  alias KittAgent.Repo
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Events, Summarizer, TTS, SystemActions}
   alias KittAgent.Requests.Prompts
@@ -43,22 +44,23 @@ defmodule KittAgent.Requests.OpenRouter do
              {:ok, res} <- Jason.decode(choice["message"]["content"]) do
           last_ev |> Events.create_kitt_event(kitt)
 
-          res
-          |> Events.make_kitt_event()
-          |> Events.create_kitt_event(kitt)
-          |> then(fn {:ok, event} ->
-            if event.content do
-              TTS.RequestBroker.exec(kitt, event.content)
-            end
+          with {:ok, event} <- Events.make_kitt_event(res)
+          |> Events.create_kitt_event(kitt) do
+            TTS.RequestBroker.exec(kitt, event.content)
+
             event
-          end)
-          |> Events.content_with_actions()
-          |> then(&if(match?(%Content{}, &1),
-           do: SystemActions.Queue.enqueue(kitt.id, &1)))
+            |> Events.content_with_actions()
+            |> then(&if(match?(%Content{}, &1),
+             do: SystemActions.Queue.enqueue(kitt.id, &1)))
 
-          Summarizer.exec(kitt)
+            if(Application.get_env(:kitt_agent, KittAgent.Requests, [])
+               |> Keyword.get(:talk, [])
+               |> Keyword.get(:enable_summarizer, true)) do
+              Summarizer.exec(kitt)
+            end
 
-          {:ok, res}
+            {:ok, Repo.preload(event.content, :system_actions)}
+          end
         else
           e ->
             Logger.error(inspect(e))

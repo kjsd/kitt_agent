@@ -10,7 +10,7 @@ defmodule KittAgent.Requests.ZonosGradio do
   @gradio_url "http://ai.local:7860"
   
   def process(%Content{} = content, %Kitt{} = kitt) do
-    {:ok, content} = Events.content_processing(content)
+    {:ok, content} = Events.content_talk_processing(content)
     
     try do
       lang_code = lang_to_code(kitt.lang)
@@ -22,20 +22,19 @@ defmodule KittAgent.Requests.ZonosGradio do
            {:ok, local_path} <- download_audio(audio_url, kitt) do
         
         content
-        |> Events.update_content(%{audio_path: local_path,
-                                  status: Content.status_completed})
+        |> Events.content_talk_completed(local_path)
         |> Events.broadcast_change()
         
         Logger.info("TTS: Completed. Saved to #{local_path}")
       else
         error ->
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
-          Events.content_failed(content)
+          Events.content_talk_failed(content)
       end
     rescue
       e ->
         Logger.error("TTS: Exception: #{inspect(e)}")
-        Events.content_failed(content)
+        Events.content_talk_failed(content)
     end
   end
 

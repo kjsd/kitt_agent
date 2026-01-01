@@ -199,6 +199,19 @@ defmodule KittAgent.Events do
   def content_failed(%Content{} = c),
     do: update_content(c, %{status: Content.status_failed})
 
+  def content_talk_processing(%Content{action: Content.action_talk} = c),
+    do: content_processing(c)
+  def content_talk_processing(%Content{} = c), do: {:ok, c}
+
+  def content_talk_completed(%Content{action: Content.action_talk} = c, path),
+    do: update_content(c, %{audio_path: path, status: Content.status_completed})
+  def content_talk_completed(%Content{} = c, path),
+    do: update_content(c, %{audio_path: path})
+
+  def content_talk_failed(%Content{action: Content.action_talk} = c),
+    do: content_failed(c)
+  def content_talk_failed(%Content{} = c), do: {:ok, c}
+
   defp to_datetime(%NaiveDateTime{} = ts), do: DateTime.from_naive!(ts, "Etc/UTC")
 
   defp to_datetime(%NaiveDateTime{} = ts, tz) do
