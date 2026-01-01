@@ -54,25 +54,31 @@ defmodule KittAgentWeb.HomeLiveTest do
       |> KittAgent.Repo.insert!()
 
     # Create events for both
-    Events.create_kitt_event(%KittAgent.Datasets.Event{
-      role: "user",
-      content: %KittAgent.Datasets.Content{
-        action: "Talk",
-        listener: kitt1.name,
-        message: "Message for Kitt 1",
-        mood: "neutral"
-      }
-    }, kitt1)
+    Events.create_kitt_event(
+      %KittAgent.Datasets.Event{
+        role: "user",
+        content: %KittAgent.Datasets.Content{
+          action: "Talk",
+          listener: kitt1.name,
+          message: "Message for Kitt 1",
+          mood: "neutral"
+        }
+      },
+      kitt1
+    )
 
-    Events.create_kitt_event(%KittAgent.Datasets.Event{
-      role: "user",
-      content: %KittAgent.Datasets.Content{
-        action: "Talk",
-        listener: kitt2.name,
-        message: "Message for Kitt 2",
-        mood: "neutral"
-      }
-    }, kitt2)
+    Events.create_kitt_event(
+      %KittAgent.Datasets.Event{
+        role: "user",
+        content: %KittAgent.Datasets.Content{
+          action: "Talk",
+          listener: kitt2.name,
+          message: "Message for Kitt 2",
+          mood: "neutral"
+        }
+      },
+      kitt2
+    )
 
     {:ok, view, _html} = live(conn, ~p"/kitt-web")
 

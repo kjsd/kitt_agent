@@ -7,8 +7,10 @@ defmodule KittAgent.Requests.OpenRouter do
   require Logger
 
   def list_models() do
-    api_key = KittAgent.Configs.get_config("api_key") ||
-      Application.get_env(:kitt_agent, :keys)[:openrouter]
+    api_key =
+      KittAgent.Configs.get_config("api_key") ||
+        Application.get_env(:kitt_agent, :keys)[:openrouter]
+
     headers = if api_key, do: [{"Authorization", "Bearer #{api_key}"}], else: []
 
     case Req.get("https://openrouter.ai/api/v1/models", headers: headers) do
@@ -24,10 +26,13 @@ defmodule KittAgent.Requests.OpenRouter do
   end
 
   def talk(%Kitt{} = kitt, user_text) do
-    api_key = KittAgent.Configs.get_config("api_key") ||
-      Application.get_env(:kitt_agent, :keys)[:openrouter]
-    api_url = KittAgent.Configs.get_config("api_url") ||
-      Application.get_env(:kitt_agent, :api_urls)[:openrouter]
+    api_key =
+      KittAgent.Configs.get_config("api_key") ||
+        Application.get_env(:kitt_agent, :keys)[:openrouter]
+
+    api_url =
+      KittAgent.Configs.get_config("api_url") ||
+        Application.get_env(:kitt_agent, :api_urls)[:openrouter]
 
     last_ev = Events.make_user_talk_event(user_text)
 
@@ -44,18 +49,24 @@ defmodule KittAgent.Requests.OpenRouter do
              {:ok, res} <- Jason.decode(choice["message"]["content"]) do
           last_ev |> Events.create_kitt_event(kitt)
 
-          with {:ok, event} <- Events.make_kitt_event(res)
-          |> Events.create_kitt_event(kitt) do
+          with {:ok, event} <-
+                 Events.make_kitt_event(res)
+                 |> Events.create_kitt_event(kitt) do
             TTS.RequestBroker.exec(kitt, event.content)
 
             event
             |> Events.content_with_actions()
-            |> then(&if(match?(%Content{}, &1),
-             do: SystemActions.Queue.enqueue(kitt.id, &1)))
+            |> then(
+              &if(match?(%Content{}, &1),
+                do: SystemActions.Queue.enqueue(kitt.id, &1)
+              )
+            )
 
-            if(Application.get_env(:kitt_agent, KittAgent.Requests, [])
-               |> Keyword.get(:talk, [])
-               |> Keyword.get(:enable_summarizer, true)) do
+            if(
+              Application.get_env(:kitt_agent, KittAgent.Requests, [])
+              |> Keyword.get(:talk, [])
+              |> Keyword.get(:enable_summarizer, true)
+            ) do
               Summarizer.exec(kitt)
             end
 
@@ -74,8 +85,13 @@ defmodule KittAgent.Requests.OpenRouter do
   end
 
   def summary(%Kitt{} = kitt, [_ | _] = events) do
-    api_key = KittAgent.Configs.get_config("api_key") || Application.get_env(:kitt_agent, :keys)[:openrouter]
-    api_url = KittAgent.Configs.get_config("api_url") || Application.get_env(:kitt_agent, :api_urls)[:openrouter]
+    api_key =
+      KittAgent.Configs.get_config("api_key") ||
+        Application.get_env(:kitt_agent, :keys)[:openrouter]
+
+    api_url =
+      KittAgent.Configs.get_config("api_url") ||
+        Application.get_env(:kitt_agent, :api_urls)[:openrouter]
 
     case Req.post(api_url,
            json: Prompts.summary(kitt, events),

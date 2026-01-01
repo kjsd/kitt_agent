@@ -6,12 +6,12 @@ defmodule KittAgentWeb.SettingsLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    configs = 
+    configs =
       Configs.all_configs()
       |> Map.put_new("default_lang", "Japanese")
       |> Map.put_new("default_timezone", "Asia/Tokyo")
-    
-    models = 
+
+    models =
       case Requests.list_models() do
         {:ok, list} -> list
         _ -> []
@@ -60,9 +60,10 @@ defmodule KittAgentWeb.SettingsLive.Index do
 
   @impl true
   def handle_event("save_all", params, socket) do
-    Enum.each(params, fn {k, v} -> 
+    Enum.each(params, fn {k, v} ->
       if k != "_target", do: Configs.set_config(k, v)
     end)
+
     configs = Configs.all_configs()
     {:noreply, assign(socket, configs: configs) |> put_flash(:info, "All settings saved.")}
   end

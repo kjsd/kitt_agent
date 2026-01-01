@@ -26,16 +26,25 @@ defmodule KittAgentWeb.KittLive.FormComponent do
         <.input field={@form[:hometown]} type="text" label="Hometown" />
         <.input
           field={@form[:lang]}
-          type="select"
+          type="text"
           label="Lang"
-          options={@languages}
+          list="languages_list"
+          placeholder="Select or type..."
         />
+        <datalist id="languages_list">
+          <option :for={lang <- @languages} value={lang} />
+        </datalist>
+
         <.input
           field={@form[:timezone]}
-          type="select"
+          type="text"
           label="Timezone"
-          options={@timezones}
+          list="timezones_list"
+          placeholder="Select or type..."
         />
+        <datalist id="timezones_list">
+          <option :for={tz <- @timezones} value={tz} />
+        </datalist>
 
         <div>
           <label class="block text-sm font-semibold leading-6 text-zinc-800">Voice Sample</label>
@@ -169,8 +178,9 @@ defmodule KittAgentWeb.KittLive.FormComponent do
         ext = Path.extname(entry.client_name)
         filename = "#{Ecto.UUID.generate()}#{ext}"
 
-        dest = Application.get_env(:kitt_agent, :uploads_dir)
-        |> Path.join(filename)
+        dest =
+          Application.get_env(:kitt_agent, :uploads_dir)
+          |> Path.join(filename)
 
         consume_uploaded_entries(socket, :audio, fn %{path: path}, _entry ->
           File.cp!(path, dest)

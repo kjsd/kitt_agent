@@ -9,7 +9,7 @@ defmodule KittAgent.Datasets.SystemAction do
     field :target, :string
 
     belongs_to :content, KittAgent.Datasets.Content
-    
+
     timestamps()
   end
 

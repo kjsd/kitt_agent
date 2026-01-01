@@ -6,9 +6,8 @@ defmodule KittAgent.TTS do
   @impl true
   def init(_) do
     children = [
-      {DynamicSupervisor, name: KittAgent.TTS.Supervisor,
-       strategy: :one_for_one},
-      {Registry, keys: :unique, name: KittAgent.TTS.Registry},
+      {DynamicSupervisor, name: KittAgent.TTS.Supervisor, strategy: :one_for_one},
+      {Registry, keys: :unique, name: KittAgent.TTS.Registry}
     ]
 
     Supervisor.init(children, strategy: :one_for_all)

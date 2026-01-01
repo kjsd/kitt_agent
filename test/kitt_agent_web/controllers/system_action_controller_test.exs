@@ -8,8 +8,9 @@ defmodule KittAgentWeb.SystemActionControllerTest do
   alias KittAgent.SystemActions.Queue
 
   setup %{conn: conn} do
-    {:ok, kitt} = Kitts.create_kitt(%{name: "Test Kitt", lang: "Japanese", timezone: "Asia/Tokyo"})
-    
+    {:ok, kitt} =
+      Kitts.create_kitt(%{name: "Test Kitt", lang: "Japanese", timezone: "Asia/Tokyo"})
+
     # テスト用のアクションを作成
     actions_content = %{
       "action" => "SystemActions",
@@ -18,6 +19,7 @@ defmodule KittAgentWeb.SystemActionControllerTest do
         %{action: "test_action", parameter: "param1"}
       ]
     }
+
     {:ok, event} = Events.make_kitt_event(actions_content) |> Events.create_kitt_event(kitt)
 
     # Queueに入れる
@@ -27,18 +29,25 @@ defmodule KittAgentWeb.SystemActionControllerTest do
   end
 
   describe "pending actions" do
-    test "GET /kitt/:id/actions/pending retrieves pending actions", %{conn: conn, kitt: kitt, content: content} do
+    test "GET /kitt/:id/actions/pending retrieves pending actions", %{
+      conn: conn,
+      kitt: kitt,
+      content: content
+    } do
       conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
-      
+
       assert %{"system_actions" => [%{"action" => "test_action"}]} = json_response(conn, 200)
-      
+
       # ステータスが processing になっていることを確認
       updated_content = Repo.get(Content, content.id)
       assert updated_content.status == "processing"
       Queue.clear(kitt.id)
     end
 
-    test "GET /kitt/:id/actions/pending returns empty if queue is empty", %{conn: conn, kitt: kitt} do
+    test "GET /kitt/:id/actions/pending returns empty if queue is empty", %{
+      conn: conn,
+      kitt: kitt
+    } do
       # 最初のGETでQueueは空になるはず
       get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
 
@@ -50,7 +59,11 @@ defmodule KittAgentWeb.SystemActionControllerTest do
   end
 
   describe "complete action" do
-    test "POST /kitt/:id/actions/:content_id/complete updates status", %{conn: conn, kitt: kitt, content: content} do
+    test "POST /kitt/:id/actions/:content_id/complete updates status", %{
+      conn: conn,
+      kitt: kitt,
+      content: content
+    } do
       # まずは processing にしておく
       get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
       assert Repo.get(Content, content.id).status == "processing"

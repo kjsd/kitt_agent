@@ -14,5 +14,4 @@ defmodule KittAgentWeb.KittController do
       |> json(res)
     end
   end
-
 end

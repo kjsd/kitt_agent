@@ -46,6 +46,5 @@ defmodule KittAgentWeb.KittLiveTest do
       assert html =~ "Kitt created successfully"
       assert html =~ "some name"
     end
-
   end
 end

@@ -8,7 +8,7 @@ defmodule KittAgentWeb.SystemActionController do
   alias KittAgent.Events
 
   require Content
-  
+
   action_fallback KittAgentWeb.FallbackController
 
   def pending(conn, %{"id" => kitt_id}) do
@@ -31,14 +31,14 @@ defmodule KittAgentWeb.SystemActionController do
   end
 
   defp dequeue_pending(id) do
-    with %Content{status: Content.status_pending} = c <- Queue.dequeue(id) do
+    with %Content{status: Content.status_pending()} = c <- Queue.dequeue(id) do
       c
     else
       %Content{} ->
         dequeue_pending(id)
+
       x ->
         x
     end
   end
-    
 end

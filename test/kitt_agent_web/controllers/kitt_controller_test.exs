@@ -23,16 +23,17 @@ defmodule KittAgentWeb.KittControllerTest do
     end)
 
     # テスト用Kitt作成
-    {:ok, kitt} = Kitts.create_kitt(%{
-      name: "Test Kitt",
-      lang: "Japanese",
-      timezone: "Asia/Tokyo",
-      model: "test-model",
-      vendor: "test-vendor",
-      birthday: ~D[2024-01-01],
-      hometown: "Test City",
-      biography: %{personality: "A friendly test assistant named %%NAME%%."}
-    })
+    {:ok, kitt} =
+      Kitts.create_kitt(%{
+        name: "Test Kitt",
+        lang: "Japanese",
+        timezone: "Asia/Tokyo",
+        model: "test-model",
+        vendor: "test-vendor",
+        birthday: ~D[2024-01-01],
+        hometown: "Test City",
+        biography: %{personality: "A friendly test assistant named %%NAME%%."}
+      })
 
     %{kitt: kitt}
   end
@@ -40,7 +41,7 @@ defmodule KittAgentWeb.KittControllerTest do
   describe "talk/2" do
     test "returns AI response successfully", %{conn: conn, kitt: kitt} do
       params = %{"id" => kitt.id, "text" => "Hello"}
-      
+
       conn = post(conn, ~p"/kitt/#{kitt.id}/talk/", params)
 
       assert %{"message" => "Hello, I am a test Kitt."} = json_response(conn, 200)
@@ -58,7 +59,7 @@ defmodule KittAgentWeb.KittControllerTest do
       # FallbackControllerが適切に処理するか確認
       # もしコントローラーがnilを返してクラッシュする場合は修正が必要
       conn = post(conn, ~p"/kitt/#{fake_id}/talk/", params)
-      
+
       assert response(conn, 404)
     end
   end

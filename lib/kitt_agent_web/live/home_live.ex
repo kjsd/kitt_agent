@@ -11,7 +11,7 @@ defmodule KittAgentWeb.HomeLive do
     b = (i - 1) * @events_unit
     e = b + @events_unit - 1
 
-    {events, {_, len}} = 
+    {events, {_, len}} =
       Events.list_events(b..e, %{kitt: kitt}, %{order_by: [desc: :inserted_at, desc: :id]})
       |> Events.with_timestamp(kitt)
 
@@ -25,6 +25,7 @@ defmodule KittAgentWeb.HomeLive do
       {events, 1, 1, 1}
     end
   end
+
   defp events_page(_, _), do: {[], 1, 1, 1}
 
   def mount(_params, _session, socket) do
@@ -85,6 +86,7 @@ defmodule KittAgentWeb.HomeLive do
   def handle_event("page", %{"i" => i}, socket) when is_binary(i) do
     handle_event("page", %{"i" => String.to_integer(i)}, socket)
   end
+
   def handle_event("page", %{"i" => i}, socket) do
     kitt = socket.assigns.kitt
     {events, pa, pz, pl} = events_page(kitt, i)
