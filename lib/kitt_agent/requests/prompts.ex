@@ -27,10 +27,10 @@ defmodule KittAgent.Requests.Prompts do
     <available_actions_list>
     #Available Actions
     Use if your character needs to perform an action:
-    AVAILABLE ACTION: #{Content.action_talk} (Use this for normal conversation)
-    AVAILABLE ACTION: #{Content.action_system} (Use this to perform physical movements)
+    AVAILABLE ACTION: #{Content.action_talk()} (Use this for normal conversation)
+    AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical movements)
 
-    If you choose "#{Content.action_system}", you must provide a list of actions in the "system_actions" field.
+    If you choose "#{Content.action_system()}", you must provide a list of actions in the "system_actions" field.
     Supported physical actions:
     - MoveForward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
     - MoveBackward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
@@ -42,21 +42,24 @@ defmodule KittAgent.Requests.Prompts do
   end
 
   defp prop_message(%Kitt{lang: lang}) do
-     "Concise #{lang} dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "Concise #{lang} dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
-     
+
   defp tail(%Kitt{} = kitt) do
     """
     (If #{kitt.name} is just speaking, use action "Talk". If #{kitt.name} needs to move, use "SystemActions" and populate "system_actions" list).
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"#{Content.action_talk}|#{Content.action_system}", "system_actions": [{"action": "MoveForward", "parameter": "10cm"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"#{Content.action_talk()}|#{Content.action_system()}", "system_actions": [{"action": "MoveForward", "parameter": "10cm"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
-  defp get_main_model, do: KittAgent.Configs.get_config("main_model", "google/gemini-2.5-flash-lite-preview-09-2025")
-  defp get_summary_model, do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-flash-preview")
+  defp get_main_model,
+    do: KittAgent.Configs.get_config("main_model", "google/gemini-2.5-flash-lite-preview-09-2025")
+
+  defp get_summary_model,
+    do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-flash-preview")
 
   def llm_opts(%Kitt{} = kitt, model) do
     %{
@@ -99,15 +102,17 @@ defmodule KittAgent.Requests.Prompts do
               },
               action: %{
                 type: "string",
-                description: "Choose '#{Content.action_talk}' for dialogue, or '#{Content.action_system}' to perform physical movements.",
+                description:
+                  "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_system()}' to perform physical movements.",
                 enum: [
-                  "#{Content.action_talk}",
-                  "#{Content.action_system}"
+                  "#{Content.action_talk()}",
+                  "#{Content.action_system()}"
                 ]
               },
               system_actions: %{
                 type: "array",
-                description: "List of actions to perform if action is '#{Content.action_system}'",
+                description:
+                  "List of actions to perform if action is '#{Content.action_system()}'",
                 items: %{
                   type: "object",
                   properties: %{
@@ -132,7 +137,7 @@ defmodule KittAgent.Requests.Prompts do
                 "message",
                 "mood",
                 "action",
-                "listener",
+                "listener"
               ],
               additionalProperties: false
             },
@@ -151,7 +156,7 @@ defmodule KittAgent.Requests.Prompts do
       Events.with_timestamp(x, kitt)
       |> Jason.encode!()
     end
-    
+
     kitt
     |> Events.recents()
     |> then(&(&1 ++ [last_ev]))
@@ -179,7 +184,9 @@ defmodule KittAgent.Requests.Prompts do
     conversation_text =
       events
       |> Events.with_timestamp(kitt)
-      |> Enum.map(&("[#{&1.timestamp}] #{&1.role}: #{&1.content.message} (Mood: #{&1.content.mood})"))
+      |> Enum.map(
+        &"[#{&1.timestamp}] #{&1.role}: #{&1.content.message} (Mood: #{&1.content.mood})"
+      )
       |> Enum.join("\n")
 
     messages = [

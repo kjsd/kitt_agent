@@ -4,7 +4,7 @@ defmodule KittAgent.Configs do
   alias KittAgent.Datasets.Config
 
   def get(key), do: Repo.get_by(Config, key: to_string(key))
-    
+
   def get_config(key, default \\ nil) do
     with %Config{value: v} when not is_nil(v) <- get(key) do
       v

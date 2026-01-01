@@ -8,8 +8,13 @@ defmodule KittAgent.Kitts do
   use BasicContexts,
     repo: Repo,
     funcs: [:get, :create, :update, :delete, :change, :all],
-    attrs: [singular: :kitt, plural: :kitts, schema: Kitt, preload: :biography,
-           order_by: :inserted_at]
+    attrs: [
+      singular: :kitt,
+      plural: :kitts,
+      schema: Kitt,
+      preload: :biography,
+      order_by: :inserted_at
+    ]
 
   use BasicContexts.PartialList,
     repo: Repo,
@@ -18,19 +23,23 @@ defmodule KittAgent.Kitts do
     last_fn: fn query, _ ->
       query
       |> preload(:biography)
-  end
+    end
 
   def resource(%Kitt{} = kitt, x) when is_binary(x), do: resource(kitt) |> Path.join(x)
   def resource(_, _), do: nil
+
   def resource(%Kitt{id: id}) do
     Application.get_env(:kitt_agent, :uploads_dir) |> Path.join(id)
   end
-  def resource_audio(%Kitt{audio_path: path} = kitt) when is_binary(path), 
+
+  def resource_audio(%Kitt{audio_path: path} = kitt) when is_binary(path),
     do: resource(kitt, Path.basename(path))
+
   def resource_audio(_), do: nil
 
   def path(%Kitt{} = kitt, x) when is_binary(x), do: path(kitt) |> Path.join(x)
   def path(_, _), do: nil
+
   def path(%Kitt{id: id}) do
     Application.get_env(:kitt_agent, :uploads_path) |> Path.join(id)
   end
@@ -48,19 +57,22 @@ defmodule KittAgent.Kitts do
       File.rm!(src)
     end
   end
+
   defp path2resource(_, _), do: :ok
-      
+
   def create(%{"audio_path" => path} = attr) do
     with {:ok, x} <- create_kitt(attr) do
       path2resource(path, x)
       update_kitt(x, %{"audio_path" => path(x, Path.basename(path))})
     end
   end
+
   def create(x), do: create_kitt(x)
-  
+
   def update(%Kitt{} = kitt, %{"audio_path" => new} = attr) do
     with {:ok, x} = res <- update_kitt(kitt, attr) do
       delete_audio(kitt)
+
       if is_binary(new) do
         path2resource(new, kitt)
         update_kitt(x, %{"audio_path" => path(x, Path.basename(new))})
@@ -69,7 +81,7 @@ defmodule KittAgent.Kitts do
       end
     end
   end
-    
+
   def delete(%Kitt{id: id} = kitt) do
     with {:ok, _} = x <- delete_kitt(kitt) do
       kitt
@@ -86,6 +98,6 @@ defmodule KittAgent.Kitts do
     resource(kitt, Path.basename(path))
     |> File.rm()
   end
-  defp delete_audio(_), do: :ok
 
+  defp delete_audio(_), do: :ok
 end

@@ -4,94 +4,134 @@
     <div class="navbar bg-base-100 border-b border-base-200 w-full sticky top-0 z-10">
       <div class="flex-none lg:hidden">
         <label for="my-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="inline-block w-6 h-6 stroke-current"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            >
+            </path>
+          </svg>
         </label>
       </div>
       <div class="flex-1">
         <a class="btn btn-ghost text-xl">{@page_title}</a>
       </div>
     </div>
-    
-    <main class="p-6">
-       <form phx-change="filter_change" class="flex flex-wrap gap-4 mb-6 p-4 bg-base-100 rounded-box shadow">
-         <div class="form-control w-full max-w-xs">
-           <label class="label"><span class="label-text">Kitt</span></label>
-           <select name="kitt_id" class="select select-bordered">
-             <option value="">All Kitts</option>
-             <%= for kitt <- @kitts do %>
-               <option value={kitt.id} selected={@filter_kitt_id == kitt.id}>{kitt.name}</option>
-             <% end %>
-           </select>
-         </div>
-         
-         <div class="form-control w-full max-w-xs">
-           <label class="label"><span class="label-text">Status</span></label>
-           <select name="status" class="select select-bordered">
-             <option value="">All Statuses</option>
-             <%= for s <- ["pending", "processing", "completed", "failed"] do %>
-               <option value={s} selected={@filter_status == s}>{String.capitalize(s)}</option>
-             <% end %>
-           </select>
-         </div>
-       </form>
 
-       <div class="overflow-x-auto card bg-base-100 shadow-xl">
-         <table class="table table-zebra">
-           <thead>
-             <tr>
-               <th>Timestamp</th>
-               <th>Kitt</th>
-               <th>Action</th>
-               <th>Message</th>
-               <th>Status</th>
-             </tr>
-           </thead>
-           <tbody>
-             <%= for content <- @contents do %>
-               <tr class="hover">
-                 <td class="whitespace-nowrap">{content.timestamp}</td>
-                 <td>{content.event.kitt.name}</td>
-                 <td>
-                   <%= if content.action == "SystemActions" do %>
-                     <button class="btn btn-xs btn-outline btn-info whitespace-nowrap" phx-click="show_actions" phx-value-id={content.id}>
-                       {length(content.system_actions)} Actions
-                     </button>
-                   <% else %>
-                     {content.action}
-                   <% end %>
-                 </td>
-                 <td class="max-w-xs truncate" title={content.message}>{content.message}</td>
-                 <td>
-                   <div class="dropdown dropdown-bottom dropdown-end">
-                     <div tabindex="0" role="button" class={"btn btn-xs " <> status_color(content.status)}>
-                       {content.status}
-                     </div>
-                     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                       <%= for s <- ["pending", "processing", "completed", "failed"] do %>
-                         <li><button phx-click="change_status" phx-value-id={content.id} phx-value-status={s} class="btn-sm text-left w-full">{String.capitalize(s)}</button></li>
-                       <% end %>
-                     </ul>
-                   </div>
-                 </td>
-               </tr>
-             <% end %>
-           </tbody>
-         </table>
-       </div>
-       
-       <div class="join flex justify-center mt-6">
-          <button :if={@pa > 1} class="join-item btn" phx-click="page" phx-value-i={@pa - 1}>«</button>
-          <%= for i <- @pa..@pz do %>
-            <%= if i == @page do %>
-              <button class="join-item btn btn-active btn-disabled">{i}</button>
-            <% else %>
-              <button class="join-item btn" phx-click="page" phx-value-i={i}>{i}</button>
+    <main class="p-6">
+      <form
+        phx-change="filter_change"
+        class="flex flex-wrap gap-4 mb-6 p-4 bg-base-100 rounded-box shadow"
+      >
+        <div class="form-control w-full max-w-xs">
+          <label class="label"><span class="label-text">Kitt</span></label>
+          <select name="kitt_id" class="select select-bordered">
+            <option value="">All Kitts</option>
+            <%= for kitt <- @kitts do %>
+              <option value={kitt.id} selected={@filter_kitt_id == kitt.id}>{kitt.name}</option>
             <% end %>
+          </select>
+        </div>
+
+        <div class="form-control w-full max-w-xs">
+          <label class="label"><span class="label-text">Status</span></label>
+          <select name="status" class="select select-bordered">
+            <option value="">All Statuses</option>
+            <%= for s <- ["pending", "processing", "completed", "failed"] do %>
+              <option value={s} selected={@filter_status == s}>{String.capitalize(s)}</option>
+            <% end %>
+          </select>
+        </div>
+      </form>
+
+      <div class="overflow-x-auto card bg-base-100 shadow-xl">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Kitt</th>
+              <th>Action</th>
+              <th>Message</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for content <- @contents do %>
+              <tr class="hover">
+                <td class="whitespace-nowrap">{content.timestamp}</td>
+                <td>{content.event.kitt.name}</td>
+                <td>
+                  <%= if content.action == "SystemActions" do %>
+                    <button
+                      class="btn btn-xs btn-outline btn-info whitespace-nowrap"
+                      phx-click="show_actions"
+                      phx-value-id={content.id}
+                    >
+                      {length(content.system_actions)} Actions
+                    </button>
+                  <% else %>
+                    {content.action}
+                  <% end %>
+                </td>
+                <td class="max-w-xs truncate" title={content.message}>{content.message}</td>
+                <td>
+                  <div class="dropdown dropdown-bottom dropdown-end">
+                    <div
+                      tabindex="0"
+                      role="button"
+                      class={"btn btn-xs " <> status_color(content.status)}
+                    >
+                      {content.status}
+                    </div>
+                    <ul
+                      tabindex="0"
+                      class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                    >
+                      <%= for s <- ["pending", "processing", "completed", "failed"] do %>
+                        <li>
+                          <button
+                            phx-click="change_status"
+                            phx-value-id={content.id}
+                            phx-value-status={s}
+                            class="btn-sm text-left w-full"
+                          >
+                            {String.capitalize(s)}
+                          </button>
+                        </li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="join flex justify-center mt-6">
+        <button :if={@pa > 1} class="join-item btn" phx-click="page" phx-value-i={@pa - 1}>
+          «
+        </button>
+        <%= for i <- @pa..@pz do %>
+          <%= if i == @page do %>
+            <button class="join-item btn btn-active btn-disabled">{i}</button>
+          <% else %>
+            <button class="join-item btn" phx-click="page" phx-value-i={i}>{i}</button>
           <% end %>
-          <button :if={@pz < @pl} class="join-item btn" phx-click="page" phx-value-i={@pz + 1}>»</button>
-       </div>
+        <% end %>
+        <button :if={@pz < @pl} class="join-item btn" phx-click="page" phx-value-i={@pz + 1}>
+          »
+        </button>
+      </div>
     </main>
-    
+
     <%= if @selected_system_actions do %>
       <div class="modal modal-open">
         <div class="modal-box">
@@ -102,7 +142,9 @@
                 <li class="step step-primary w-full text-left" data-content="●">
                   <div class="flex justify-between w-full pl-2">
                     <span class="font-bold">{action.action}</span>
-                    <span class="badge badge-ghost truncate max-w-xs" title={action.parameter}>{action.parameter}</span>
+                    <span class="badge badge-ghost truncate max-w-xs" title={action.parameter}>
+                      {action.parameter}
+                    </span>
                   </div>
                 </li>
               <% end %>
@@ -116,35 +158,90 @@
       </div>
     <% end %>
   </div>
-  
+
   <div class="drawer-side z-20">
     <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
     <ul class="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
       <li class="mb-4 text-lg font-bold px-4">KITT Agent</li>
       <li>
         <a href={~p"/kitt-web"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
+          </svg>
           Dashboard
         </a>
       </li>
       <li>
         <a href={~p"/kitt-web/kitts"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
+          </svg>
           KITTs
         </a>
       </li>
       <li>
         <a class="active" href={~p"/kitt-web/activities"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
           Activities
         </a>
       </li>
       <div class="divider"></div>
       <li>
         <a class="active" href={~p"/kitt-web/settings"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
           </svg>
           Settings
         </a>

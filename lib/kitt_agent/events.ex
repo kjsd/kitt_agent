@@ -7,7 +7,7 @@ defmodule KittAgent.Events do
   alias KittAgent.Kitts
 
   require Content
-  
+
   use BasicContexts,
     repo: Repo,
     funcs: [:get, :create, :delete],
@@ -16,8 +16,7 @@ defmodule KittAgent.Events do
   use BasicContexts,
     repo: Repo,
     funcs: [:get, :update],
-    attrs: [singular: :content, plural: :contents, schema: Content,
-            preload: :system_actions]
+    attrs: [singular: :content, plural: :contents, schema: Content, preload: :system_actions]
 
   use BasicContexts.PartialList,
     repo: Repo,
@@ -69,13 +68,13 @@ defmodule KittAgent.Events do
       content: attr
     }
   end
-  
+
   def create_kitt_event(%Event{} = ev, %Kitt{} = kitt) do
     update_fn = fn
-      %Content{system_actions: [_|_]} = c ->
+      %Content{system_actions: [_ | _]} = c ->
         c
         |> Map.from_struct()
-        |> Map.put("status", Content.status_pending)
+        |> Map.put("status", Content.status_pending())
         |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
 
       %Content{} = c ->
@@ -83,8 +82,8 @@ defmodule KittAgent.Events do
         |> Map.from_struct()
         |> Map.reject(fn {_, v} -> match?(%Ecto.Association.NotLoaded{}, v) end)
 
-      %{"system_actions" => [_|_]} = c ->
-        c |> Map.put("status", Content.status_pending)
+      %{"system_actions" => [_ | _]} = c ->
+        c |> Map.put("status", Content.status_pending())
 
       x ->
         x
@@ -109,10 +108,12 @@ defmodule KittAgent.Events do
     Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {[:event, :created], x})
     result
   end
+
   def broadcast_change({:ok, %Content{} = x} = result) do
     Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {[:event, :created], x})
     result
   end
+
   def broadcast_change(result), do: result
 
   def delete(%Event{kitt: %Kitt{} = kitt, content: %Content{audio_path: path}} = ev) do
@@ -126,6 +127,7 @@ defmodule KittAgent.Events do
     Kitts.resource(kitt, Path.basename(path))
     |> File.rm()
   end
+
   defp delete_audio(_, _), do: :ok
 
   def delete_events([_ | _] = ids) do
@@ -155,8 +157,10 @@ defmodule KittAgent.Events do
   end
 
   def with_timestamp(x) when is_list(x), do: x |> Enum.map(&with_timestamp/1)
+
   def with_timestamp(%Content{inserted_at: ts} = content),
     do: Map.put(content, :timestamp, to_datetime(ts))
+
   def with_timestamp(%Event{inserted_at: ts} = event),
     do: Map.put(event, :timestamp, to_datetime(ts))
 
@@ -165,39 +169,63 @@ defmodule KittAgent.Events do
     |> with_timestamp(kitt)
     |> then(&{&1, opt})
   end
+
   def with_timestamp({list, opt}, _) when is_list(list) do
     list
     |> with_timestamp()
     |> then(&{&1, opt})
   end
+
   def with_timestamp(x, %Kitt{} = kitt) when is_list(x),
     do: x |> Enum.map(&with_timestamp(&1, kitt))
+
   def with_timestamp(%Content{inserted_at: ts} = content, %Kitt{timezone: tz}) do
     ts
     |> to_datetime(tz)
     |> then(&Map.put(content, :timestamp, &1))
   end
+
   def with_timestamp(%Event{inserted_at: ts} = event, %Kitt{timezone: tz}) do
     ts
     |> to_datetime(tz)
     |> then(&Map.put(event, :timestamp, &1))
   end
+
   def with_timestamp(content, %Kitt{timezone: tz}) do
     to_datetime(nil, tz)
     |> then(&Map.put(content, :timestamp, &1))
   end
 
-  def content_with_actions(%Event{content: %Content{system_actions: [_|_]} = x}), do: x
+  def content_with_actions(%Event{content: %Content{system_actions: [_ | _]} = x}), do: x
   def content_with_actions(_), do: nil
- 
+
   def content_pending(%Content{} = c),
-    do: update_content(c, %{status: Content.status_pending})
+    do: update_content(c, %{status: Content.status_pending()})
+
   def content_processing(%Content{} = c),
-    do: update_content(c, %{status: Content.status_processing})
+    do: update_content(c, %{status: Content.status_processing()})
+
   def content_completed(%Content{} = c),
-    do: update_content(c, %{status: Content.status_completed})
+    do: update_content(c, %{status: Content.status_completed()})
+
   def content_failed(%Content{} = c),
-    do: update_content(c, %{status: Content.status_failed})
+    do: update_content(c, %{status: Content.status_failed()})
+
+  def content_talk_processing(%Content{action: Content.action_talk()} = c),
+    do: content_processing(c)
+
+  def content_talk_processing(%Content{} = c), do: {:ok, c}
+
+  def content_talk_completed(%Content{action: Content.action_talk()} = c, path),
+    do: update_content(c, %{audio_path: path, status: Content.status_completed()})
+
+  def content_talk_completed(%Content{} = c, path),
+    do: update_content(c, %{audio_path: path})
+
+  def content_talk_failed(%Content{action: Content.action_talk()} = c),
+    do: content_failed(c)
+
+  def content_talk_failed(%Content{} = c), do: {:ok, c}
 
   defp to_datetime(%NaiveDateTime{} = ts), do: DateTime.from_naive!(ts, "Etc/UTC")
 
@@ -206,6 +234,6 @@ defmodule KittAgent.Events do
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.shift_zone!(tz)
   end
-  defp to_datetime(_, tz), do: DateTime.now!(tz) 
-  
+
+  defp to_datetime(_, tz), do: DateTime.now!(tz)
 end
