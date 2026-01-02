@@ -4,27 +4,22 @@ defmodule KittAgent.Datasets.SystemAction do
 
   use BasicContexts.Constants
 
-  @derive {Jason.Encoder, only: [:action, :parameter, :target, :content_id]}
+  @derive {Jason.Encoder, only: [:action, :parameter, :content_id]}
   schema "system_actions" do
     field :action, :string
     field :parameter, :string
-    field :target, :string
 
     belongs_to :content, KittAgent.Datasets.Content
 
     timestamps()
   end
 
-  define(move_forward, "MoveForward")
-  define(move_backward, "MoveBackward")
-  define(turn_left, "TurnLeft")
-  define(turn_right, "TurnRight")
-  define(stop, "Stop")
+  define(execute_code, "ExecuteCode")
   
   @doc false
   def changeset(o, attrs) do
     o
-    |> cast(attrs, [:action, :parameter, :target])
+    |> cast(attrs, [:action, :parameter])
     |> validate_required([:action, :parameter])
   end
 end
