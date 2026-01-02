@@ -6,15 +6,23 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 
 ## 🚀 Key Features
 
-### 1. Advanced Agent Management ("Kitts")
+### 1. Real-time Interaction Dashboard
+*   **Direct Communication**: Chat directly with your agents via the web interface to test personality and responsiveness.
+*   **Multimedia Feedback**: 
+    *   **Audio Playback**: Listen to generated voice responses directly in the feed (integrated with TTS engines like Zonos).
+    *   **Visual Logs**: See immediate feedback on role, message content, and mood.
+*   **Transaction Management**: View and clean up recent interaction logs.
+*   **Action Inspection**: Inspect complex `SystemActions` in a formatted, scrollable code view to verify parameters.
+
+### 2. Advanced Agent Management ("Kitts")
 *   **Comprehensive Profiles**: Manage multiple agents with distinct profiles including Name, Model, Vendor, Birthday, and Hometown.
 *   **Localization Support**:
     *   **Language Selection**: Choose from 18+ languages (Japanese, English, Swahili, etc.) for your agent's communication.
     *   **Timezone Awareness**: Selectable timezone support (via `Tzdata`) to ground the agent in a specific locale.
-*   **Personality Engine**: Define complex biographies and behavioral traits ("Personality").
+*   **Personality Engine**: Define complex biographies and behavioral traits ("Personality"). Long descriptions are easily managed via pop-up modals.
 *   **Smart Defaults**: Automatically applies system-wide default language and timezone settings to new agents.
 
-### 2. LLM-Driven Intelligence & Control
+### 3. LLM-Driven Intelligence & Control
 *   **Flexible Model Selection**:
     *   **Main Conversation Model**: Choose any model supported by your provider (e.g., Gemini 2.0 Flash) for agent dialogue.
     *   **Summarization Model**: Select a specialized model for high-quality memory consolidation.
@@ -24,20 +32,21 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
     *   **Supported Actions**: `MoveForward`, `MoveBackward`, `TurnLeft`, `TurnRight`, `Stop`.
     *   **Parameter Control**: Precise execution with parameters like `duration_sec` (e.g., "5s"), `distance_cm` (e.g., "10cm"), or `angle_degrees` (e.g., "90deg").
 
-### 3. Comprehensive Activity Monitoring ("Activities")
-*   **Live Audit Log**: A dedicated "Activities" dashboard to track all agent responses and decisions.
+### 4. Comprehensive Activity Monitoring ("Activities")
+*   **Live Audit Log**: A dedicated "Activities" dashboard to track all historical agent responses and decisions.
 *   **Status Management**: Monitor and manually override action statuses (`pending`, `processing`, `completed`, `failed`).
-*   **Action Debugging**: View exact parameters and sequences for `SystemActions` performed by the agent.
+*   **Deep Debugging**: 
+    *   View exact parameters and JSON structures for `SystemActions`.
+    *   Formatted code blocks ensure long parameters are readable without breaking the layout.
 *   **Advanced Filtering**: Filter logs by Kitt, Status, or Role to pinpoint specific events.
-*   **Timezone Integration**: All timestamps are automatically converted to the specific Kitt's local timezone for clarity.
 
-### 4. Dual-Layer Memory Architecture
+### 5. Dual-Layer Memory Architecture
 *   **Short-term Memory (Events)**: Maintains a log of recent interactions for immediate context.
 *   **Long-term Memory (Memories)**:
     *   **Auto-Summarization**: A background process condense new events into narrative summaries.
     *   **Persistent Context**: Summaries are injected into the system prompt, providing a persistent sense of history.
 
-### 5. Centralized Configuration ("Settings")
+### 6. Centralized Configuration ("Settings")
 *   **System Defaults**: Set global defaults for new agent creation.
 *   **LLM Provider Setup**: Update API keys and Base URLs without touching environment variables or restarting the server.
 *   **Model Management**: Switch between different LLM models for conversation and summarization on the fly.
@@ -45,8 +54,9 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 ## 🛠 Tech Stack
 
 *   **Core**: Elixir, Phoenix Framework (LiveView)
-*   **Database**: PostgreSQL
+*   **Database**: PostgreSQL (with `pgvector` support planned/ready)
 *   **AI Provider**: OpenRouter (default), or any OpenAI-compatible API
+*   **TTS Provider**: Zonos (Gradio) / Custom Audio Pipelines
 *   **Styling**: Tailwind CSS + DaisyUI
 *   **Infrastructure**: Docker & Docker Compose
 
@@ -55,7 +65,7 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 *   **kitts**: Core agent metadata.
 *   **biographies**: Detailed "Personality" text.
 *   **events**: Raw log of interactions.
-*   **contents**: Structured data for each event (message, action, mood, status).
+*   **contents**: Structured data for each event (message, action, mood, status, audio paths).
 *   **system_actions**: Specific parameters for physical movements.
 *   **memories**: Narrative summaries generated by the agent.
 *   **configs**: Global key-value settings (LLM models, API credentials, defaults).

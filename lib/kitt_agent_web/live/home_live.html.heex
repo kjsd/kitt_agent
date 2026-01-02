@@ -163,9 +163,11 @@
             <ul class="steps steps-vertical w-full">
               <%= for action <- @selected_system_actions do %>
                 <li class="step step-primary w-full text-left" data-content="●">
-                  <div class="flex justify-between w-full pl-2">
+                  <div class="flex flex-col w-full pl-2">
                     <span class="font-bold">{action.action}</span>
-                    <span class="badge badge-ghost">{action.parameter}</span>
+                    <div class="w-full mt-2">
+                      <pre class="bg-base-300 p-2 rounded text-xs overflow-x-auto whitespace-pre-wrap"><code>{action.parameter}</code></pre>
+                    </div>
                   </div>
                 </li>
               <% end %>
