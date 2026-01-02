@@ -40,10 +40,10 @@
         <table class="table table-zebra">
           <thead>
             <tr>
+              <th>ID</th>
               <th>Name</th>
               <th>Lang</th>
               <th>Timezone</th>
-              <th>ID</th>
               <th>Voice</th>
               <th></th>
             </tr>
@@ -54,6 +54,9 @@
               id={id}
               class="hover:bg-base-200 transition-colors"
             >
+              <td phx-value-id={kitt.id} class="cursor-pointer font-mono text-xs text-zinc-500">
+                {kitt.id}
+              </td>
               <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
                 {kitt.name}
               </td>
@@ -62,9 +65,6 @@
               </td>
               <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
                 {kitt.timezone}
-              </td>
-              <td phx-value-id={kitt.id} class="cursor-pointer font-mono text-xs text-zinc-500">
-                {kitt.id}
               </td>
               <td>
                 <%= if kitt.audio_path do %>
