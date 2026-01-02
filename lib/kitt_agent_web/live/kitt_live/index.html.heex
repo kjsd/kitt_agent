@@ -43,8 +43,8 @@
               <th>Name</th>
               <th>Lang</th>
               <th>Timezone</th>
-              <th>Voice</th>
               <th>ID</th>
+              <th>Voice</th>
               <th></th>
             </tr>
           </thead>
@@ -63,6 +63,9 @@
               <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
                 {kitt.timezone}
               </td>
+              <td phx-value-id={kitt.id} class="cursor-pointer font-mono text-xs text-zinc-500">
+                {kitt.id}
+              </td>
               <td>
                 <%= if kitt.audio_path do %>
                   <audio src={kitt.audio_path} class="h-8 w-40" controls preload="none">
@@ -71,9 +74,6 @@
                 <% else %>
                   <span class="text-zinc-400 italic text-sm">No sample</span>
                 <% end %>
-              </td>
-              <td phx-value-id={kitt.id} class="cursor-pointer font-mono text-xs text-zinc-500">
-                {kitt.id}
               </td>
               <td>
                 <div class="join">
