@@ -18,13 +18,13 @@ personality = "%%NAME%%'s tone is identical to Knight Rider's K.I.T.T."
 %{
   id: "2d16ba43-3eb0-46c2-9583-e38dbb82c5fa",
   name: "キット",
-  vendor: "Makeblock",
-  model: "mBot2",
-  birthday: today,
-  hometown: "東白川村，日本",
   lang: "Japanese",
   timezone: "Asia/Tokyo",
   biography: %{
+    vendor: "Makeblock",
+    model: "mBot2",
+    birthday: today,
+    hometown: "東白川村，日本",
     personality: personality
   }
 }

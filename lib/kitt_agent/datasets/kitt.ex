@@ -4,13 +4,9 @@ defmodule KittAgent.Datasets.Kitt do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @derive {Jason.Encoder,
-           only: [:id, :name, :model, :vendor, :birthday, :hometown, :lang, :timezone]}
+           only: [:id, :name, :lang, :timezone]}
   schema "kitts" do
     field :name, :string
-    field :model, :string
-    field :vendor, :string
-    field :birthday, :date
-    field :hometown, :string
     field :lang, :string, default: "English"
     field :timezone, :string, default: "Etc/UTC"
     field :audio_path, :string
@@ -28,10 +24,6 @@ defmodule KittAgent.Datasets.Kitt do
     |> cast(attrs, [
       :id,
       :name,
-      :model,
-      :vendor,
-      :birthday,
-      :hometown,
       :lang,
       :timezone,
       :audio_path

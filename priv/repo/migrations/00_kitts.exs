@@ -5,10 +5,6 @@ defmodule KittAgent.Repo.Migrations.Kitts do
     create table(:kitts, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :name, :string, null: false
-      add :model, :string
-      add :vendor, :string
-      add :birthday, :date
-      add :hometown, :string
       add :lang, :string, null: false
       add :timezone, :string, null: false
       add :audio_path, :string

@@ -20,10 +20,6 @@ defmodule KittAgentWeb.KittLive.FormComponent do
         phx-submit="save"
       >
         <.input field={@form[:name]} type="text" label="Name" />
-        <.input field={@form[:model]} type="text" label="Model" />
-        <.input field={@form[:vendor]} type="text" label="Vendor" />
-        <.input field={@form[:birthday]} type="date" label="Birthday" />
-        <.input field={@form[:hometown]} type="text" label="Hometown" />
         <.input
           field={@form[:lang]}
           type="text"
@@ -72,6 +68,10 @@ defmodule KittAgentWeb.KittLive.FormComponent do
         </div>
 
         <.inputs_for :let={bio_form} field={@form[:biography]}>
+          <.input field={bio_form[:model]} type="text" label="Model" />
+          <.input field={bio_form[:vendor]} type="text" label="Vendor" />
+          <.input field={bio_form[:birthday]} type="date" label="Birthday" />
+          <.input field={bio_form[:hometown]} type="text" label="Hometown" />
           <.input field={bio_form[:personality]} type="textarea" label="Personality" />
         </.inputs_for>
 

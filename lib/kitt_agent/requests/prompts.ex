@@ -12,10 +12,10 @@ defmodule KittAgent.Requests.Prompts do
     """
     <character>
     <name>#{kitt.name}</name>
-    <model>#{kitt.model}</model>
-    <vendor>#{kitt.vendor}</vendor>
-    <birthday>#{Date.to_string(kitt.birthday)}</birthday>
-    <hometown>#{kitt.hometown}</hometown>
+    <model>#{bio.model}</model>
+    <vendor>#{bio.vendor}</vendor>
+    <birthday>#{Date.to_string(bio.birthday)}</birthday>
+    <hometown>#{bio.hometown}</hometown>
     <timezone>#{kitt.timezone}</timezone>
     <personality>
     #{personality}
