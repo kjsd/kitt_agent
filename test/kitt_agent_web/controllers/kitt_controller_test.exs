@@ -28,11 +28,13 @@ defmodule KittAgentWeb.KittControllerTest do
         name: "Test Kitt",
         lang: "Japanese",
         timezone: "Asia/Tokyo",
-        model: "test-model",
-        vendor: "test-vendor",
-        birthday: ~D[2024-01-01],
-        hometown: "Test City",
-        biography: %{personality: "A friendly test assistant named %%NAME%%."}
+        biography: %{
+          model: "test-model",
+          vendor: "test-vendor",
+          birthday: ~D[2024-01-01],
+          hometown: "Test City",
+          personality: "A friendly test assistant named %%NAME%%."
+        }
       })
 
     %{kitt: kitt}

@@ -2,13 +2,14 @@ defmodule KittAgentWeb.HomeLiveTest do
   use KittAgentWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  alias KittAgent.Datasets.Kitt
   alias KittAgent.Events
 
   setup do
-    kitt =
-      %Kitt{name: "DashboardKitt", vendor: "openai", model: "gpt-4"}
-      |> KittAgent.Repo.insert!()
+    {:ok, kitt} =
+      KittAgent.Kitts.create_kitt(%{
+        name: "DashboardKitt",
+        biography: %{vendor: "openai", model: "gpt-4", personality: "test"}
+      })
 
     %{kitt: kitt}
   end
@@ -49,9 +50,11 @@ defmodule KittAgentWeb.HomeLiveTest do
 
   test "switches kitt and updates recent transactions", %{conn: conn, kitt: kitt1} do
     # Create another kitt
-    kitt2 =
-      %Kitt{name: "OtherKitt", vendor: "openai", model: "gpt-3.5-turbo"}
-      |> KittAgent.Repo.insert!()
+    {:ok, kitt2} =
+      KittAgent.Kitts.create_kitt(%{
+        name: "OtherKitt",
+        biography: %{vendor: "openai", model: "gpt-3.5-turbo", personality: "test"}
+      })
 
     # Create events for both
     Events.create_kitt_event(

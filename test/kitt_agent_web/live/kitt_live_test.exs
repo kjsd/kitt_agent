@@ -6,11 +6,13 @@ defmodule KittAgentWeb.KittLiveTest do
 
   @create_attrs %{
     "name" => "some name",
-    "model" => "some model",
-    "vendor" => "some vendor",
-    "birthday" => "2023-01-01",
-    "hometown" => "some hometown",
-    "biography" => %{"personality" => "some personality"}
+    "biography" => %{
+      "model" => "some model",
+      "vendor" => "some vendor",
+      "birthday" => "2023-01-01",
+      "hometown" => "some hometown",
+      "personality" => "some personality"
+    }
   }
 
   defp create_kitt(_) do

@@ -41,12 +41,9 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>Model</th>
-              <th>Vendor</th>
-              <th>Birthday</th>
-              <th>Hometown</th>
               <th>Lang</th>
               <th>Timezone</th>
+              <th>ID</th>
               <th>Voice</th>
               <th></th>
             </tr>
@@ -61,22 +58,13 @@
                 {kitt.name}
               </td>
               <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
-                {kitt.model}
-              </td>
-              <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
-                {kitt.vendor}
-              </td>
-              <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
-                {kitt.birthday}
-              </td>
-              <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
-                {kitt.hometown}
-              </td>
-              <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
                 {kitt.lang}
               </td>
               <td phx-click="show_bio" phx-value-id={kitt.id} class="cursor-pointer">
                 {kitt.timezone}
+              </td>
+              <td phx-value-id={kitt.id} class="cursor-pointer font-mono text-xs text-zinc-500">
+                {kitt.id}
               </td>
               <td>
                 <%= if kitt.audio_path do %>
@@ -232,5 +220,11 @@
   on_cancel={JS.patch(~p"/kitt-web/kitts")}
 >
   <h2 class="text-lg font-bold mb-4">Biography for {@kitt.name}</h2>
+  <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+    <div><span class="font-semibold">Model:</span> {@kitt.biography.model || "-"}</div>
+    <div><span class="font-semibold">Vendor:</span> {@kitt.biography.vendor || "-"}</div>
+    <div><span class="font-semibold">Birthday:</span> {@kitt.biography.birthday || "-"}</div>
+    <div><span class="font-semibold">Hometown:</span> {@kitt.biography.hometown || "-"}</div>
+  </div>
   <div class="whitespace-pre-wrap">{@kitt.biography.personality}</div>
 </.modal>

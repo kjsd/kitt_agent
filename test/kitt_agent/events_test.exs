@@ -2,13 +2,19 @@ defmodule KittAgent.EventsTest do
   use KittAgent.DataCase
 
   alias KittAgent.Events
-  alias KittAgent.Datasets.{Kitt, Event}
+  alias KittAgent.Datasets.Event
 
   describe "events" do
     setup do
-      kitt =
-        %Kitt{name: "TestKitt", vendor: "openai", model: "gpt-3.5-turbo"}
-        |> KittAgent.Repo.insert!()
+      {:ok, kitt} =
+        KittAgent.Kitts.create_kitt(%{
+          name: "TestKitt",
+          biography: %{
+            vendor: "openai",
+            model: "gpt-3.5-turbo",
+            personality: "test"
+          }
+        })
 
       %{kitt: kitt}
     end
