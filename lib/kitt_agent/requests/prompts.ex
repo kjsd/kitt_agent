@@ -1,8 +1,9 @@
 defmodule KittAgent.Requests.Prompts do
-  alias KittAgent.Datasets.{Kitt, Event, Content}
+  alias KittAgent.Datasets.{Kitt, Event, Content, SystemAction}
   alias KittAgent.{Events, Memories}
 
   require Content
+  require SystemAction
 
   defp head(%Kitt{biography: bio} = kitt) do
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
@@ -32,11 +33,11 @@ defmodule KittAgent.Requests.Prompts do
 
     If you choose "#{Content.action_system()}", you must provide a list of actions in the "system_actions" field.
     Supported physical actions:
-    - MoveForward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
-    - MoveBackward (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
-    - TurnLeft (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
-    - TurnRight (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
-    - Stop (parameters: "none")
+    - #{SystemAction.move_forward} (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
+    - #{SystemAction.move_backward} (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
+    - #{SystemAction.turn_left} (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
+    - #{SystemAction.turn_right} (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
+    - #{SystemAction.stop} (parameters: "none")
     </available_actions_list>'
     """
   end
@@ -51,7 +52,7 @@ defmodule KittAgent.Requests.Prompts do
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"#{Content.action_talk()}|#{Content.action_system()}", "system_actions": [{"action": "MoveForward", "parameter": "10cm"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"#{Content.action_talk()}|#{Content.action_system()}", "system_actions": [{"action": physical actions, "parameter": parameters}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
@@ -118,7 +119,11 @@ defmodule KittAgent.Requests.Prompts do
                   properties: %{
                     action: %{
                       type: "string",
-                      enum: ["MoveForward", "MoveBackward", "TurnLeft", "TurnRight", "Stop"]
+                      enum: ["#{SystemAction.move_forward}",
+                             "#{SystemAction.move_backward}",
+                             "#{SystemAction.turn_left}",
+                             "#{SystemAction.turn_right}",
+                             "#{SystemAction.stop}"]
                     },
                     parameter: %{
                       type: "string",
