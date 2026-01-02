@@ -32,5 +32,6 @@ defmodule KittAgentWeb.Router do
     post "/talk/", KittController, :talk
     get "/actions/pending", SystemActionController, :pending
     post "/actions/:content_id/complete", SystemActionController, :complete
+    post "/actions/:content_id/fail", SystemActionController, :fail
   end
 end
