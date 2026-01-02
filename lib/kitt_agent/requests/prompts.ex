@@ -45,6 +45,9 @@ defmodule KittAgent.Requests.Prompts do
     - mbot2.turn_right(rpm, seconds): Turn right at specified RPM for specified seconds.
     - mbot2.EM_stop("ALL"): Emergency stop for all motors.
 
+    Allowed libraries (Pre-imported): cyberpi, mbot2, urequests, json, event, time, random.
+    CRITICAL INSTRUCTION: Do NOT use 'import' statements. These libraries are already available. Importing them again or importing other libraries will cause the system to reset or fail.
+
     Example parameter: "mbot2.straight(10)\nmbot2.turn(90)\nmbot2.straight(5)"
     You can also use loops and conditional logic as it is standard MicroPython.
     </available_actions_list>'
