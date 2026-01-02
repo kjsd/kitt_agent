@@ -31,5 +31,6 @@ config :phoenix, :plug_init_mode, :runtime
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
 
-# Disable summarizer in tests to avoid async DB errors
-config :kitt_agent, KittAgent.Requests, talk: [enable_summarizer: false]
+# Disable summarizer and TTS in tests to avoid async DB errors
+config :kitt_agent, KittAgent.Requests,
+  talk: [enable_summarizer: false, enable_tts: false]

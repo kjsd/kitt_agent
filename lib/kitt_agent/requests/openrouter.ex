@@ -52,7 +52,13 @@ defmodule KittAgent.Requests.OpenRouter do
           with {:ok, event} <-
                  Events.make_kitt_event(res)
                  |> Events.create_kitt_event(kitt) do
-            TTS.RequestBroker.exec(kitt, event.content)
+            if(
+              Application.get_env(:kitt_agent, KittAgent.Requests, [])
+              |> Keyword.get(:talk, [])
+              |> Keyword.get(:enable_tts, true)
+            ) do
+              TTS.RequestBroker.exec(kitt, event.content)
+            end
 
             event
             |> Events.content_with_actions()

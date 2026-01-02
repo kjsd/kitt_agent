@@ -32,12 +32,21 @@ defmodule KittAgent.Requests.Prompts do
     AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical movements)
 
     If you choose "#{Content.action_system()}", you must provide a list of actions in the "system_actions" field.
-    Supported physical actions:
-    - #{SystemAction.move_forward} (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
-    - #{SystemAction.move_backward} (parameters: "duration_sec" or "distance_cm", e.g. "5s", "10cm")
-    - #{SystemAction.turn_left} (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
-    - #{SystemAction.turn_right} (parameters: "angle_degrees" or "duration_sec", e.g. "90deg", "1s")
-    - #{SystemAction.stop} (parameters: "none")
+    The action name must be "#{SystemAction.execute_code()}".
+    In the "parameter" field, write the MicroPython code to control mBot2.
+    You can use multiple steps if needed.
+
+    mBot2 MicroPython API:
+    - mbot2.forward(rpm, seconds): Move forward at specified RPM for specified seconds.
+    - mbot2.backward(rpm, seconds): Move backward.
+    - mbot2.straight(cm): Move straight for specified distance in cm (negative for backward).
+    - mbot2.turn(degrees): Turn by specified degrees (positive for right, negative for left).
+    - mbot2.turn_left(rpm, seconds): Turn left at specified RPM for specified seconds.
+    - mbot2.turn_right(rpm, seconds): Turn right at specified RPM for specified seconds.
+    - mbot2.EM_stop("ALL"): Emergency stop for all motors.
+
+    Example parameter: "mbot2.straight(10)\nmbot2.turn(90)\nmbot2.straight(5)"
+    You can also use loops and conditional logic as it is standard MicroPython.
     </available_actions_list>'
     """
   end
@@ -52,12 +61,12 @@ defmodule KittAgent.Requests.Prompts do
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"#{Content.action_talk()}|#{Content.action_system()}", "system_actions": [{"action": physical actions, "parameter": parameters}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"#{Content.action_talk()}|#{Content.action_system()}", "system_actions": [{"action": "#{SystemAction.execute_code()}", "parameter": "MicroPython code"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
   defp get_main_model,
-    do: KittAgent.Configs.get_config("main_model", "google/gemini-2.5-flash-lite-preview-09-2025")
+    do: KittAgent.Configs.get_config("main_model", "google/gemini-2.5-flash")
 
   defp get_summary_model,
     do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-flash-preview")
@@ -119,15 +128,11 @@ defmodule KittAgent.Requests.Prompts do
                   properties: %{
                     action: %{
                       type: "string",
-                      enum: ["#{SystemAction.move_forward}",
-                             "#{SystemAction.move_backward}",
-                             "#{SystemAction.turn_left}",
-                             "#{SystemAction.turn_right}",
-                             "#{SystemAction.stop}"]
+                      enum: ["#{SystemAction.execute_code()}"]
                     },
                     parameter: %{
                       type: "string",
-                      description: "e.g. '5s', '10cm', '90deg'"
+                      description: "MicroPython code for mBot2. e.g. 'mbot2.straight(10)'"
                     }
                   },
                   required: ["action", "parameter"],
