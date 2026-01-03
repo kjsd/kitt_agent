@@ -3,7 +3,7 @@ defmodule KittAgent.Kitts do
 
   alias KittAgent.Repo
   alias KittAgent.Datasets.Kitt
-  alias KittAgent.{SystemActions, TTS}
+  alias KittAgent.{SystemActions, TTS, Talks}
 
   use BasicContexts,
     repo: Repo,
@@ -88,8 +88,9 @@ defmodule KittAgent.Kitts do
       |> resource()
       |> File.rm_rf!()
 
-      SystemActions.Queue.terminate(id)
       TTS.RequestBroker.terminate_child(id)
+      Talks.Queue.terminate(id)
+      SystemActions.Queue.terminate(id)
       x
     end
   end
