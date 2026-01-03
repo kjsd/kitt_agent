@@ -7,17 +7,18 @@ defmodule KittAgentWeb.SystemActionControllerTest do
   alias KittAgent.Datasets.Content
   alias KittAgent.SystemActions.Queue
 
+  require Content
+
   setup %{conn: conn} do
     {:ok, kitt} =
       Kitts.create_kitt(%{name: "Test Kitt", lang: "Japanese", timezone: "Asia/Tokyo"})
 
     # テスト用のアクションを作成
     actions_content = %{
-      "action" => "SystemActions",
+      "action" => "SystemAction",
       "message" => "Test",
-      "system_actions" => [
-        %{action: "test_action", parameter: "param1"}
-      ]
+      "parameter" => "mbot2.forward(100, 1)",
+      "status" => Content.status_pending()
     }
 
     {:ok, event} = Events.make_kitt_event(actions_content) |> Events.create_kitt_event(kitt)
@@ -36,7 +37,7 @@ defmodule KittAgentWeb.SystemActionControllerTest do
     } do
       conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
 
-      assert %{"system_actions" => [%{"action" => "test_action"}]} = json_response(conn, 200)
+      assert %{"parameter" => "mbot2.forward(100, 1)"} = json_response(conn, 200)
 
       # ステータスが processing になっていることを確認
       updated_content = Repo.get(Content, content.id)

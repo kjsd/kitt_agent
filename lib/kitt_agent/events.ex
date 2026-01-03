@@ -57,15 +57,23 @@ defmodule KittAgent.Events do
       role: "user",
       content: %{
         action: "Talk",
-        message: text
+        message: text,
+        status: Content.status_completed()
       }
     }
   end
 
   def make_kitt_event(attr) do
+    action = attr["action"] || attr[:action]
+
+    status =
+      if action == Content.action_talk(),
+        do: Content.status_completed(),
+        else: Content.status_pending()
+
     %Event{
       role: "assistant",
-      content: attr
+      content: Map.put_new(attr, "status", status)
     }
   end
 
@@ -100,11 +108,10 @@ defmodule KittAgent.Events do
     result
   end
 
-  def broadcast_change({:ok, %Content{} = x} = result) do
+  def broadcast_change(%Content{} = x) do
     Phoenix.PubSub.broadcast(KittAgent.PubSub, @topic, {[:event, :created], x})
-    result
+    x
   end
-
   def broadcast_change(result), do: result
 
   def delete(%Event{kitt: %Kitt{} = kitt, content: %Content{audio_path: path}} = ev) do

@@ -16,12 +16,15 @@ defmodule KittAgent.Requests.ZonosGradio do
 
       Logger.info("TTS: Generating audio for Content #{content.id} (Lang: #{lang_code})...")
 
-      with {:ok, audio_url} <- call_gradio(content.message, content.mood, lang_code, speaker_audio),
-           {:ok, local_path} <- download_audio(audio_url, kitt) do
+      with {:ok, audio_url} <- call_gradio(content.message, content.mood, lang_code,
+                speaker_audio),
+           {:ok, local_path} <- download_audio(audio_url, kitt),
+           {:ok, updated_content} <- Events.update_content(content,
+             %{audio_path: local_path}) do
 
-        Talks.Queue.enqueue(kitt.id, content)
+        Talks.Queue.enqueue(kitt.id, updated_content)
 
-        content
+        updated_content
         |> Events.broadcast_change()
 
         Logger.info("TTS: Completed. Saved to #{local_path}")

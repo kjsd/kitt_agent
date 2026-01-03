@@ -1,9 +1,9 @@
 defmodule KittAgent.Requests.OpenRouter do
-  alias KittAgent.Repo
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Events, Summarizer, TTS, SystemActions}
   alias KittAgent.Requests.Prompts
 
+  require Content
   require Logger
 
   def list_models() do

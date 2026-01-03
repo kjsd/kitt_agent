@@ -37,7 +37,8 @@ defmodule KittAgentWeb.HomeLiveTest do
         action: "Talk",
         listener: kitt.name,
         message: "New Message from Test",
-        mood: "neutral"
+        mood: "neutral",
+        status: "completed"
       }
     }
 
@@ -64,7 +65,8 @@ defmodule KittAgentWeb.HomeLiveTest do
           action: "Talk",
           listener: kitt1.name,
           message: "Message for Kitt 1",
-          mood: "neutral"
+          mood: "neutral",
+          status: "completed"
         }
       },
       kitt1
@@ -77,7 +79,8 @@ defmodule KittAgentWeb.HomeLiveTest do
           action: "Talk",
           listener: kitt2.name,
           message: "Message for Kitt 2",
-          mood: "neutral"
+          mood: "neutral",
+          status: "completed"
         }
       },
       kitt2

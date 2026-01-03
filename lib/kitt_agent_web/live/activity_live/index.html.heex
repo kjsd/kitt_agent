@@ -68,13 +68,13 @@
                 <td class="whitespace-nowrap">{content.timestamp}</td>
                 <td>{content.event.kitt.name}</td>
                 <td>
-                  <%= if content.action == "SystemActions" do %>
+                  <%= if content.action == "SystemAction" do %>
                     <button
                       class="btn btn-xs btn-outline btn-info whitespace-nowrap"
-                      phx-click="show_actions"
+                      phx-click="show_code"
                       phx-value-id={content.id}
                     >
-                      {length(content.system_actions)} Actions
+                      View Code
                     </button>
                   <% else %>
                     {content.action}
@@ -130,34 +130,25 @@
           »
         </button>
       </div>
-    </main>
-
-    <%= if @selected_system_actions do %>
-      <div class="modal modal-open">
-        <div class="modal-box">
-          <h3 class="font-bold text-lg">System Actions</h3>
-          <div class="py-4">
-            <ul class="steps steps-vertical w-full">
-              <%= for action <- @selected_system_actions do %>
-                <li class="step step-primary w-full text-left" data-content="●">
-                  <div class="flex flex-col w-full pl-2">
-                    <span class="font-bold">{action.action}</span>
-                    <div class="w-full mt-2">
-                      <pre class="bg-base-300 p-2 rounded text-xs overflow-x-auto whitespace-pre-wrap"><code>{action.parameter}</code></pre>
-                    </div>
-                  </div>
-                </li>
-              <% end %>
-            </ul>
+        </main>
+    
+        <%= if @selected_code do %>
+          <div class="modal modal-open">
+            <div class="modal-box w-11/12 max-w-5xl">
+              <h3 class="font-bold text-lg">System Action Code</h3>
+              <div class="py-4">
+                <div class="w-full mt-2">
+                  <pre class="bg-base-300 p-4 rounded text-sm font-mono overflow-x-auto whitespace-pre-wrap"><code>{@selected_code}</code></pre>
+                </div>
+              </div>
+              <div class="modal-action">
+                <button class="btn" phx-click="close_code">Close</button>
+              </div>
+            </div>
+            <div class="modal-backdrop" phx-click="close_code"></div>
           </div>
-          <div class="modal-action">
-            <button class="btn" phx-click="close_actions">Close</button>
-          </div>
-        </div>
-        <div class="modal-backdrop" phx-click="close_actions"></div>
+        <% end %>
       </div>
-    <% end %>
-  </div>
 
   <div class="drawer-side z-20">
     <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>

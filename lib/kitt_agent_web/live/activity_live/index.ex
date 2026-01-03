@@ -14,7 +14,7 @@ defmodule KittAgentWeb.ActivityLive.Index do
      socket
      |> assign(kitts: kitts)
      |> assign(page_title: "Activities")
-     |> assign(selected_system_actions: nil)}
+     |> assign(selected_code: nil)}
   end
 
   @impl true
@@ -75,34 +75,61 @@ defmodule KittAgentWeb.ActivityLive.Index do
     {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
   end
 
-  def handle_event("page", %{"i" => page}, socket) do
-    params = %{
-      kitt_id: socket.assigns.filter_kitt_id,
-      status: socket.assigns.filter_status,
-      page: page
-    }
+    def handle_event("page", %{"i" => page}, socket) do
 
-    params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
-    {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
-  end
+      params = %{
 
-  def handle_event("show_actions", %{"id" => id}, socket) do
-    actions =
-      socket.assigns.contents
-      |> Enum.find(&(&1.id == String.to_integer(id)))
-      |> case do
-        nil -> []
-        c -> c.system_actions
-      end
+        kitt_id: socket.assigns.filter_kitt_id,
 
-    {:noreply, assign(socket, selected_system_actions: actions)}
-  end
+        status: socket.assigns.filter_status,
 
-  def handle_event("close_actions", _, socket) do
-    {:noreply, assign(socket, selected_system_actions: nil)}
-  end
+        page: page
 
-  defp status_color("pending"), do: "btn-warning"
+      }
+
+  
+
+      params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
+
+      {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
+
+    end
+
+  
+
+    def handle_event("show_code", %{"id" => id}, socket) do
+
+      code =
+
+        socket.assigns.contents
+
+        |> Enum.find(&(&1.id == String.to_integer(id)))
+
+                |> case do
+
+                  nil -> nil
+
+                  c -> c.parameter || "No code available"
+
+                end
+
+  
+
+      {:noreply, assign(socket, selected_code: code)}
+
+    end
+
+  
+
+    def handle_event("close_code", _, socket) do
+
+      {:noreply, assign(socket, selected_code: nil)}
+
+    end
+
+  
+
+    defp status_color("pending"), do: "btn-warning"
   defp status_color("processing"), do: "btn-info"
   defp status_color("completed"), do: "btn-success"
   defp status_color("failed"), do: "btn-error"

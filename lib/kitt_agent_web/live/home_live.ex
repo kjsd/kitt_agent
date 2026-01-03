@@ -5,6 +5,8 @@ defmodule KittAgentWeb.HomeLive do
   alias KittAgent.Kitts
   alias KittAgent.Events
 
+  require Logger
+
   @events_unit 5
 
   defp events_page(%Kitt{} = kitt, i) do
@@ -42,7 +44,7 @@ defmodule KittAgentWeb.HomeLive do
     |> assign(pa: pa)
     |> assign(pz: pz)
     |> assign(pl: pl)
-    |> assign(selected_system_actions: nil)
+    |> assign(selected_code: nil)
     |> then(&{:ok, &1})
   end
 
@@ -51,22 +53,29 @@ defmodule KittAgentWeb.HomeLive do
     handle_event("page", %{"i" => socket.assigns.p}, socket)
   end
 
-  def handle_event("show_actions", %{"id" => id}, socket) do
+  def handle_event("show_code", %{"id" => id}, socket) do
     id_int = String.to_integer(id)
+    Logger.info("Show code for event #{id_int}")
 
-    actions =
+    code =
       socket.assigns.events
       |> Enum.find(&(&1.id == id_int))
       |> case do
-        nil -> []
-        event -> event.content.system_actions
-      end
+        nil ->
+          Logger.warning("Event #{id_int} not found in assigns")
+          nil
 
-    {:noreply, assign(socket, selected_system_actions: actions)}
+        event ->
+          Logger.info("Event found: #{inspect(event.content)}")
+          event.content.parameter || "No code available"
+      end
+    
+    Logger.info("Code to display: #{inspect(code)}")
+    {:noreply, assign(socket, selected_code: code)}
   end
 
-  def handle_event("close_actions", _, socket) do
-    {:noreply, assign(socket, selected_system_actions: nil)}
+  def handle_event("close_code", _, socket) do
+    {:noreply, assign(socket, selected_code: nil)}
   end
 
   def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do

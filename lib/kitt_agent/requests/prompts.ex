@@ -30,7 +30,7 @@ defmodule KittAgent.Requests.Prompts do
     AVAILABLE ACTION: #{Content.action_talk()} (Use this for normal conversation)
     AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical actions)
 
-    If you choose "#{Content.action_system()}", you must provide a list of actions in the "perameter" field, write the MicroPython code to control mBot2. You can use multiple steps if needed.
+    If you choose "#{Content.action_system()}", you must provide a list of actions in the "parameter" field, write the MicroPython code to control mBot2. You can use multiple steps if needed.
 
     mBot2 MicroPython API:
     - mbot2.forward(rpm, seconds): Move forward at specified RPM for specified seconds.
@@ -60,7 +60,7 @@ defmodule KittAgent.Requests.Prompts do
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"#{Content.action_talk()}|#{Content.action_system()}", "parameters": "Parameters for special actions", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"#{Content.action_talk()}|#{Content.action_system()}", "parameter": "Parameters for special actions", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
@@ -112,10 +112,10 @@ defmodule KittAgent.Requests.Prompts do
               action: %{
                 type: "string",
                 description:
-                  "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_code()}' to perform physical actions.",
+                  "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_system()}' to perform physical actions.",
                 enum: [
                   "#{Content.action_talk()}",
-                  "#{Content.action_code()}"
+                  "#{Content.action_system()}"
                 ]
               },
               parameter: %{
