@@ -12,9 +12,10 @@ defmodule KittAgent.Application do
       KittAgent.Repo,
       {DNSCluster, query: Application.get_env(:kitt_agent, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: KittAgent.PubSub},
-      KittAgent.Summarizer,
-      KittAgent.SystemActions,
       KittAgent.TTS,
+      KittAgent.Summarizer,
+      KittAgent.Talks,
+      KittAgent.SystemActions,
       KittAgentWeb.Endpoint
     ]
 
