@@ -29,8 +29,12 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 *   **Custom LLM Providers**: Configure custom API endpoints and keys (e.g., OpenRouter) directly from the settings menu.
 *   **Structured Outputs**: Enforces strict JSON Schema for all LLM responses to ensure reliable parsing.
 *   **Physical Capabilities (SystemActions)**:
-    *   **Supported Actions**: `MoveForward`, `MoveBackward`, `TurnLeft`, `TurnRight`, `Stop`.
-    *   **Parameter Control**: Precise execution with parameters like `duration_sec` (e.g., "5s"), `distance_cm` (e.g., "10cm"), or `angle_degrees` (e.g., "90deg").
+    *   **Direct Code Generation**: The agent generates **MicroPython code** dynamically to control the robot, allowing for complex and adaptive behaviors beyond simple preset commands.
+    *   **Hardware Control**:
+        *   **Core (CyberPi)**: Control LEDs, speaker, display, and read inputs (buttons, gyro, mic).
+        *   **Chassis (mBot2)**: Precise movement control (speed, duration, turning).
+        *   **Sensors (mBuild)**: Access external modules like Ultrasonic Sensor 2 and Quad RGB Sensor.
+    *   **Flexible Logic**: Supports conditional logic and loops within the generated code (e.g., "Forward until obstacle < 10cm, then turn").
 
 ### 4. Comprehensive Activity Monitoring ("Activities")
 *   **Live Audit Log**: A dedicated "Activities" dashboard to track all historical agent responses and decisions.
