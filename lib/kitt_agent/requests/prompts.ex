@@ -30,22 +30,31 @@ defmodule KittAgent.Requests.Prompts do
     AVAILABLE ACTION: #{Content.action_talk()} (Use this for normal conversation)
     AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical actions)
 
-    If you choose "#{Content.action_system()}", you must provide a list of actions in the "parameter" field, write the MicroPython code to control mBot2. You can use multiple steps if needed.
+    If you choose "#{Content.action_system()}", you must provide a list of actions in the "parameter" field, write the MicroPython code to control mBot2.
 
-    mBot2 MicroPython API:
-    - mbot2.forward(rpm, seconds): Move forward at specified RPM for specified seconds.
-    - mbot2.backward(rpm, seconds): Move backward.
-    - mbot2.straight(cm): Move straight for specified distance in cm (negative for backward).
-    - mbot2.turn(degrees): Turn by specified degrees (positive for right, negative for left).
-    - mbot2.turn_left(rpm, seconds): Turn left at specified RPM for specified seconds.
-    - mbot2.turn_right(rpm, seconds): Turn right at specified RPM for specified seconds.
-    - mbot2.EM_stop("ALL"): Emergency stop for all motors.
+    # Hardware Configuration & Capabilities
+    You are controlling an mBot2 robot equipped with the following hardware. Use your knowledge of the `mbot2`, `cyberpi`, and `mbuild` libraries to control them freely.
 
-    Allowed libraries (Pre-imported): cyberpi, mbot2, urequests, json, event, time, random.
-    CRITICAL INSTRUCTION: Do NOT use 'import' statements. These libraries are already available. Importing them again or importing other libraries will cause the system to reset or fail.
+    1. **Core Controller (CyberPi)**:
+       - Inputs: Buttons, Joystick, Microphone (audio level), Gyroscope/Accelerometer.
+       - Outputs: Full-color display, Speaker, RGB LEDs.
+       - API: Use the `cyberpi` library (e.g., `cyberpi.audio.play()`, `cyberpi.led.on()`, `cyberpi.display.show_label()`).
 
-    Example parameter: "mbot2.straight(10)\nmbot2.turn(90)\nmbot2.straight(5)"
-    You can also use loops and conditional logic as it is standard MicroPython.
+    2. **Chassis (mBot2 Shield)**:
+       - Movement: Encoder motors for precise driving.
+       - API: Use the `mbot2` library (e.g., `mbot2.forward(speed, secs)`, `mbot2.turn(degrees)`, `mbot2.drive_speed(v, w)`).
+
+    3. **External Sensors (connected via mBuild port)**:
+       - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
+       - **Quad RGB Sensor**: Detects colors and tracks lines. API: `mbuild.quad_rgb_sensor`.
+
+    # Constraints & Rules
+    - Allowed libraries (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`.
+    - **CRITICAL**: Do NOT use 'import' statements (e.g., `import cyberpi`). These libraries are already loaded. Re-importing may cause errors.
+    - You can use standard MicroPython logic (loops, `if/else`, variables).
+
+    Example parameter:
+    "mbot2.forward(50, 1)\nif mbuild.ultrasonic2.get(1) < 10:\n    cyberpi.audio.play('humming')\n    mbot2.backward(30, 1)"
     </available_actions_list>'
     """
   end

@@ -1,11 +1,10 @@
 defmodule KittAgentWeb.SystemActionController do
   use KittAgentWeb, :controller
 
-  alias KittAgent.SystemActions.Queue
-  alias KittAgent.Datasets.Content
+  alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.Datasets.Kitt
-  alias KittAgent.Kitts
-  alias KittAgent.Events
+  alias KittAgent.{Kitts, Events}
+  alias KittAgent.SystemActions.Queue
 
   require Content
 
