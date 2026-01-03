@@ -1,9 +1,9 @@
 defmodule KittAgent.Requests.OpenRouter do
-  alias KittAgent.Repo
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Events, Summarizer, TTS, SystemActions}
   alias KittAgent.Requests.Prompts
 
+  require Content
   require Logger
 
   def list_models() do
@@ -60,13 +60,9 @@ defmodule KittAgent.Requests.OpenRouter do
               TTS.RequestBroker.exec(kitt, event.content)
             end
 
-            event
-            |> Events.content_with_actions()
-            |> then(
-              &if(match?(%Content{}, &1),
-                do: SystemActions.Queue.enqueue(kitt.id, &1)
-              )
-            )
+            if event.content.action == Content.action_system do
+              SystemActions.Queue.enqueue(kitt.id, event.content)
+            end
 
             if(
               Application.get_env(:kitt_agent, KittAgent.Requests, [])
@@ -76,7 +72,7 @@ defmodule KittAgent.Requests.OpenRouter do
               Summarizer.exec(kitt)
             end
 
-            {:ok, Repo.preload(event.content, :system_actions)}
+            {:ok, event.content}
           end
         else
           e ->

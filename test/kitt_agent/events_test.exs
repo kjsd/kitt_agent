@@ -34,7 +34,8 @@ defmodule KittAgent.EventsTest do
           action: "Talk",
           listener: "TestKitt",
           message: "Hello",
-          mood: "neutral"
+          mood: "neutral",
+          status: "completed"
         }
       }
 

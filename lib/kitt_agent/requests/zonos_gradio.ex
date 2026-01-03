@@ -1,6 +1,6 @@
 defmodule KittAgent.Requests.ZonosGradio do
   alias KittAgent.Datasets.{Kitt, Content}
-  alias KittAgent.{Kitts, Events}
+  alias KittAgent.{Kitts, Events, Talks}
 
   require Logger
   require Content
@@ -10,30 +10,31 @@ defmodule KittAgent.Requests.ZonosGradio do
   @gradio_default_url "http://localhost:7860"
 
   def process(%Content{} = content, %Kitt{} = kitt) do
-    {:ok, content} = Events.content_talk_processing(content)
-
     try do
       lang_code = lang_to_code(kitt.lang)
       speaker_audio = prepare_speaker_audio(kitt)
 
       Logger.info("TTS: Generating audio for Content #{content.id} (Lang: #{lang_code})...")
 
-      with {:ok, audio_url} <- call_gradio(content.message, content.mood, lang_code, speaker_audio),
-           {:ok, local_path} <- download_audio(audio_url, kitt) do
-        content
-        |> Events.content_talk_completed(local_path)
+      with {:ok, audio_url} <- call_gradio(content.message, content.mood, lang_code,
+                speaker_audio),
+           {:ok, local_path} <- download_audio(audio_url, kitt),
+           {:ok, updated_content} <- Events.update_content(content,
+             %{audio_path: local_path}) do
+
+        Talks.Queue.enqueue(kitt.id, updated_content)
+
+        updated_content
         |> Events.broadcast_change()
 
         Logger.info("TTS: Completed. Saved to #{local_path}")
       else
         error ->
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
-          Events.content_talk_failed(content)
       end
     rescue
       e ->
         Logger.error("TTS: Exception: #{inspect(e)}")
-        Events.content_talk_failed(content)
     end
   end
 

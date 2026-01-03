@@ -1,4 +1,4 @@
-defmodule KittAgent.SystemActions do
+defmodule KittAgent.Talks do
   use Supervisor
 
   def start_link(_), do: Supervisor.start_link(__MODULE__, [], name: __MODULE__)
@@ -6,15 +6,15 @@ defmodule KittAgent.SystemActions do
   @impl true
   def init(_) do
     children = [
-      {DynamicSupervisor, name: KittAgent.SystemActions.Supervisor, strategy: :one_for_one},
-      {Registry, keys: :unique, name: KittAgent.SystemActions.Registry}
+      {DynamicSupervisor, name: KittAgent.Talks.Supervisor, strategy: :one_for_one},
+      {Registry, keys: :unique, name: KittAgent.Talks.Registry}
     ]
 
     Supervisor.init(children, strategy: :one_for_all)
   end
 
   def clear_queue(kitt_id) do
-    KittAgent.SystemActions.Queue.clear(kitt_id)
+    KittAgent.Talks.Queue.clear(kitt_id)
   end
 
   def clear_all_queues do
@@ -23,7 +23,7 @@ defmodule KittAgent.SystemActions do
   end
 
   def queue_length(kitt_id) do
-    KittAgent.SystemActions.Queue.queue(kitt_id) |> length()
+    KittAgent.Talks.Queue.queue(kitt_id) |> length()
   end
 
   def total_queue_length do

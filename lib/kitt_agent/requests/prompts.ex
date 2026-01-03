@@ -1,9 +1,8 @@
 defmodule KittAgent.Requests.Prompts do
-  alias KittAgent.Datasets.{Kitt, Event, Content, SystemAction}
+  alias KittAgent.Datasets.{Kitt, Event, Content}
   alias KittAgent.{Events, Memories}
 
   require Content
-  require SystemAction
 
   defp head(%Kitt{biography: bio} = kitt) do
     personality = bio.personality |> String.replace("%%NAME%%", kitt.name)
@@ -21,20 +20,17 @@ defmodule KittAgent.Requests.Prompts do
     #{personality}
     </personality>
     </character>
-    <middle-term-memory>
+    <long-term-memory>
     #{memory}
-    </middle-term-memory>
+    </long-term-memory>
 
     <available_actions_list>
     #Available Actions
     Use if your character needs to perform an action:
     AVAILABLE ACTION: #{Content.action_talk()} (Use this for normal conversation)
-    AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical movements)
+    AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical actions)
 
-    If you choose "#{Content.action_system()}", you must provide a list of actions in the "system_actions" field.
-    The action name must be "#{SystemAction.execute_code()}".
-    In the "parameter" field, write the MicroPython code to control mBot2.
-    You can use multiple steps if needed.
+    If you choose "#{Content.action_system()}", you must provide a list of actions in the "parameter" field, write the MicroPython code to control mBot2. You can use multiple steps if needed.
 
     mBot2 MicroPython API:
     - mbot2.forward(rpm, seconds): Move forward at specified RPM for specified seconds.
@@ -60,19 +56,19 @@ defmodule KittAgent.Requests.Prompts do
 
   defp tail(%Kitt{} = kitt) do
     """
-    (If #{kitt.name} is just speaking, use action "Talk". If #{kitt.name} needs to move, use "SystemActions" and populate "system_actions" list).
+    (If #{kitt.name} is just speaking, use action "Talk". If #{kitt.name} needs to physical actions, use "SystemAction").
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
     {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
-    "action":"#{Content.action_talk()}|#{Content.action_system()}", "system_actions": [{"action": "#{SystemAction.execute_code()}", "parameter": "MicroPython code"}], "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "action":"#{Content.action_talk()}|#{Content.action_system()}", "parameter": "Parameters for special actions", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
 
   defp get_main_model,
-    do: KittAgent.Configs.get_config("main_model", "google/gemini-2.5-flash")
+    do: KittAgent.Configs.get_config("main_model", "google/gemini-3-flash-preview")
 
   defp get_summary_model,
-    do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-flash-preview")
+    do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-pro-preview")
 
   def llm_opts(%Kitt{} = kitt, model) do
     %{
@@ -116,31 +112,15 @@ defmodule KittAgent.Requests.Prompts do
               action: %{
                 type: "string",
                 description:
-                  "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_system()}' to perform physical movements.",
+                  "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_system()}' to perform physical actions.",
                 enum: [
                   "#{Content.action_talk()}",
                   "#{Content.action_system()}"
                 ]
               },
-              system_actions: %{
-                type: "array",
-                description:
-                  "List of actions to perform if action is '#{Content.action_system()}'",
-                items: %{
-                  type: "object",
-                  properties: %{
-                    action: %{
-                      type: "string",
-                      enum: ["#{SystemAction.execute_code()}"]
-                    },
-                    parameter: %{
-                      type: "string",
-                      description: "MicroPython code for mBot2. e.g. 'mbot2.straight(10)'"
-                    }
-                  },
-                  required: ["action", "parameter"],
-                  additionalProperties: false
-                }
+              parameter: %{
+                type: "string",
+                description: "Parameters for special actions"
               },
               listener: %{
                 type: "string",
@@ -150,6 +130,7 @@ defmodule KittAgent.Requests.Prompts do
                 "message",
                 "mood",
                 "action",
+                "parameter",
                 "listener"
               ],
               additionalProperties: false

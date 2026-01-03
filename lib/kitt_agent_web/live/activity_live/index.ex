@@ -3,6 +3,8 @@ defmodule KittAgentWeb.ActivityLive.Index do
 
   alias KittAgent.Events
   alias KittAgent.Kitts
+  alias KittAgent.Talks
+  alias KittAgent.SystemActions
 
   @per_page 20
 
@@ -14,7 +16,9 @@ defmodule KittAgentWeb.ActivityLive.Index do
      socket
      |> assign(kitts: kitts)
      |> assign(page_title: "Activities")
-     |> assign(selected_system_actions: nil)}
+     |> assign(selected_code: nil)
+     |> assign(talks_queue_length: 0)
+     |> assign(actions_queue_length: 0)}
   end
 
   @impl true
@@ -50,8 +54,24 @@ defmodule KittAgentWeb.ActivityLive.Index do
       |> assign(:pa, pa)
       |> assign(:pz, pz)
       |> assign(:pl, pl)
+      |> update_queue_lengths()
 
     {:noreply, socket}
+  end
+
+  defp update_queue_lengths(socket) do
+    kitt_id = socket.assigns.filter_kitt_id
+
+    {talks_len, actions_len} =
+      if kitt_id && kitt_id != "" do
+        {Talks.queue_length(kitt_id), SystemActions.queue_length(kitt_id)}
+      else
+        {Talks.total_queue_length(), SystemActions.total_queue_length()}
+      end
+
+    socket
+    |> assign(:talks_queue_length, talks_len)
+    |> assign(:actions_queue_length, actions_len)
   end
 
   @impl true
@@ -59,6 +79,26 @@ defmodule KittAgentWeb.ActivityLive.Index do
     params = %{kitt_id: kitt_id, status: status, page: 1}
     params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
     {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
+  end
+
+  def handle_event("clear_talks", _params, socket) do
+    case socket.assigns.filter_kitt_id do
+      nil -> Talks.clear_all_queues()
+      "" -> Talks.clear_all_queues()
+      id -> Talks.clear_queue(id)
+    end
+
+    {:noreply, socket |> put_flash(:info, "Talk queue cleared") |> update_queue_lengths()}
+  end
+
+  def handle_event("clear_actions", _params, socket) do
+    case socket.assigns.filter_kitt_id do
+      nil -> SystemActions.clear_all_queues()
+      "" -> SystemActions.clear_all_queues()
+      id -> SystemActions.clear_queue(id)
+    end
+
+    {:noreply, socket |> put_flash(:info, "System Action queue cleared") |> update_queue_lengths()}
   end
 
   def handle_event("change_status", %{"id" => id, "status" => new_status}, socket) do
@@ -75,34 +115,61 @@ defmodule KittAgentWeb.ActivityLive.Index do
     {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
   end
 
-  def handle_event("page", %{"i" => page}, socket) do
-    params = %{
-      kitt_id: socket.assigns.filter_kitt_id,
-      status: socket.assigns.filter_status,
-      page: page
-    }
+    def handle_event("page", %{"i" => page}, socket) do
 
-    params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
-    {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
-  end
+      params = %{
 
-  def handle_event("show_actions", %{"id" => id}, socket) do
-    actions =
-      socket.assigns.contents
-      |> Enum.find(&(&1.id == String.to_integer(id)))
-      |> case do
-        nil -> []
-        c -> c.system_actions
-      end
+        kitt_id: socket.assigns.filter_kitt_id,
 
-    {:noreply, assign(socket, selected_system_actions: actions)}
-  end
+        status: socket.assigns.filter_status,
 
-  def handle_event("close_actions", _, socket) do
-    {:noreply, assign(socket, selected_system_actions: nil)}
-  end
+        page: page
 
-  defp status_color("pending"), do: "btn-warning"
+      }
+
+  
+
+      params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
+
+      {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
+
+    end
+
+  
+
+    def handle_event("show_code", %{"id" => id}, socket) do
+
+      code =
+
+        socket.assigns.contents
+
+        |> Enum.find(&(&1.id == String.to_integer(id)))
+
+                |> case do
+
+                  nil -> nil
+
+                  c -> c.parameter || "No code available"
+
+                end
+
+  
+
+      {:noreply, assign(socket, selected_code: code)}
+
+    end
+
+  
+
+    def handle_event("close_code", _, socket) do
+
+      {:noreply, assign(socket, selected_code: nil)}
+
+    end
+
+  
+
+    defp status_color("pending"), do: "btn-warning"
   defp status_color("processing"), do: "btn-info"
   defp status_color("completed"), do: "btn-success"
   defp status_color("failed"), do: "btn-error"
