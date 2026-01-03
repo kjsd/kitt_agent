@@ -11,7 +11,16 @@ defmodule KittAgent.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      description: description(),
+      package: package(),
+      name: "KittAgent",
+      source_url: "https://github.com/kjsd/kitt_agent",
+      homepage_url: "https://github.com/kjsd/kitt_agent",
+      docs: [
+        main: "readme",
+        extras: ["README.md"]
+      ]
     ]
   end
 
@@ -53,20 +62,14 @@ defmodule KittAgent.MixProject do
       {:lazy_html, ">= 0.1.0", only: :test},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
-      {:heroicons,
-       github: "tailwindlabs/heroicons",
-       tag: "v2.2.0",
-       sparse: "optimized",
-       app: false,
-       compile: false,
-       depth: 1},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:multipart, "~> 0.4.0"},
       {:dns_cluster, "~> 0.2.0"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      {:ex_doc, "~> 0.31", only: :dev, runtime: false}
     ]
   end
 
@@ -90,6 +93,19 @@ defmodule KittAgent.MixProject do
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+    ]
+  end
+
+  defp description do
+    "An advanced AI agent platform built with Elixir and Phoenix LiveView, designed to bring physical robots to life using Large Language Models (LLMs)."
+  end
+
+  defp package do
+    [
+      maintainers: ["Kenji MINOURA"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/kjsd/kitt_agent"},
+      files: ~w(lib priv assets config mix.exs README* LICENSE*)
     ]
   end
 end
