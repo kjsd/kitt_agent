@@ -35,10 +35,9 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 ### 4. Comprehensive Activity Monitoring ("Activities")
 *   **Live Audit Log**: A dedicated "Activities" dashboard to track all historical agent responses and decisions.
 *   **Status Management**: Monitor and manually override action statuses (`pending`, `processing`, `completed`, `failed`).
-*   **Deep Debugging**: 
-    *   View exact parameters and JSON structures for `SystemActions`.
-    *   Formatted code blocks ensure long parameters are readable without breaking the layout.
-*   **Advanced Filtering**: Filter logs by Kitt, Status, or Role to pinpoint specific events.
+    *   **Formatted Code Blocks**: Ensure long parameters are readable without breaking the layout.
+    *   **Queue Maintenance**: Monitor real-time queue depths and manually clear "Talk" or "System Action" queues (globally or per-agent) to prevent stale task accumulation.
+    *   **Advanced Filtering**: Filter logs by Kitt, Status, or Role to pinpoint specific events.
 
 ### 5. Dual-Layer Memory Architecture
 *   **Short-term Memory (Events)**: Maintains a log of recent interactions for immediate context.
@@ -51,8 +50,27 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 *   **LLM Provider Setup**: Update API keys and Base URLs without touching environment variables or restarting the server.
 *   **Model Management**: Switch between different LLM models for conversation and summarization on the fly.
 
-## 🛠 Tech Stack
+## 🤖 Physical Action Architecture & Client Design
 
+KittAgent employs a distributed client architecture designed to overcome the resource constraints of microcontroller-based robots like **mBot2**.
+
+### Dual-Queue System
+To handle different types of agent outputs efficiently, the system maintains two separate, independent queues:
+
+1.  **Talk Queue (`Talks.Queue`)**: Stores audio response data (TTS-generated WAV files).
+2.  **System Action Queue (`SystemActions.Queue`)**: Stores physical command data (MicroPython code).
+
+### Client Roles
+*   **mBot2 (Robot Client)**:
+    *   **Primary Role**: Physical execution.
+    *   **Mechanism**: Polls the **System Action Queue**, retrieves generated **MicroPython code**, and executes it locally to perform actions (move, turn, LED control).
+    *   **Constraint**: Due to limited memory and processing power, it does *not* handle audio playback.
+*   **Companion Device (Mobile/PC Client)**:
+    *   **Primary Role**: Voice interaction.
+    *   **Mechanism**: Polls the **Talk Queue** and plays back the audio responses.
+    *   **Benefit**: This offloads the heavy lifting of audio streaming/decoding from the robot, ensuring smooth, uninterrupted movement and clear voice output.
+
+## 🛠 Tech Stack
 *   **Core**: Elixir, Phoenix Framework (LiveView)
 *   **Database**: PostgreSQL (with `pgvector` support planned/ready)
 *   **AI Provider**: OpenRouter (default), or any OpenAI-compatible API

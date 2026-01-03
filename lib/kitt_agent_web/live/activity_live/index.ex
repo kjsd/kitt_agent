@@ -3,6 +3,8 @@ defmodule KittAgentWeb.ActivityLive.Index do
 
   alias KittAgent.Events
   alias KittAgent.Kitts
+  alias KittAgent.Talks
+  alias KittAgent.SystemActions
 
   @per_page 20
 
@@ -14,7 +16,9 @@ defmodule KittAgentWeb.ActivityLive.Index do
      socket
      |> assign(kitts: kitts)
      |> assign(page_title: "Activities")
-     |> assign(selected_code: nil)}
+     |> assign(selected_code: nil)
+     |> assign(talks_queue_length: 0)
+     |> assign(actions_queue_length: 0)}
   end
 
   @impl true
@@ -50,8 +54,24 @@ defmodule KittAgentWeb.ActivityLive.Index do
       |> assign(:pa, pa)
       |> assign(:pz, pz)
       |> assign(:pl, pl)
+      |> update_queue_lengths()
 
     {:noreply, socket}
+  end
+
+  defp update_queue_lengths(socket) do
+    kitt_id = socket.assigns.filter_kitt_id
+
+    {talks_len, actions_len} =
+      if kitt_id && kitt_id != "" do
+        {Talks.queue_length(kitt_id), SystemActions.queue_length(kitt_id)}
+      else
+        {Talks.total_queue_length(), SystemActions.total_queue_length()}
+      end
+
+    socket
+    |> assign(:talks_queue_length, talks_len)
+    |> assign(:actions_queue_length, actions_len)
   end
 
   @impl true
@@ -59,6 +79,26 @@ defmodule KittAgentWeb.ActivityLive.Index do
     params = %{kitt_id: kitt_id, status: status, page: 1}
     params = Enum.reject(params, fn {_, v} -> v == "" or v == nil end)
     {:noreply, push_patch(socket, to: ~p"/kitt-web/activities?#{params}")}
+  end
+
+  def handle_event("clear_talks", _params, socket) do
+    case socket.assigns.filter_kitt_id do
+      nil -> Talks.clear_all_queues()
+      "" -> Talks.clear_all_queues()
+      id -> Talks.clear_queue(id)
+    end
+
+    {:noreply, socket |> put_flash(:info, "Talk queue cleared") |> update_queue_lengths()}
+  end
+
+  def handle_event("clear_actions", _params, socket) do
+    case socket.assigns.filter_kitt_id do
+      nil -> SystemActions.clear_all_queues()
+      "" -> SystemActions.clear_all_queues()
+      id -> SystemActions.clear_queue(id)
+    end
+
+    {:noreply, socket |> put_flash(:info, "System Action queue cleared") |> update_queue_lengths()}
   end
 
   def handle_event("change_status", %{"id" => id, "status" => new_status}, socket) do

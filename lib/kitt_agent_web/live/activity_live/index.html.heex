@@ -49,6 +49,27 @@
             <% end %>
           </select>
         </div>
+
+        <div class="flex-grow"></div>
+
+        <div class="flex gap-2 items-end">
+          <button
+            type="button"
+            class="btn btn-warning"
+            phx-click="clear_talks"
+            data-confirm="Are you sure you want to clear the Talk Queue?"
+          >
+            Clear Talk Queue ({@talks_queue_length})
+          </button>
+          <button
+            type="button"
+            class="btn btn-warning"
+            phx-click="clear_actions"
+            data-confirm="Are you sure you want to clear the System Action Queue?"
+          >
+            Clear Action Queue ({@actions_queue_length})
+          </button>
+        </div>
       </form>
 
       <div class="overflow-x-auto card bg-base-100 shadow-xl">
