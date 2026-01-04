@@ -12,6 +12,7 @@ defmodule KittAgent.Datasets.Content do
              :message,
              :listener,
              :mood,
+             :status,
              :timestamp,
              :audio_path
            ]}
