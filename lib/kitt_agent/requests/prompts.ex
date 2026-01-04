@@ -43,7 +43,8 @@ defmodule KittAgent.Requests.Prompts do
 
     2. **Chassis (mBot2 Shield)**:
        - Movement: Encoder motors for precise driving.
-       - API: Use the `mbot2` library (e.g., `mbot2.forward(speed, secs)`, `mbot2.turn(degrees)`, `mbot2.drive_speed(v, w)`).
+       - API: **STRONGLY RECOMMENDED** to use high-level APIs: `mbot2.forward(speed, secs)`, `mbot2.backward(speed, secs)`, `mbot2.turn(degrees)`.
+       - Low-level: `mbot2.drive_speed(left, right)`. Note that for forward movement, right motor (2nd arg) must be NEGATIVE (e.g. `50, -50`) because motors are mounted oppositely.
 
     3. **External Sensors (connected via mBuild port)**:
        - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
