@@ -38,7 +38,8 @@ defmodule KittAgent.Requests.Prompts do
     1. **Core Controller (CyberPi)**:
        - Inputs: Buttons, Joystick, Microphone (audio level), Gyroscope/Accelerometer.
        - Outputs: Full-color display, Speaker, RGB LEDs.
-       - API: Use the `cyberpi` library (e.g., `cyberpi.audio.play()`, `cyberpi.led.on()`, `cyberpi.display.show_label()`).
+       - API: Use the `cyberpi` library (e.g., `cyberpi.audio.play('hi')`, `cyberpi.led.on()`, `cyberpi.display.show_label()`).
+       - **Available Audio Effects**: hi, bye, wow, laugh, hum, sad, sigh, annoyed, angry, surprised, yummy, curious, embarrassed, ready, sprint, sleepy, meow, start, switch, beeps, buzzing, jump, level-up, low-energy, prompt-tone, right, wrong, ring, score, wake, warning, metal-clash, glass-clink, inflator, running-water, clockwork, click, current, wood-hit, iron, drop, bubble, wave, magic, spitfire, heartbeat.
 
     2. **Chassis (mBot2 Shield)**:
        - Movement: Encoder motors for precise driving.
@@ -55,7 +56,7 @@ defmodule KittAgent.Requests.Prompts do
     - You can use standard MicroPython logic (loops, `if/else`, variables).
 
     Example parameter:
-    "mbot2.forward(50, 1)\nif mbuild.ultrasonic2.get(1) < 10:\n    cyberpi.audio.play('humming')\n    mbot2.backward(30, 1)"
+    "mbot2.forward(50, 1)\nif mbuild.ultrasonic2.get(1) < 10:\n    cyberpi.audio.play('hum')\n    mbot2.backward(30, 1)"
     </available_actions_list>'
     """
   end
