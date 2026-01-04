@@ -51,6 +51,7 @@ defmodule KittAgent.Requests.Prompts do
     # Constraints & Rules
     - Allowed libraries (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`.
     - **CRITICAL**: Do NOT use 'import' statements (e.g., `import cyberpi`). These libraries are already loaded. Re-importing may cause errors.
+    - **CRITICAL**: SSL/HTTPS is STRICTLY PROHIBITED due to hardware memory limits. ALWAYS use HTTP. `urequests.get("https://...")` will CRASH the system. Use `http://` instead.
     - You can use standard MicroPython logic (loops, `if/else`, variables).
 
     Example parameter:
