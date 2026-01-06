@@ -6,7 +6,7 @@ It currently specializes in controlling **mBot2** robots, enabling them to engag
 
 ## 📖 Documentation
 
-- **[GitHub Wiki](https://github.com/m-mizutani/kitt_agent/wiki)**: Comprehensive guide and tutorials.
+- **[GitHub Wiki](https://github.com/kjsd/kitt_agent/wiki)**: Comprehensive guide and tutorials.
 - **[Web API Specification](./API_SPEC.md)**: Details on available REST API endpoints for clients.
 
 ## 🚀 Key Features
