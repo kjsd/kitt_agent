@@ -4,6 +4,11 @@
 
 It currently specializes in controlling **mBot2** robots, enabling them to engage in natural language conversations while autonomously deciding on physical actions like moving and turning based on context.
 
+## 📖 Documentation
+
+- **[GitHub Wiki](https://github.com/m-mizutani/kitt_agent/wiki)**: Comprehensive guide and tutorials.
+- **[Web API Specification](./API_SPEC.md)**: Details on available REST API endpoints for clients.
+
 ## 🚀 Key Features
 
 ### 1. Real-time Interaction Dashboard
