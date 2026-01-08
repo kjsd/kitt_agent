@@ -116,4 +116,26 @@ defmodule KittAgent.Requests.OpenRouter do
         {:error, e}
     end
   end
+
+  def check_connection(url, api_key) do
+    headers = [{"Authorization", "Bearer #{api_key}"}]
+    
+    # Send an empty JSON object. 
+    # If the endpoint is chat/completions, it will likely return 400 (Bad Request) or 422 
+    # because "messages" field is missing. This confirms the server is reachable and the endpoint exists.
+    # If we get 401, it means the endpoint is reached but key is wrong.
+    case Req.post(url, json: %{}, headers: headers) do
+      {:ok, %{status: status}} when status in [200, 400, 422] ->
+        {:ok, "Connection successful (Status: #{status})"}
+
+      {:ok, %{status: 401}} ->
+        {:error, "Connection successful, but Unauthorized (401). Check API Key."}
+        
+      {:ok, %{status: status}} ->
+        {:error, "Connection failed. Status: #{status}"}
+
+      {:error, exception} ->
+        {:error, "Connection failed. Error: #{inspect(exception)}"}
+    end
+  end
 end
