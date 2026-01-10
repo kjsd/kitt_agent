@@ -332,6 +332,20 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
+  def check_connection(url) do
+    # Simple GET request to the root URL
+    case Req.get(url) do
+      {:ok, %{status: 200}} ->
+        {:ok, "Connection successful"}
+
+      {:ok, %{status: status}} ->
+        {:error, "Connection failed. Status: #{status}"}
+
+      {:error, exception} ->
+        {:error, "Connection failed. Error: #{inspect(exception)}"}
+    end
+  end
+
   defp gradio_url(),
     do: KittAgent.Configs.get_config("zonos_gradio_url", @gradio_default_url)
 end

@@ -32,7 +32,7 @@
       <div class="card bg-base-100 shadow-xl mb-8">
         <div class="card-body">
           <h2 class="card-title mb-4">Default Kitt Settings</h2>
-          <form phx-submit="save_all" class="space-y-4">
+          <form phx-submit="save_all" phx-change="validate" class="space-y-4">
             <div class="form-control w-full">
               <label class="label"><span class="label-text">Default Language</span></label>
               <input
@@ -98,6 +98,18 @@
               />
             </div>
 
+            <div class="flex justify-end mt-2">
+              <button
+                type="submit"
+                name="action"
+                value="check_llm"
+                class="btn btn-sm btn-outline"
+                disabled={@configs["api_url"] in [nil, ""]}
+              >
+                Check LLM Connection
+              </button>
+            </div>
+
             <div class="form-control w-full">
               <label class="label">
                 <span class="label-text">Main LLM Model</span>
@@ -150,8 +162,20 @@
               />
             </div>
 
+            <div class="flex justify-end mt-2">
+              <button
+                type="submit"
+                name="action"
+                value="check_tts"
+                class="btn btn-sm btn-outline"
+                disabled={@configs["zonos_gradio_url"] in [nil, ""]}
+              >
+                Check TTS Connection
+              </button>
+            </div>
+
             <div class="card-actions justify-end mt-6">
-              <button type="submit" class="btn btn-primary">Save All Settings</button>
+              <button type="submit" name="action" value="save" class="btn btn-primary">Save All Settings</button>
             </div>
           </form>
         </div>
