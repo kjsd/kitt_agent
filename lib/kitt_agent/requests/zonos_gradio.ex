@@ -153,15 +153,15 @@ defmodule KittAgent.Requests.ZonosGradio do
         # 16: Fmax
         24000,
         # 18: Pitch Std
-        20.0,
+        60.0,
         # 19: Speaking Rate
         15.0,
         # 15: DNSMOS
-        4.0,
+        5.0,
         # 10: Denoise
         false,
         # 23: CFG Scale
-        2.0,
+        2.5,
         # 37: Top P
         0,
         # 38: Min K
