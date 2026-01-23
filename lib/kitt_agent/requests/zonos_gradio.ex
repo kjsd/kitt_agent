@@ -9,15 +9,77 @@ defmodule KittAgent.Requests.ZonosGradio do
   @model_type "Zyphra/Zonos-v0.1-hybrid"
   @gradio_default_url "http://localhost:7860"
 
+  # --- Default Parameters (Ported from ComfyUI Client) ---
+  @default_params %{
+    # Emotions (0.0 - 1.0)
+    happiness: 0.05,
+    sadness: 0.05,
+    disgust: 0.05,
+    fear: 0.05,
+    surprise: 0.05,
+    anger: 0.05,
+    other: 0.05,
+    neutral: 0.2,
+
+    # Audio Controls
+    speaking_rate: 15.0, # Characters per second (approx)
+    pitch_std: 45.0,     # Pitch standard deviation (Intonation)
+    vq_score: 0.78,
+    fmax: 24000,
+    dnsmos: 5.0,
+    cfg_scale: 2.5
+  }
+
+  # --- Keyword Modifiers (Ported from ComfyUI Client) ---
+  @modifiers %{
+    # Basic Emotions
+    "happy" => %{happiness: 0.8, pitch_std: 10.0},
+    "joy" => %{happiness: 0.8, pitch_std: 15.0},
+    "sad" => %{sadness: 0.9, speaking_rate: -2.0, pitch_std: -20.0},
+    "cry" => %{sadness: 1.0, speaking_rate: -3.0, pitch_std: -10.0},
+    "angry" => %{anger: 0.9, speaking_rate: 3.0, pitch_std: 30.0},
+    "mad" => %{anger: 0.9, speaking_rate: 4.0, pitch_std: 40.0},
+    "fear" => %{fear: 0.9, speaking_rate: 2.0, pitch_std: 10.0},
+    "scared" => %{fear: 0.9, speaking_rate: 1.0},
+    "surprise" => %{surprise: 0.9, pitch_std: 15.0},
+    "shock" => %{surprise: 1.0, speaking_rate: -2.0},
+    "disgust" => %{disgust: 0.9, speaking_rate: -3.0},
+
+    # Nuance & Style
+    "excited" => %{happiness: 0.5, surprise: 0.3, speaking_rate: 3.0, pitch_std: 20.0},
+    "energetic" => %{happiness: 0.4, speaking_rate: 4.0, pitch_std: 20.0},
+    "relaxed" => %{neutral: 0.5, happiness: 0.2, speaking_rate: -1.0, pitch_std: -10.0},
+    "calm" => %{neutral: 0.6, speaking_rate: -2.0, pitch_std: -15.0},
+    "serious" => %{neutral: 0.8, sadness: 0.1, speaking_rate: -1.0, pitch_std: -25.0},
+
+    # Romance / Intimacy (If applicable to Kitt?)
+    "seductive" => %{other: 0.6, neutral: 0.3, speaking_rate: -4.0, pitch_std: 10.0},
+    "sexy" => %{other: 0.7, neutral: 0.2, speaking_rate: -3.0, pitch_std: 15.0},
+    "whisper" => %{neutral: 0.5, other: 0.4, speaking_rate: -3.0, pitch_std: -20.0},
+    "intimate" => %{other: 0.4, neutral: 0.4, speaking_rate: -2.0, pitch_std: -10.0},
+    "breathless" => %{other: 0.5, fear: 0.1, speaking_rate: -1.0, pitch_std: 5.0},
+    "panting" => %{other: 0.6, fear: 0.2, speaking_rate: 2.0, pitch_std: 10.0},
+    "moan" => %{other: 0.8, speaking_rate: -5.0},
+
+    # Speed & Pitch explicit controls
+    "fast" => %{speaking_rate: 5.0},
+    "slow" => %{speaking_rate: -5.0},
+    "flat" => %{pitch_std: -30.0}, # Monotone
+    "dynamic" => %{pitch_std: 30.0} # Expressive
+  }
+
   def process(%Content{} = content, %Kitt{} = kitt) do
     try do
       lang_code = lang_to_code(kitt.lang)
       speaker_audio = prepare_speaker_audio(kitt)
 
+      # Resolve Zonos parameters based on mood
+      params = resolve_parameters(content.mood)
+      log_mood_details(content.message, content.mood, params)
+
       Logger.info("TTS: Generating audio for Content #{content.id} (Lang: #{lang_code})...")
 
-      with {:ok, audio_url} <- call_gradio(content.message, content.mood, lang_code,
-                speaker_audio),
+      with {:ok, audio_url} <- call_gradio(content.message, params, lang_code, speaker_audio),
            {:ok, local_path} <- download_audio(audio_url, kitt),
            {:ok, updated_content} <- Events.update_content(content,
              %{audio_path: local_path}) do
@@ -38,6 +100,7 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
+  # ... (prepare_speaker_audio and upload_file remain the same) ...
   defp prepare_speaker_audio(%Kitt{} = kitt) do
     with path when is_binary(path) <- Kitts.resource_audio(kitt),
          true <- File.exists?(path) do
@@ -114,11 +177,11 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
-  defp call_gradio(text, mood, lang_code, speaker_audio) do
+  defp call_gradio(text, params, lang_code, speaker_audio) do
     # API: generate_audio
     # Inputs: [Model, Text, Lang, SpeakerAudio, PrefixAudio, ...Emotions..., VQ, Fmax, Pitch, Rate, DNSMOS, Denoise, CFG, ...Sampling..., Seed, RandSeed, UncondKeys]
-    
-    emotions = resolve_emotions(mood)
+
+    Logger.debug("TTS Debug: Sending Payload with Model Type: #{@model_type}")
 
     payload = %{
       data: [
@@ -128,40 +191,40 @@ defmodule KittAgent.Requests.ZonosGradio do
         text,
         # 5: Language
         lang_code,
-        # 9: Speaker Audio
+        # 9: Speaker Audio (Reverted order)
         speaker_audio,
-        # 7: Prefix Audio
+        # 7: Prefix Audio (Reverted order)
         nil,
         # 48: Happiness
-        emotions.happiness,
+        params.happiness,
         # 49: Sadness
-        emotions.sadness,
+        params.sadness,
         # 50: Disgust
-        emotions.disgust,
+        params.disgust,
         # 51: Fear
-        emotions.fear,
+        params.fear,
         # 54: Surprise
-        emotions.surprise,
+        params.surprise,
         # 55: Anger
-        emotions.anger,
+        params.anger,
         # 56: Other
-        emotions.other,
+        params.other,
         # 57: Neutral
-        emotions.neutral,
+        params.neutral,
         # 17: VQ Score
-        0.78,
+        params.vq_score,
         # 16: Fmax
-        24000,
+        params.fmax,
         # 18: Pitch Std
-        60.0,
+        params.pitch_std,
         # 19: Speaking Rate
-        15.0,
+        params.speaking_rate,
         # 15: DNSMOS
-        5.0,
+        params.dnsmos,
         # 10: Denoise
         false,
         # 23: CFG Scale
-        2.5,
+        params.cfg_scale,
         # 37: Top P
         0,
         # 38: Min K
@@ -196,48 +259,58 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
-  defp resolve_emotions(mood) do
-    # Default based on Nina's personality (Optimistic/Happy)
-    base = %{
-      happiness: 1.0,
-      sadness: 0.05,
-      disgust: 0.05,
-      fear: 0.05,
-      surprise: 0.05,
-      anger: 0.05,
-      other: 0.1,
-      neutral: 0.2
-    }
+  # --- Parameter Resolution Helpers ---
 
-    mood = String.downcase(mood || "")
+  defp resolve_parameters(mood) do
+    mood_keywords =
+      (mood || "")
+      |> String.downcase()
+      |> String.replace(~r/[^a-z\s]/, "") # Remove punctuation
+      |> String.split()
 
-    cond do
-      contains_any?(mood, ["sad", "cry", "grief", "sorrow", "depress"]) ->
-        %{base | sadness: 1.0, happiness: 0.05}
-
-      contains_any?(mood, ["angr", "mad", "rage", "furious"]) ->
-        %{base | anger: 1.0, happiness: 0.05}
-
-      contains_any?(mood, ["fear", "scar", "anxio", "terrified"]) ->
-        %{base | fear: 1.0, happiness: 0.05}
-
-      contains_any?(mood, ["surpris", "shock", "amaz"]) ->
-        %{base | surprise: 1.0, happiness: 0.5}
-
-      contains_any?(mood, ["disgust", "yuck"]) ->
-        %{base | disgust: 1.0, happiness: 0.05}
-
-      contains_any?(mood, ["neutral", "calm", "serious"]) ->
-        %{base | neutral: 1.0, happiness: 0.1}
-
-      true ->
-        base
-    end
+    Enum.reduce(mood_keywords, @default_params, fn word, current_params ->
+      case Map.get(@modifiers, word) do
+        nil -> current_params
+        mods -> merge_params(current_params, mods)
+      end
+    end)
+    |> clamp_params()
   end
 
-  defp contains_any?(text, keywords) do
-    Enum.any?(keywords, &String.contains?(text, &1))
+  defp merge_params(base, mods) do
+    Enum.reduce(mods, base, fn {key, delta}, acc ->
+      Map.update(acc, key, delta, &(&1 + delta))
+    end)
   end
+
+  defp clamp_params(params) do
+    params
+    |> Map.new(fn {k, v} ->
+      new_v =
+        cond do
+          k in [:happiness, :sadness, :disgust, :fear, :surprise, :anger, :other, :neutral] ->
+            max(0.0, min(1.0, v))
+          k == :speaking_rate ->
+            max(5.0, min(30.0, v)) # Prevent too slow/fast
+          k == :pitch_std ->
+            max(5.0, min(200.0, v)) # Prevent crazy pitch
+          true -> v
+        end
+      {k, new_v}
+    end)
+  end
+
+  defp log_mood_details(text, mood, params) do
+    emotions =
+      [:happiness, :sadness, :disgust, :fear, :surprise, :anger, :other, :neutral]
+      |> Enum.map(fn k -> {k, params[k]} end)
+      |> Enum.filter(fn {_, v} -> v > 0.1 end) # Only show significant ones
+      |> Enum.map(fn {k, v} -> "#{k}:#{Float.round(v, 2)}" end)
+      |> Enum.join(", ")
+
+    Logger.info("TTS: '#{String.slice(text, 0, 15)}...' [Mood: #{mood}] -> Rate:#{params.speaking_rate}, Pitch:#{params.pitch_std}, Emo:[#{emotions}]")
+  end
+
 
   defp wait_for_sse(event_id) do
     url = "#{gradio_url()}/gradio_api/call/generate_audio/#{event_id}"

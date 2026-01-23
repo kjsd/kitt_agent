@@ -35,4 +35,9 @@ defmodule KittAgentWeb.Router do
     post "/actions/:content_id/complete", SystemActionController, :complete
     post "/actions/:content_id/fail", SystemActionController, :fail
   end
+
+  scope "/debug", KittAgentWeb do
+    pipe_through :api
+    get "/uploads", KittController, :debug_uploads
+  end
 end
