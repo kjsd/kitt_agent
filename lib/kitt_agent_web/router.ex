@@ -26,14 +26,19 @@ defmodule KittAgentWeb.Router do
     live "/settings", SettingsLive.Index, :index
   end
 
-  scope "/kitt/:id", KittAgentWeb do
+  scope "/kitts", KittAgentWeb do
     pipe_through :api
 
-    post "/talk", KittController, :talk
-    get "/talks", KittController, :dequeue_talk
-    get "/actions/pending", SystemActionController, :pending
-    post "/actions/:content_id/complete", SystemActionController, :complete
-    post "/actions/:content_id/fail", SystemActionController, :fail
+    get "/", KittController, :index
+    get "/:id", KittController, :show
+
+    scope "/:id" do
+      post "/talk", KittController, :talk
+      get "/talks", KittController, :dequeue_talk
+      get "/actions/pending", SystemActionController, :pending
+      post "/actions/:content_id/complete", SystemActionController, :complete
+      post "/actions/:content_id/fail", SystemActionController, :fail
+    end
   end
 
   scope "/debug", KittAgentWeb do

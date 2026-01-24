@@ -30,12 +30,12 @@ defmodule KittAgentWeb.SystemActionControllerTest do
   end
 
   describe "pending actions" do
-    test "GET /kitt/:id/actions/pending retrieves pending actions", %{
+    test "GET /kitts/:id/actions/pending retrieves pending actions", %{
       conn: conn,
       kitt: kitt,
       content: content
     } do
-      conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
+      conn = get(conn, ~p"/kitts/#{kitt.id}/actions/pending")
 
       assert %{"parameter" => "mbot2.forward(100, 1)"} = json_response(conn, 200)
 
@@ -50,10 +50,10 @@ defmodule KittAgentWeb.SystemActionControllerTest do
       kitt: kitt
     } do
       # 最初のGETでQueueは空になるはず
-      get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
+      get(conn, ~p"/kitts/#{kitt.id}/actions/pending")
 
       # 2回目のGET
-      conn = get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
+      conn = get(conn, ~p"/kitts/#{kitt.id}/actions/pending")
       assert response(conn, 404)
       Queue.clear(kitt.id)
     end
@@ -66,11 +66,11 @@ defmodule KittAgentWeb.SystemActionControllerTest do
       content: content
     } do
       # まずは processing にしておく
-      get(conn, ~p"/kitt/#{kitt.id}/actions/pending")
+      get(conn, ~p"/kitts/#{kitt.id}/actions/pending")
       assert Repo.get(Content, content.id).status == "processing"
 
       # complete をPOST
-      conn = post(conn, ~p"/kitt/#{kitt.id}/actions/#{content.id}/complete")
+      conn = post(conn, ~p"/kitts/#{kitt.id}/actions/#{content.id}/complete")
       assert response(conn, 200)
 
       # ステータスが completed になっていることを確認

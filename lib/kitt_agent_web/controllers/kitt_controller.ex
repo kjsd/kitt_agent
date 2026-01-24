@@ -10,6 +10,16 @@ defmodule KittAgentWeb.KittController do
 
   @compile_env_uploads_dir Application.compile_env(:kitt_agent, :uploads_dir)
 
+  def index(conn, _params) do
+    kitts = Kitts.all_kitts()
+    json(conn, kitts)
+  end
+
+  def show(conn, %{"id" => id}) do
+    kitt = Kitts.get_kitt!(id)
+    json(conn, kitt)
+  end
+
   def talk(conn, %{"id" => id, "text" => user_text}) do
     with %Kitt{} = kitt <- Kitts.get_kitt(id),
          {:ok, res} <- kitt |> KittAgent.talk(user_text) do

@@ -40,11 +40,28 @@ defmodule KittAgentWeb.KittControllerTest do
     %{kitt: kitt}
   end
 
+  describe "index/2" do
+    test "lists all kitts", %{conn: conn, kitt: kitt} do
+      conn = get(conn, ~p"/kitts")
+      data = json_response(conn, 200)
+      assert is_list(data)
+      assert Enum.any?(data, fn k -> k["id"] == kitt.id && k["name"] == "Test Kitt" end)
+    end
+  end
+
+  describe "show/2" do
+    test "returns a specific kitt", %{conn: conn, kitt: kitt} do
+      conn = get(conn, ~p"/kitts/#{kitt.id}")
+      assert %{"id" => id, "name" => "Test Kitt"} = json_response(conn, 200)
+      assert id == kitt.id
+    end
+  end
+
   describe "talk/2" do
     test "returns AI response successfully", %{conn: conn, kitt: kitt} do
       params = %{"id" => kitt.id, "text" => "Hello"}
 
-      conn = post(conn, ~p"/kitt/#{kitt.id}/talk/", params)
+      conn = post(conn, ~p"/kitts/#{kitt.id}/talk", params)
 
       assert %{"message" => "Hello, I am a test Kitt."} = json_response(conn, 200)
 
@@ -60,7 +77,7 @@ defmodule KittAgentWeb.KittControllerTest do
 
       # FallbackControllerが適切に処理するか確認
       # もしコントローラーがnilを返してクラッシュする場合は修正が必要
-      conn = post(conn, ~p"/kitt/#{fake_id}/talk/", params)
+      conn = post(conn, ~p"/kitts/#{fake_id}/talk", params)
 
       assert response(conn, 404)
     end
