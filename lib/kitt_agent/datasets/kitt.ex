@@ -4,7 +4,7 @@ defmodule KittAgent.Datasets.Kitt do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @derive {Jason.Encoder,
-           only: [:id, :name, :lang, :timezone]}
+           only: [:id, :name, :lang, :timezone, :biography]}
   schema "kitts" do
     field :name, :string
     field :lang, :string, default: "English"
