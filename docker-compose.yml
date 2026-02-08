@@ -7,6 +7,8 @@ services:
     environment:
       MIX_ENV: dev
       PORT: 4000
+      GEMINI_MODEL_MAIN: "google/gemini-3-pro-preview"
+      GEMINI_MODEL_SUMMARY: "google/gemini-3-flash-preview"
     volumes:
       - .:/app
     depends_on:

@@ -49,12 +49,20 @@ defmodule KittAgent.Requests.Prompts do
     3. **External Sensors (connected via mBuild port)**:
        - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
        - **Quad RGB Sensor**: Detects colors and tracks lines. API: `mbuild.quad_rgb_sensor`.
+         - `get_line_sta(index)`: Returns an integer (0-15) representing the status of 4 sensors (L2, L1, R1, R2).
+           - L2(Bit3/8), L1(Bit2/4), R1(Bit1/2), R2(Bit0/1). 1=Black(Line), 0=White(Background).
+           - e.g., 6 (0110) means L1 and R1 are on the line (Center).
+           - e.g., 0 (0000) means no line detected. 15 (1111) means all sensors are on black (Intersection/Crossroad).
+         - `get_offset_track(index)`: Returns deviation from line center (-100 to 100). Useful for PID control.
 
     # Constraints & Rules
     - Allowed libraries (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`.
     - **CRITICAL**: Do NOT use 'import' statements (e.g., `import cyberpi`). These libraries are already loaded. Re-importing may cause errors.
     - **CRITICAL**: SSL/HTTPS is STRICTLY PROHIBITED due to hardware memory limits. ALWAYS use HTTP. `urequests.get("https://...")` will CRASH the system. Use `http://` instead.
-    - **CRITICAL**: Infinite loops are STRICTLY PROHIBITED. If using loops, ensure they terminate after a finite number of iterations OR break upon detecting a specific event (e.g., sensor input).
+    - **CRITICAL**: Infinite loops are STRICTLY PROHIBITED.
+      - Do NOT use `while True:`.
+      - Loops MUST have a breaking condition based on sensor input (e.g., `while mbuild.quad_rgb_sensor.get_line_sta(1) != 15:`) or a strict timeout/safety counter (e.g., `start=time.time(); while time.time() - start < 10:`).
+      - Do NOT use simple counters like `range(500)` with short sleeps that end prematurely. Ensure the action lasts long enough to be meaningful but not forever.
     - You can use standard MicroPython logic (loops, `if/else`, variables).
 
     Example parameter:
@@ -77,11 +85,15 @@ defmodule KittAgent.Requests.Prompts do
     """
   end
 
-  defp get_main_model,
-    do: KittAgent.Configs.get_config("main_model", "google/gemini-3-pro-preview")
+  defp get_main_model do
+    default = Application.get_env(:kitt_agent, :gemini_models)[:main]
+    KittAgent.Configs.get_config("main_model", default)
+  end
 
-  defp get_summary_model,
-    do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-flash-preview")
+  defp get_summary_model do
+    default = Application.get_env(:kitt_agent, :gemini_models)[:summary]
+    KittAgent.Configs.get_config("summary_model", default)
+  end
 
   def llm_opts(%Kitt{} = kitt, model) do
     %{
