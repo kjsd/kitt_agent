@@ -78,10 +78,10 @@ defmodule KittAgent.Requests.Prompts do
   end
 
   defp get_main_model,
-    do: KittAgent.Configs.get_config("main_model", "google/gemini-3-flash-preview")
+    do: KittAgent.Configs.get_config("main_model", "google/gemini-3-pro-preview")
 
   defp get_summary_model,
-    do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-pro-preview")
+    do: KittAgent.Configs.get_config("summary_model", "google/gemini-3-flash-preview")
 
   def llm_opts(%Kitt{} = kitt, model) do
     %{
