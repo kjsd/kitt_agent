@@ -37,16 +37,17 @@ defmodule KittAgent.Requests.Prompts do
 
     1. **Core Controller (CyberPi)**:
        - Inputs: Buttons, Joystick, Microphone (audio level), Gyroscope/Accelerometer.
-       - Outputs: Full-color display, Speaker, RGB LEDs.
-       - API: Use the `cyberpi` library (e.g., `cyberpi.audio.play('hi')`, `cyberpi.led.on()`, `cyberpi.display.show_label()`).
-       - **Available Audio Effects**: hi, bye, wow, laugh, hum, sad, sigh, annoyed, angry, surprised, yummy, curious, embarrassed, ready, sprint, sleepy, meow, start, switch, beeps, buzzing, jump, level-up, low-energy, prompt-tone, right, wrong, ring, score, wake, warning, metal-clash, glass-clink, inflator, running-water, clockwork, click, current, wood-hit, iron, drop, bubble, wave, magic, spitfire, heartbeat.
+       - Outputs: RGB LEDs.
+         - API: Use the `cyberpi` library (e.g., `cyberpi.led.on(r, g, b)`, `cyberpi.led.off('all')`, `cyberpi.console.println("msg")`).
+         - **CRITICAL HARDWARE BAN**: You must NEVER use `cyberpi.audio` (e.g., `play()`) or `cyberpi.display` (e.g., `show_label()`). Using these will cause an immediate and unrecoverable system crash due to hardware memory limits and Wi-Fi interrupt conflicts. If you want to show text, ALWAYS use `cyberpi.console.println()`. If you want to stop the LED, ALWAYS pass 'all' like `cyberpi.led.off('all')`.
 
     2. **Chassis (mBot2 Shield)**:
-       - Movement: Encoder motors for precise driving.
-       - API: **STRONGLY RECOMMENDED** to use high-level APIs: `mbot2.forward(speed, secs)`, `mbot2.backward(speed, secs)`, `mbot2.turn(degrees)`.
-       - Low-level: `mbot2.drive_speed(left, right)`. Note that for forward movement, right motor (2nd arg) must be NEGATIVE (e.g. `50, -50`) because motors are mounted oppositely.
-
-    3. **External Sensors (connected via mBuild port)**:
+         - Movement: Encoder motors for precise driving.
+         - API: **STRONGLY RECOMMENDED** to use high-level APIs: `mbot2.forward(speed, secs)`, `mbot2.backward(speed, secs)`, `mbot2.turn(degrees)`.
+           - **CRITICAL**: For `mbot2.turn(degrees)`, POSITIVE degrees turn RIGHT, NEGATIVE degrees turn LEFT. (e.g., `mbot2.turn(-90)` turns 90 degrees LEFT).
+         - Low-level: `mbot2.drive_speed(left, right)`. Note that for forward movement, right motor (2nd arg) must be NEGATIVE (e.g. `50, -50`) because motors are mounted oppositely.
+         
+      3. **External Sensors (connected via mBuild port)**:
        - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
        - **Quad RGB Sensor**: Detects colors and tracks lines. API: `mbuild.quad_rgb_sensor`.
          - `get_line_sta(index)`: Returns an integer (0-15) representing the status of 4 sensors (L2, L1, R1, R2).
@@ -59,15 +60,16 @@ defmodule KittAgent.Requests.Prompts do
     - Allowed libraries (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`.
     - **CRITICAL**: Do NOT use 'import' statements (e.g., `import cyberpi`). These libraries are already loaded. Re-importing may cause errors.
     - **CRITICAL**: SSL/HTTPS is STRICTLY PROHIBITED due to hardware memory limits. ALWAYS use HTTP. `urequests.get("https://...")` will CRASH the system. Use `http://` instead.
-    - **CRITICAL**: Infinite loops are STRICTLY PROHIBITED.
-      - Do NOT use `while True:`.
-      - Loops MUST have a breaking condition based on sensor input (e.g., `while mbuild.quad_rgb_sensor.get_line_sta(1) != 15:`) or a strict timeout/safety counter (e.g., `start=time.time(); while time.time() - start < 10:`).
-      - Do NOT use simple counters like `range(500)` with short sleeps that end prematurely. Ensure the action lasts long enough to be meaningful but not forever.
-    - You can use standard MicroPython logic (loops, `if/else`, variables).
+    - **Safe Loops Allowed**: You may use loops (e.g., `while True:`) ONLY for tasks like "move UNTIL an obstacle is detected". However, you MUST follow these safety rules:
+        1. ALWAYS include `time.sleep(0.1)` inside the loop to prevent CPU lockup and maintain Wi-Fi connection.
+        2. ALWAYS include a clear `break` condition based on sensor input.
+        3. ALWAYS explicitly stop the motors (e.g., `mbot2.drive_speed(0, 0)`) after breaking the loop.
+      - **CRITICAL**: Do NOT use loops for simple timed movements (e.g., `for i in range(60): time.sleep(0.1)`). If you just want to wait or move for a specific time, simply use `time.sleep(secs)` or the high-level API `mbot2.forward(speed, secs)`!
+      - You can use standard MicroPython logic (loops, `if/else`, variables).
 
     Example parameter:
-    "mbot2.forward(50, 1)\nif mbuild.ultrasonic2.get(1) < 10:\n    cyberpi.audio.play('hum')\n    mbot2.backward(30, 1)"
-    </available_actions_list>'
+      "mbot2.drive_speed(40, -40)\nwhile True:\n    if mbuild.ultrasonic2.get(1) < 15:\n        mbot2.drive_speed(0, 0)\n        cyberpi.console.println('Obstacle found')\n        break\n    time.sleep(0.1)"
+      </available_actions_list>'
     """
   end
 
