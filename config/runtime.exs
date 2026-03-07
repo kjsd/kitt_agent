@@ -112,6 +112,6 @@ end
 
 config :kitt_agent,
   gemini_models: [
-    main: System.get_env("GEMINI_MODEL_MAIN", "google/gemini-3-pro-preview"),
+    main: System.get_env("GEMINI_MODEL_MAIN", "google/gemini-3.1-pro-preview"),
     summary: System.get_env("GEMINI_MODEL_SUMMARY", "google/gemini-3-flash-preview")
   ]
