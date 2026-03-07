@@ -52,16 +52,19 @@ defmodule KittAgent.Requests.OpenRouter do
           with {:ok, event} <-
                  Events.make_kitt_event(res)
                  |> Events.create_kitt_event(kitt) do
-            if(
+            tts_enabled? =
               Application.get_env(:kitt_agent, KittAgent.Requests, [])
               |> Keyword.get(:talk, [])
               |> Keyword.get(:enable_tts, true)
-            ) do
-              TTS.RequestBroker.exec(kitt, event.content)
-            end
 
-            if event.content.action == Content.action_system do
-              SystemActions.Queue.enqueue(kitt.id, event.content)
+            if tts_enabled? do
+              # TTS will handle enqueuing the SystemAction after audio is generated to sync them.
+              TTS.RequestBroker.exec(kitt, event.content)
+            else
+              # If TTS is disabled, enqueue SystemAction immediately.
+              if event.content.action == Content.action_system() do
+                SystemActions.Queue.enqueue(kitt.id, event.content)
+              end
             end
 
             if(
@@ -119,7 +122,7 @@ defmodule KittAgent.Requests.OpenRouter do
 
   def check_connection(url, api_key) do
     headers = [{"Authorization", "Bearer #{api_key}"}]
-    
+
     # Send an empty JSON object. 
     # If the endpoint is chat/completions, it will likely return 400 (Bad Request) or 422 
     # because "messages" field is missing. This confirms the server is reachable and the endpoint exists.
@@ -130,7 +133,7 @@ defmodule KittAgent.Requests.OpenRouter do
 
       {:ok, %{status: 401}} ->
         {:error, "Connection successful, but Unauthorized (401). Check API Key."}
-        
+
       {:ok, %{status: status}} ->
         {:error, "Connection failed. Status: #{status}"}
 

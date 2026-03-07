@@ -22,8 +22,10 @@ defmodule KittAgent.Requests.ZonosGradio do
     neutral: 0.2,
 
     # Audio Controls
-    speaking_rate: 15.0, # Characters per second (approx)
-    pitch_std: 45.0,     # Pitch standard deviation (Intonation)
+    # Characters per second (approx)
+    speaking_rate: 15.0,
+    # Pitch standard deviation (Intonation)
+    pitch_std: 45.0,
     vq_score: 0.78,
     fmax: 24000,
     dnsmos: 5.0,
@@ -64,8 +66,10 @@ defmodule KittAgent.Requests.ZonosGradio do
     # Speed & Pitch explicit controls
     "fast" => %{speaking_rate: 5.0},
     "slow" => %{speaking_rate: -5.0},
-    "flat" => %{pitch_std: -30.0}, # Monotone
-    "dynamic" => %{pitch_std: 30.0} # Expressive
+    # Monotone
+    "flat" => %{pitch_std: -30.0},
+    # Expressive
+    "dynamic" => %{pitch_std: 30.0}
   }
 
   def process(%Content{} = content, %Kitt{} = kitt) do
@@ -81,10 +85,17 @@ defmodule KittAgent.Requests.ZonosGradio do
 
       with {:ok, audio_url} <- call_gradio(content.message, params, lang_code, speaker_audio),
            {:ok, local_path} <- download_audio(audio_url, kitt),
-           {:ok, updated_content} <- Events.update_content(content,
-             %{audio_path: local_path}) do
-
+           {:ok, updated_content} <-
+             Events.update_content(
+               content,
+               %{audio_path: local_path}
+             ) do
         Talks.Queue.enqueue(kitt.id, updated_content)
+
+        # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready
+        if updated_content.action == KittAgent.Datasets.Content.action_system() do
+          KittAgent.SystemActions.Queue.enqueue(kitt.id, updated_content)
+        end
 
         updated_content
         |> Events.broadcast_change()
@@ -93,10 +104,19 @@ defmodule KittAgent.Requests.ZonosGradio do
       else
         error ->
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
+          fallback_enqueue_system_action(content, kitt)
       end
     rescue
       e ->
         Logger.error("TTS: Exception: #{inspect(e)}")
+        fallback_enqueue_system_action(content, kitt)
+    end
+  end
+
+  defp fallback_enqueue_system_action(%Content{} = content, %Kitt{} = kitt) do
+    if content.action == KittAgent.Datasets.Content.action_system() do
+      Logger.warning("TTS: Enqueueing SystemAction despite TTS failure as a fallback.")
+      KittAgent.SystemActions.Queue.enqueue(kitt.id, content)
     end
   end
 
@@ -265,7 +285,8 @@ defmodule KittAgent.Requests.ZonosGradio do
     mood_keywords =
       (mood || "")
       |> String.downcase()
-      |> String.replace(~r/[^a-z\s]/, "") # Remove punctuation
+      # Remove punctuation
+      |> String.replace(~r/[^a-z\s]/, "")
       |> String.split()
 
     Enum.reduce(mood_keywords, @default_params, fn word, current_params ->
@@ -290,12 +311,19 @@ defmodule KittAgent.Requests.ZonosGradio do
         cond do
           k in [:happiness, :sadness, :disgust, :fear, :surprise, :anger, :other, :neutral] ->
             max(0.0, min(1.0, v))
+
           k == :speaking_rate ->
-            max(5.0, min(30.0, v)) # Prevent too slow/fast
+            # Prevent too slow/fast
+            max(5.0, min(30.0, v))
+
           k == :pitch_std ->
-            max(5.0, min(200.0, v)) # Prevent crazy pitch
-          true -> v
+            # Prevent crazy pitch
+            max(5.0, min(200.0, v))
+
+          true ->
+            v
         end
+
       {k, new_v}
     end)
   end
@@ -304,13 +332,15 @@ defmodule KittAgent.Requests.ZonosGradio do
     emotions =
       [:happiness, :sadness, :disgust, :fear, :surprise, :anger, :other, :neutral]
       |> Enum.map(fn k -> {k, params[k]} end)
-      |> Enum.filter(fn {_, v} -> v > 0.1 end) # Only show significant ones
+      # Only show significant ones
+      |> Enum.filter(fn {_, v} -> v > 0.1 end)
       |> Enum.map(fn {k, v} -> "#{k}:#{Float.round(v, 2)}" end)
       |> Enum.join(", ")
 
-    Logger.info("TTS: '#{String.slice(text, 0, 15)}...' [Mood: #{mood}] -> Rate:#{params.speaking_rate}, Pitch:#{params.pitch_std}, Emo:[#{emotions}]")
+    Logger.info(
+      "TTS: '#{String.slice(text, 0, 15)}...' [Mood: #{mood}] -> Rate:#{params.speaking_rate}, Pitch:#{params.pitch_std}, Emo:[#{emotions}]"
+    )
   end
-
 
   defp wait_for_sse(event_id) do
     url = "#{gradio_url()}/gradio_api/call/generate_audio/#{event_id}"
