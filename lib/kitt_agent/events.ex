@@ -64,7 +64,8 @@ defmodule KittAgent.Events do
   end
 
   def make_kitt_event(attr) do
-    action = attr["action"] || attr[:action]
+    action = attr["action"] || attr[:action] || Content.action_talk()
+    message = attr["message"] || attr[:message] || "..."
 
     status =
       if action == Content.action_talk(),
@@ -73,7 +74,11 @@ defmodule KittAgent.Events do
 
     %Event{
       role: "assistant",
-      content: Map.put_new(attr, "status", status)
+      content:
+        attr
+        |> Map.put_new("status", status)
+        |> Map.put("action", action)
+        |> Map.put("message", message)
     }
   end
 
