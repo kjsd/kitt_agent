@@ -152,17 +152,16 @@ defmodule KittAgent.Requests.Prompts do
               listener: %{
                 type: "string",
                 description: "target to talk"
-              },
-              required: [
-                "message",
-                "mood",
-                "action",
-                "parameter",
-                "listener"
-              ],
-              additionalProperties: false
+              }
             },
-            strict: true
+            required: [
+              "message",
+              "mood",
+              "action",
+              "parameter",
+              "listener"
+            ],
+            additionalProperties: false
           }
         }
       }
