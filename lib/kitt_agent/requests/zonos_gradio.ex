@@ -390,15 +390,15 @@ defmodule KittAgent.Requests.ZonosGradio do
 
   defp decode_gradio_response(json_str) do
     case Jason.decode(json_str) do
-      {:ok, [audio_info, _seed]} ->
-        # audio_info is like: %{"path" => "...", "url" => "...", ...}
-        # The URL from Gradio might be relative or absolute.
-        # API info says: "url": "http://ai.local:7860/gradio_api/file=/tmp/..."
+      {:ok, [audio_info | _]} when is_map(audio_info) ->
         raw_url = audio_info["url"]
-        # Fix potential malformed URL from Zonos (e.g. double prefix)
         url = String.replace(raw_url, "/gradio_a/gradio_api/", "/gradio_api/")
 
         Logger.debug("TTS Debug: Got audio URL: #{url} (Original: #{raw_url})")
+        {:ok, url}
+
+      {:ok, %{"url" => raw_url}} ->
+        url = String.replace(raw_url, "/gradio_a/gradio_api/", "/gradio_api/")
         {:ok, url}
 
       {:error, _} ->
@@ -410,6 +410,8 @@ defmodule KittAgent.Requests.ZonosGradio do
     filename = "#{Ecto.UUID.generate()}.wav"
     local_rel_path = Kitts.path(kitt, filename)
     local_abs_path = Kitts.resource(kitt, filename)
+
+    File.mkdir_p!(Path.dirname(local_abs_path))
 
     case Req.get(url) do
       {:ok, %{status: 200, body: body}} ->
