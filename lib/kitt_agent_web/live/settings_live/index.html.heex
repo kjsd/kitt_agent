@@ -146,20 +146,50 @@
               <% end %>
             </datalist>
 
-            <div class="divider">TTS Configuration</div>
+            <div class="divider">TTS Configuration (OpenAI Compatible)</div>
 
             <div class="form-control w-full">
               <label class="label">
-                <span class="label-text">Zonos Gradio API Base URL</span>
-                <span class="label-text-alt text-gray-500">default: http://localhost:7860</span>
+                <span class="label-text">OpenAI TTS API Base URL</span>
+                <span class="label-text-alt text-gray-500">default: http://nina.local:8080/v1</span>
               </label>
               <input
                 type="text"
-                name="zonos_gradio_url"
-                value={@configs["zonos_gradio_url"]}
+                name="openai_tts_url"
+                value={@configs["openai_tts_url"] || @configs["zonos_gradio_url"]}
                 class="input input-bordered w-full"
-                placeholder="http://localhost:7860/"
+                placeholder="http://nina.local:8080/v1"
               />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div class="form-control w-full">
+                <label class="label">
+                  <span class="label-text">TTS Model</span>
+                  <span class="label-text-alt text-gray-500">default: zonos2</span>
+                </label>
+                <input
+                  type="text"
+                  name="openai_tts_model"
+                  value={@configs["openai_tts_model"] || "zonos2"}
+                  class="input input-bordered w-full"
+                  placeholder="zonos2"
+                />
+              </div>
+
+              <div class="form-control w-full">
+                <label class="label">
+                  <span class="label-text">Default Voice</span>
+                  <span class="label-text-alt text-gray-500">default: nina2</span>
+                </label>
+                <input
+                  type="text"
+                  name="openai_tts_default_voice"
+                  value={@configs["openai_tts_default_voice"] || "nina2"}
+                  class="input input-bordered w-full"
+                  placeholder="nina2"
+                />
+              </div>
             </div>
 
             <div class="flex justify-end mt-2">
@@ -168,7 +198,7 @@
                 name="action"
                 value="check_tts"
                 class="btn btn-sm btn-outline"
-                disabled={@configs["zonos_gradio_url"] in [nil, ""]}
+                disabled={(@configs["openai_tts_url"] || @configs["zonos_gradio_url"]) in [nil, ""]}
               >
                 Check TTS Connection
               </button>
