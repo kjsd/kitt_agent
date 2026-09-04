@@ -37,6 +37,33 @@ defmodule KittAgent.Requests.OpenAITTSTest do
     end
   end
 
+  describe "load_speaker_audio_base64/1" do
+    test "returns nil when audio_path is nil" do
+      assert OpenAITTS.load_speaker_audio_base64(%Kitt{audio_path: nil}) == nil
+    end
+
+    test "returns nil when audio file does not exist" do
+      assert OpenAITTS.load_speaker_audio_base64(%Kitt{id: Ecto.UUID.generate(), audio_path: "non_existent.wav"}) == nil
+    end
+
+    test "returns base64 encoded audio when file exists" do
+      kitt_id = Ecto.UUID.generate()
+      filename = "test_speaker.wav"
+      dummy_pcm = "RIFF....WAVEfmt ...."
+      
+      # Prepare mock resource dir
+      kitt = %Kitt{id: kitt_id, audio_path: filename}
+      target_path = KittAgent.Kitts.resource(kitt, filename)
+      File.mkdir_p!(Path.dirname(target_path))
+      File.write!(target_path, dummy_pcm)
+
+      on_exit(fn -> File.rm_rf(Path.dirname(target_path)) end)
+
+      b64 = OpenAITTS.load_speaker_audio_base64(kitt)
+      assert b64 == Base.encode64(dummy_pcm)
+    end
+  end
+
   describe "live bridge connection check" do
     @tag :external
     test "successfully checks connection to nina.local:8080" do

@@ -2,6 +2,7 @@ defmodule KittAgent.Requests.OpenAITTS do
   @moduledoc """
   OpenAI-compatible Text-to-Speech (TTS) client.
   Calls standard POST /v1/audio/speech endpoint (supported by zonos2-openai-bridge, OpenAI, etc.).
+  Supports dynamic speaker cloning by transmitting Kitt's reference audio via speaker_audio_base64.
   """
 
   alias KittAgent.Datasets.{Kitt, Content}
@@ -23,10 +24,13 @@ defmodule KittAgent.Requests.OpenAITTS do
       input_text = prepare_input_text(content.message, content.mood)
       voice = resolve_voice(kitt)
       model = KittAgent.Configs.get_config("openai_tts_model", @default_model)
+      speaker_audio_b64 = load_speaker_audio_base64(kitt)
 
-      Logger.info("TTS: Generating audio for Content #{content.id} (Voice: #{voice}, Mood: #{inspect(content.mood)})...")
+      Logger.info(
+        "TTS: Generating audio for Content #{content.id} (Voice: #{voice}, Custom Audio: #{is_binary(speaker_audio_b64)}, Mood: #{inspect(content.mood)})..."
+      )
 
-      with {:ok, wav_binary} <- call_speech_api(input_text, voice, model),
+      with {:ok, wav_binary} <- call_speech_api(input_text, voice, model, speaker_audio_b64),
            {:ok, local_rel_path} <- save_audio(wav_binary, kitt),
            {:ok, updated_content} <-
              Events.update_content(
@@ -99,19 +103,38 @@ defmodule KittAgent.Requests.OpenAITTS do
   end
 
   @doc """
+  Loads the Kitt's uploaded reference audio file (if exists) and returns base64-encoded string.
+  Returns nil if no audio file is registered or found.
+  """
+  def load_speaker_audio_base64(%Kitt{} = kitt) do
+    with path when is_binary(path) <- Kitts.resource_audio(kitt),
+         true <- File.exists?(path),
+         {:ok, binary} <- File.read(path) do
+      Base.encode64(binary)
+    else
+      _ -> nil
+    end
+  end
+
+  def load_speaker_audio_base64(_), do: nil
+
+  @doc """
   Sends request to OpenAI-compatible POST /audio/speech endpoint.
+  Supports optional speaker_audio_base64 parameter for custom speaker cloning.
   Returns raw WAV binary data on success.
   """
-  def call_speech_api(input_text, voice, model) do
+  def call_speech_api(input_text, voice, model, custom_audio_b64 \\ nil) do
     base_url = openai_tts_url() |> String.trim_trailing("/")
     url = "#{base_url}/audio/speech"
 
-    payload = %{
-      model: model,
-      input: input_text,
-      voice: voice,
-      response_format: "wav"
-    }
+    payload =
+      %{
+        "model" => model,
+        "input" => input_text,
+        "voice" => voice,
+        "response_format" => "wav"
+      }
+      |> maybe_put_custom_audio(custom_audio_b64)
 
     headers = [
       {"content-type", "application/json"}
@@ -128,6 +151,12 @@ defmodule KittAgent.Requests.OpenAITTS do
         {:error, "Request failed: #{inspect(reason)}"}
     end
   end
+
+  defp maybe_put_custom_audio(payload, b64) when is_binary(b64) and b64 != "" do
+    Map.put(payload, "speaker_audio_base64", b64)
+  end
+
+  defp maybe_put_custom_audio(payload, _), do: payload
 
   defp save_audio(wav_binary, %Kitt{} = kitt) do
     filename = "#{Ecto.UUID.generate()}.wav"
