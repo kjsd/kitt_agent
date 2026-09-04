@@ -2,7 +2,7 @@ defmodule KittAgentWeb.SettingsLive.Index do
   use KittAgentWeb, :live_view
 
   alias KittAgent.Configs
-  alias KittAgent.Requests.{OpenRouter, ZonosGradio}
+  alias KittAgent.Requests.{OpenRouter, OpenAITTS}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -10,6 +10,9 @@ defmodule KittAgentWeb.SettingsLive.Index do
       Configs.all_configs()
       |> Map.put_new("default_lang", "Japanese")
       |> Map.put_new("default_timezone", "Asia/Tokyo")
+      |> Map.put_new("openai_tts_url", "http://nina.local:8080/v1")
+      |> Map.put_new("openai_tts_model", "zonos2")
+      |> Map.put_new("openai_tts_default_voice", "nina2")
 
     models =
       case OpenRouter.list_models() do
@@ -81,9 +84,9 @@ defmodule KittAgentWeb.SettingsLive.Index do
   end
 
   def handle_event("save_all", %{"action" => "check_tts"} = params, socket) do
-    url = params["zonos_gradio_url"]
+    url = params["openai_tts_url"] || params["zonos_gradio_url"]
 
-    case ZonosGradio.check_connection(url) do
+    case OpenAITTS.check_connection(url) do
       {:ok, msg} ->
         {:noreply, put_flash(socket, :info, "TTS: #{msg}")}
 
