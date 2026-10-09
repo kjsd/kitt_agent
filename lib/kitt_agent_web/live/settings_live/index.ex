@@ -3,6 +3,7 @@ defmodule KittAgentWeb.SettingsLive.Index do
 
   alias KittAgent.Configs
   alias KittAgent.Requests.{OpenRouter, OpenAITTS}
+  alias KittAgent.Voice.Zonos2Client
 
   @impl true
   def mount(_params, _session, socket) do
@@ -10,6 +11,9 @@ defmodule KittAgentWeb.SettingsLive.Index do
       Configs.all_configs()
       |> Map.put_new("default_lang", "Japanese")
       |> Map.put_new("default_timezone", "Asia/Tokyo")
+      |> Map.put_new("tts_provider", "zonos2")
+      |> Map.put_new("zonos2_url", "http://nina.local:1919")
+      |> Map.put_new("zonos2_default_speaker", "nina2")
       |> Map.put_new("openai_tts_url", "http://nina.local:8080/v1")
       |> Map.put_new("openai_tts_model", "zonos2")
       |> Map.put_new("openai_tts_default_voice", "nina2")
@@ -84,14 +88,30 @@ defmodule KittAgentWeb.SettingsLive.Index do
   end
 
   def handle_event("save_all", %{"action" => "check_tts"} = params, socket) do
-    url = params["openai_tts_url"] || params["zonos_gradio_url"]
+    provider = params["tts_provider"] || socket.assigns.configs["tts_provider"] || "zonos2"
 
-    case OpenAITTS.check_connection(url) do
-      {:ok, msg} ->
-        {:noreply, put_flash(socket, :info, "TTS: #{msg}")}
+    case provider do
+      "openai" ->
+        url = params["openai_tts_url"] || params["zonos_gradio_url"]
 
-      {:error, msg} ->
-        {:noreply, put_flash(socket, :error, "TTS: #{msg}")}
+        case OpenAITTS.check_connection(url) do
+          {:ok, msg} ->
+            {:noreply, put_flash(socket, :info, "OpenAI TTS: #{msg}")}
+
+          {:error, msg} ->
+            {:noreply, put_flash(socket, :error, "OpenAI TTS: #{msg}")}
+        end
+
+      _zonos2 ->
+        url = params["zonos2_url"] || "http://nina.local:1919"
+
+        case Zonos2Client.check_connection(url) do
+          {:ok, msg} ->
+            {:noreply, put_flash(socket, :info, "Zonos 2 TTS: #{msg}")}
+
+          {:error, msg} ->
+            {:noreply, put_flash(socket, :error, "Zonos 2 TTS: #{msg}")}
+        end
     end
   end
 

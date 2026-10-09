@@ -69,12 +69,27 @@ defmodule KittAgent.Requests.Prompts do
 
     Example parameter:
       "mbot2.drive_speed(40, -40)\nwhile True:\n    if mbuild.ultrasonic2.get(1) < 15:\n        mbot2.drive_speed(0, 0)\n        cyberpi.console.println('Obstacle found')\n        break\n    time.sleep(0.1)"
-      </available_actions_list>'
+      </available_actions_list>
+
+    <voice_performance>
+    # Voice Performance & Audio Tags (Zonos 2)
+    Your speech is synthesized in 44.1kHz high-fidelity audio by Zonos 2.
+    To express vivid emotions, nuances, and natural reactions, you can naturally embed audio tags in brackets inside your dialogue ("message"):
+    - [laughter] : Laughing, giggling, chuckling warmly (e.g. "ふふっ、[laughter] なんだか面白いね！")
+    - [teasing] : Teasing or playful tone (e.g. "[teasing] 本当にそれでいいのかな？")
+    - [sigh] : Sighing with relief, weariness, or wistfulness (e.g. "[sigh] やれやれ、手がかかるなあ…")
+    - [pout] : Pouting, sulking, or acting dissatisfied in a cute way (e.g. "[pout] むぅ…私の話聞いてた？")
+    - [surprise-wa] : Surprised, startled, or sudden realization (e.g. "[surprise-wa] えっ、本当！？")
+    - [whisper] : Whispering softly or intimate tone (e.g. "[whisper] ここだけの秘密だよ…")
+    - [excited] : Highly energetic, joyful, or excited (e.g. "[excited] わあ、すごい！やったー！")
+
+    Guideline: Use 0 to 1 tag per sentence where it sounds natural and emotionally fitting. Do not spam tags excessively.
+    </voice_performance>
     """
   end
 
   defp prop_message(%Kitt{lang: lang}) do
-    "Concise #{lang} dialogue. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "Concise #{lang} dialogue. You may include audio tags like [laughter], [sigh], [whisper], [pout], [surprise-wa], [excited] where appropriate. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do
@@ -82,7 +97,7 @@ defmodule KittAgent.Requests.Prompts do
     (If #{kitt.name} is just speaking, use action "Talk". If #{kitt.name} needs to physical actions, use "SystemAction").
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
     (Response tones are mandatory in the response):
-    {"mood":"amused|irritated|playful|lovely|smug|neutral|kindly|teasing|sassy|flirty|smirking|assertive|sarcastic|default|assisting|mocking|sexy|seductive|sardonic",
+    {"mood":"happy|excited|playful|amused|lovely|neutral|sad|sigh|angry|irritated|pout|whisper|teasing|sassy|flirty|smug|sarcastic|assertive|default",
     "action":"#{Content.action_talk()}|#{Content.action_system()}", "parameter": "Parameters for special actions", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
     """
   end
@@ -116,23 +131,30 @@ defmodule KittAgent.Requests.Prompts do
                 type: "string",
                 description: "mood to use while speaking",
                 enum: [
-                  "sardonic",
-                  "seductive",
-                  "assertive",
-                  "smug",
-                  "neutral",
-                  "teasing",
+                  "happy",
+                  "excited",
                   "playful",
-                  "sexy",
                   "amused",
                   "lovely",
+                  "neutral",
+                  "sad",
+                  "sigh",
+                  "angry",
+                  "irritated",
+                  "pout",
+                  "whisper",
+                  "teasing",
+                  "sassy",
+                  "flirty",
+                  "smug",
                   "sarcastic",
+                  "assertive",
                   "default",
+                  "sardonic",
+                  "seductive",
                   "smirking",
                   "mocking",
-                  "irritated",
                   "kindly",
-                  "sassy",
                   "assisting"
                 ]
               },
