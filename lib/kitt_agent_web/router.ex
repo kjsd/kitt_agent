@@ -34,6 +34,7 @@ defmodule KittAgentWeb.Router do
 
     scope "/:id" do
       post "/talk", KittController, :talk
+      post "/talk_audio", KittController, :talk_audio
       get "/talks", KittController, :dequeue_talk
       get "/actions/pending", SystemActionController, :pending
       post "/actions/:content_id/complete", SystemActionController, :complete
