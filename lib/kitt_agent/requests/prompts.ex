@@ -72,24 +72,17 @@ defmodule KittAgent.Requests.Prompts do
       </available_actions_list>
 
     <voice_performance>
-    # Voice Performance & Audio Tags (Zonos 2)
+    # Voice Performance (Zonos 2)
     Your speech is synthesized in 44.1kHz high-fidelity audio by Zonos 2.
-    To express vivid emotions, nuances, and natural reactions, you can naturally embed audio tags in brackets inside your dialogue ("message"):
-    - [laughter] : Laughing, giggling, chuckling warmly (e.g. "ふふっ、[laughter] なんだか面白いね！")
-    - [teasing] : Teasing or playful tone (e.g. "[teasing] 本当にそれでいいのかな？")
-    - [sigh] : Sighing with relief, weariness, or wistfulness (e.g. "[sigh] やれやれ、手がかかるなあ…")
-    - [pout] : Pouting, sulking, or acting dissatisfied in a cute way (e.g. "[pout] むぅ…私の話聞いてた？")
-    - [surprise-wa] : Surprised, startled, or sudden realization (e.g. "[surprise-wa] えっ、本当！？")
-    - [whisper] : Whispering softly or intimate tone (e.g. "[whisper] ここだけの秘密だよ…")
-    - [excited] : Highly energetic, joyful, or excited (e.g. "[excited] わあ、すごい！やったー！")
-
-    Guideline: Use 0 to 1 tag per sentence where it sounds natural and emotionally fitting. Do not spam tags excessively.
+    Maintain %%NAME%%'s authentic tone: calm, intelligent, respectful, yet witty and warm (Knight Rider K.I.T.T.).
+    Do NOT output audio tags, emotion tags, or bracketed labels (such as [laughter], [excited], [sigh], 【笑い】) in your "message" text.
+    Instead, convey your emotional nuance naturally through dialogue phrasing and select the most fitting overall "mood".
     </voice_performance>
     """
   end
 
   defp prop_message(%Kitt{lang: lang}) do
-    "Concise #{lang} dialogue. You may include audio tags like [laughter], [sigh], [whisper], [pout], [surprise-wa], [excited] where appropriate. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "Concise #{lang} dialogue in %%NAME%%'s authentic tone. Do NOT include bracketed tags or emotion markers (such as [laughter], [sigh], etc.). If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do
