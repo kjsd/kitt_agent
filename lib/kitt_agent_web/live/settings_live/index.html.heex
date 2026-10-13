@@ -250,6 +250,64 @@
               </button>
             </div>
 
+            <div class="divider">STT Configuration (Speech to Text)</div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">STT API Base URL</span>
+                <span class="label-text-alt text-gray-500">
+                  default: https://api.openai.com/v1/audio/transcriptions
+                </span>
+              </label>
+              <input
+                type="text"
+                name="stt_url"
+                value={@configs["stt_url"] || "https://api.openai.com/v1/audio/transcriptions"}
+                class="input input-bordered w-full"
+                placeholder="https://api.openai.com/v1/audio/transcriptions"
+              />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">STT API Key</span>
+                <span class="label-text-alt text-gray-500">Optional for local server (Whisper/Faster-Whisper)</span>
+              </label>
+              <input
+                type="password"
+                name="stt_key"
+                value={@configs["stt_key"]}
+                class="input input-bordered w-full"
+                placeholder="sk-..."
+              />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label">
+                <span class="label-text">STT Model</span>
+                <span class="label-text-alt text-gray-500">default: whisper-1</span>
+              </label>
+              <input
+                type="text"
+                name="stt_model"
+                value={@configs["stt_model"] || "whisper-1"}
+                class="input input-bordered w-full"
+                placeholder="whisper-1"
+              />
+            </div>
+
+            <div class="flex justify-end mt-2">
+              <button
+                type="submit"
+                name="action"
+                value="check_stt"
+                class="btn btn-sm btn-outline"
+                disabled={@configs["stt_url"] in [nil, ""]}
+              >
+                Check STT Connection
+              </button>
+            </div>
+
             <div class="card-actions justify-end mt-6">
               <button type="submit" name="action" value="save" class="btn btn-primary">Save All Settings</button>
             </div>

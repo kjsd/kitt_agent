@@ -3,7 +3,7 @@ defmodule KittAgentWeb.SettingsLive.Index do
 
   alias KittAgent.Configs
   alias KittAgent.Requests.{OpenRouter, OpenAITTS}
-  alias KittAgent.Voice.Zonos2Client
+  alias KittAgent.Voice.{Zonos2Client, WhisperClient}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -17,6 +17,9 @@ defmodule KittAgentWeb.SettingsLive.Index do
       |> Map.put_new("openai_tts_url", "http://nina.local:8080/v1")
       |> Map.put_new("openai_tts_model", "zonos2")
       |> Map.put_new("openai_tts_default_voice", "nina2")
+      |> Map.put_new("stt_url", "https://api.openai.com/v1/audio/transcriptions")
+      |> Map.put_new("stt_model", "whisper-1")
+      |> Map.put_new("stt_key", "")
 
     models =
       case OpenRouter.list_models() do
@@ -112,6 +115,19 @@ defmodule KittAgentWeb.SettingsLive.Index do
           {:error, msg} ->
             {:noreply, put_flash(socket, :error, "Zonos 2 TTS: #{msg}")}
         end
+    end
+  end
+
+  def handle_event("save_all", %{"action" => "check_stt"} = params, socket) do
+    url = params["stt_url"] || socket.assigns.configs["stt_url"] || "https://api.openai.com/v1/audio/transcriptions"
+    key = params["stt_key"] || socket.assigns.configs["stt_key"]
+
+    case WhisperClient.check_connection(url, key) do
+      {:ok, msg} ->
+        {:noreply, put_flash(socket, :info, "STT: #{msg}")}
+
+      {:error, msg} ->
+        {:noreply, put_flash(socket, :error, "STT: #{msg}")}
     end
   end
 
