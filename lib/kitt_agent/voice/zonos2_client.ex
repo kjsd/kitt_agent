@@ -24,8 +24,8 @@ defmodule KittAgent.Voice.Zonos2Client do
        "emotion_sliders" => %{"happy" => 0.8},
        "emotion_valence" => 0.5,
        "emotion_arousal" => 0.3,
-       "emotion_cfg_scale" => 1.1,
-       "accurate_mode" => false
+       "emotion_cfg_scale" => 1.0,
+       "accurate_mode" => true
      }},
     {~r/\[(sigh|sighs|groan|sad|cry)\]/i,
      %{
@@ -33,8 +33,8 @@ defmodule KittAgent.Voice.Zonos2Client do
        "emotion_sliders" => %{"sad" => 0.8},
        "emotion_valence" => -0.5,
        "emotion_arousal" => -0.3,
-       "emotion_cfg_scale" => 1.1,
-       "accurate_mode" => false,
+       "emotion_cfg_scale" => 1.0,
+       "accurate_mode" => true,
        "speed" => 0.9
      }},
     {~r/\[(angry|mad|pout|pouting|sulking|annoyed|dissatisfaction|dissatisfaction-hnn)\]/i,
@@ -43,16 +43,16 @@ defmodule KittAgent.Voice.Zonos2Client do
        "emotion_sliders" => %{"angry" => 0.7},
        "emotion_valence" => -0.3,
        "emotion_arousal" => 0.4,
-       "emotion_cfg_scale" => 1.1,
-       "accurate_mode" => false
+       "emotion_cfg_scale" => 1.0,
+       "accurate_mode" => true
      }},
     {~r/\[(surprise-wa|surprise-oh|surprise-ah|surprise-yo|surprised|surprise|gasp|shocked)\]/i,
      %{
        "emotion_enabled" => true,
        "emotion_sliders" => %{"surprised" => 0.8},
        "emotion_arousal" => 0.6,
-       "emotion_cfg_scale" => 1.1,
-       "accurate_mode" => false
+       "emotion_cfg_scale" => 1.0,
+       "accurate_mode" => true
      }},
     {~r/\[(whisper|whispering|intimate|sexy|seductive)\]/i,
      %{
@@ -60,7 +60,7 @@ defmodule KittAgent.Voice.Zonos2Client do
        "emotion_sliders" => %{"happy" => 0.2},
        "emotion_valence" => 0.2,
        "emotion_arousal" => -0.2,
-       "accurate_mode" => false,
+       "accurate_mode" => true,
        "speed" => 0.85
      }},
     {~r/\[(confirmation-en|nod|nods|agree|confirmation|calm)\]/i,
@@ -194,10 +194,10 @@ defmodule KittAgent.Voice.Zonos2Client do
         end
       end)
 
-    # Defaults: expressive mode without explicit emotion nudge
+    # Defaults: accurate mode to prevent EOS runaway
     default_params = %{
       "emotion_enabled" => false,
-      "accurate_mode" => false
+      "accurate_mode" => true
     }
 
     final_params =
@@ -221,7 +221,7 @@ defmodule KittAgent.Voice.Zonos2Client do
           "emotion_enabled" => true,
           "emotion_sliders" => %{"happy" => 0.6},
           "emotion_valence" => 0.4,
-          "emotion_cfg_scale" => 1.1
+          "emotion_cfg_scale" => 1.0
         })
 
       String.contains?(lower_mood, ["sad", "sigh", "depressed", "sorrow"]) ->
@@ -237,7 +237,7 @@ defmodule KittAgent.Voice.Zonos2Client do
           "emotion_enabled" => true,
           "emotion_sliders" => %{"angry" => 0.6},
           "emotion_valence" => -0.2,
-          "emotion_cfg_scale" => 1.1
+          "emotion_cfg_scale" => 1.0
         })
 
       String.contains?(lower_mood, ["whisper", "sweet", "love", "intimate", "sexy", "seductive"]) ->
@@ -318,12 +318,17 @@ defmodule KittAgent.Voice.Zonos2Client do
   defp call_zonos2(base_url, speaker_name, custom_audio_b64, text, emotion_params) do
     endpoint = "#{String.trim_trailing(base_url, "/")}/tts/generate"
 
+    # Dynamic max_tokens based on text length to guarantee no infinite loop (Zonos 2 uses ~15-20 audio tokens per Japanese char)
+    # A 50-char sentence needs ~800-1000 tokens (~10-12s). We provide a safe upper bound:
+    max_tokens = min(2048, max(500, String.length(text) * 25 + 450))
+
     payload =
       %{
         "text" => text,
         "language" => "ja",
         "speaker_embedding_name" => speaker_name,
-        "stream" => false
+        "stream" => false,
+        "max_tokens" => max_tokens
       }
       |> maybe_put_custom_audio(custom_audio_b64)
       |> Map.merge(emotion_params)
