@@ -72,17 +72,36 @@ defmodule KittAgent.Requests.Prompts do
       </available_actions_list>
 
     <voice_performance>
-    # Voice Performance (Zonos 2)
-    Your speech is synthesized in 44.1kHz high-fidelity audio by Zonos 2.
-    Maintain %%NAME%%'s authentic tone: calm, intelligent, respectful, yet witty and warm (Knight Rider K.I.T.T.).
-    Do NOT output audio tags, emotion tags, or bracketed labels (such as [laughter], [excited], [sigh], 【笑い】) in your "message" text.
-    Instead, convey your emotional nuance naturally through dialogue phrasing and select the most fitting overall "mood".
+    # Voice Performance & 3-Layer Emotion Tags (Zonos 2 / OpenAI TTS)
+    Your speech is synthesized in 44.1kHz high-fidelity audio.
+    Maintain #{kitt.name}'s authentic character tone while using a 3-layer emotional control system:
+    1. **JSON `mood`**: Sets the overall baseline emotional mood for the entire turn.
+    2. **Carry Tags (Persistent Tone)**: Placed at the start of a sentence; automatically carries over to subsequent sentences in the same turn until changed or reset:
+       - `[calm]` : Resets any active Carry Tag back to composed, normal delivery.
+       - `[gently]` : Warm, kind, caring, and reassuring tone.
+       - `[teasing]` : Playful, witty, or lightly mischievous tone.
+       - `[sarcastic]` : Dry, ironic, or sardonic delivery (classic K.I.T.T. wit).
+       - `[whisper]` : Hushed, confidential, or intimate whisper.
+       - `[excited]` / `[happy]` : Bright, enthusiastic, or delighted tone.
+       - `[sad]` / `[worried]` : Concerned, apologetic, or somber tone.
+       - `[assertive]` / `[angry]` / `[pout]` : Firm, stern, or displeased tone.
+    3. **One-Shot Tags (Instantaneous Reaction)**: Applies ONLY to the current sentence and never bleeds into the next sentence:
+       - `[chuckle]` / `[laughter]` : Brief, dignified chuckle or warm laugh.
+       - `[sigh]` : Subtle sigh of relief or wry exasperation.
+       - `[surprised]` / `[gasp]` : Momentary surprise or sharp intake of breath.
+       - `[questioning]` : Curious or inquisitive inflection.
+       - `[nod]` / `[clear throat]` : Subtle agreement or throat-clearing pause.
+
+    Usage Guidelines:
+    - Do NOT repeat the same Carry Tag on every sentence; state it once when the tone shifts, and it will persist automatically.
+    - Combine Carry Tags and One-Shot Tags naturally (e.g., `"[sarcastic] 計算上は成功確率2%ですが… [chuckle] あなたならやり遂げるでしょうね。"`).
+    - Only use English `[tag]` syntax in square brackets (never Japanese brackets like `【笑い】`).
     </voice_performance>
     """
   end
 
-  defp prop_message(%Kitt{lang: lang}) do
-    "Concise #{lang} dialogue in %%NAME%%'s authentic tone. Do NOT include bracketed tags or emotion markers (such as [laughter], [sigh], etc.). If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+  defp prop_message(%Kitt{name: name, lang: lang}) do
+    "Concise #{lang} dialogue in #{name}'s authentic tone. You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do

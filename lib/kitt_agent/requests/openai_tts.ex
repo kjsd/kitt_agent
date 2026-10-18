@@ -7,6 +7,7 @@ defmodule KittAgent.Requests.OpenAITTS do
 
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Kitts, Events, Talks}
+  alias KittAgent.Voice.EmotionState
 
   require Logger
   require Content
@@ -71,23 +72,11 @@ defmodule KittAgent.Requests.OpenAITTS do
   end
 
   @doc """
-  Formats input text by embedding mood tags (e.g. [whisper], [happy]) if present.
-  If the message already contains bracketed tags, it leaves them intact.
+  Formats input text by propagating Carry Tags across sentences and embedding `[mood]`
+  when a sentence does not already start with a bracketed tag.
   """
   def prepare_input_text(message, mood) do
-    trimmed_msg = String.trim(message || "")
-    trimmed_mood = String.trim(mood || "")
-
-    cond do
-      trimmed_mood == "" ->
-        trimmed_msg
-
-      String.starts_with?(trimmed_msg, "[") or String.starts_with?(trimmed_msg, "【") ->
-        trimmed_msg
-
-      true ->
-        "[#{trimmed_mood}] #{trimmed_msg}"
-    end
+    EmotionState.decorate_for_openai(message || "", mood)
   end
 
   @doc """
