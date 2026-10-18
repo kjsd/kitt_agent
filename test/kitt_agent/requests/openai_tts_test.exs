@@ -20,6 +20,12 @@ defmodule KittAgent.Requests.OpenAITTSTest do
       assert OpenAITTS.prepare_input_text("[sigh] Oh no", "sad") == "[sigh] Oh no"
       assert OpenAITTS.prepare_input_text("【笑い】あはは", "happy") == "【笑い】あはは"
     end
+
+    test "propagates Carry tags across multiple sentences for OpenAI TTS bridge" do
+      input = "[whisper] ここから先は内緒です。[chuckle] 誰にも言わないでくださいね。"
+      assert OpenAITTS.prepare_input_text(input, "neutral") ==
+               "[whisper] ここから先は内緒です。 [whisper] [chuckle] 誰にも言わないでくださいね。"
+    end
   end
 
   describe "resolve_voice/1" do

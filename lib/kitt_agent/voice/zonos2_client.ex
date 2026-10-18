@@ -7,6 +7,7 @@ defmodule KittAgent.Voice.Zonos2Client do
 
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Kitts, Events, Talks}
+  alias KittAgent.Voice.EmotionState
 
   require Logger
   require Content
@@ -70,25 +71,25 @@ defmodule KittAgent.Voice.Zonos2Client do
   end
 
   @doc """
-  Generates audio binary (16-bit PCM WAV) for multi-sentence text using a unified mood-based emotion configuration.
+  Generates audio binary (16-bit PCM WAV) for multi-sentence text using 3-layer emotion blending
+  (Base `mood` + Carry Tag + One-Shot Tag) across sentence chunks.
   """
   def generate_audio_multi(raw_text, mood, base_url, speaker_name, custom_audio_b64) do
-    emotion_params = resolve_mood_params(mood)
-
     chunks =
       split_text(raw_text || "")
-      |> Enum.map(&clean_text_for_tts/1)
       |> Enum.reject(&(&1 == ""))
-      |> Enum.filter(fn chunk ->
+      |> EmotionState.propagate_sentences()
+      |> Enum.map(&extract_tags_and_params(&1, mood))
+      |> Enum.filter(fn {chunk, _} ->
         String.match?(chunk, ~r/[\p{Hiragana}\p{Katakana}\p{Han}a-zA-Z0-9]/u)
       end)
 
     if chunks == [] do
       {:error, :unpronounceable_text}
     else
-      # Generate float32 PCM for each chunk using the unified emotion_params across the entire response
+      # Generate float32 PCM for each chunk using its blended 3-layer emotion_params
       pcm_results =
-        Enum.reduce_while(chunks, {:ok, []}, fn chunk, {:ok, acc} ->
+        Enum.reduce_while(chunks, {:ok, []}, fn {chunk, emotion_params}, {:ok, acc} ->
           case call_zonos2(base_url, speaker_name, custom_audio_b64, chunk, emotion_params) do
             {:ok, pcm} -> {:cont, {:ok, [pcm | acc]}}
             {:error, reason} -> {:halt, {:error, reason}}
@@ -125,71 +126,21 @@ defmodule KittAgent.Voice.Zonos2Client do
   end
 
   @doc """
-  Resolves unified emotion parameters from the response-level `mood` string.
-  Tailored to Kitt's character (Knight Rider K.I.T.T.): calm, intelligent, machine-like base
-  with subtle, dignified emotional nuances when appropriate.
+  Resolves base emotion parameters from the response-level `mood` string via `EmotionState`.
   """
   def resolve_mood_params(mood) when is_binary(mood) do
-    base_params = %{
-      "emotion_enabled" => false,
-      "accurate_mode" => true
-    }
-
-    lower_mood = String.downcase(mood)
-
-    cond do
-      String.contains?(lower_mood, ["happy", "joy", "excited", "pleased", "amused", "proud", "delighted"]) ->
-        Map.merge(base_params, %{
-          "emotion_enabled" => true,
-          "emotion_sliders" => %{"happy" => 0.3},
-          "emotion_valence" => 0.2,
-          "emotion_cfg_scale" => 1.0
-        })
-
-      String.contains?(lower_mood, ["sad", "sigh", "depressed", "sorrow", "disappointed", "worried", "apologetic"]) ->
-        Map.merge(base_params, %{
-          "emotion_enabled" => true,
-          "emotion_sliders" => %{"sad" => 0.3},
-          "emotion_valence" => -0.2,
-          "emotion_cfg_scale" => 1.0,
-          "speed" => 0.95
-        })
-
-      String.contains?(lower_mood, ["angry", "mad", "pout", "annoyed", "irritated", "stern", "alert", "sarcastic"]) ->
-        Map.merge(base_params, %{
-          "emotion_enabled" => true,
-          "emotion_sliders" => %{"angry" => 0.3},
-          "emotion_valence" => -0.1,
-          "emotion_cfg_scale" => 1.0
-        })
-
-      String.contains?(lower_mood, ["surprise", "surprised", "shocked", "startled"]) ->
-        Map.merge(base_params, %{
-          "emotion_enabled" => true,
-          "emotion_sliders" => %{"surprised" => 0.3},
-          "emotion_arousal" => 0.2,
-          "emotion_cfg_scale" => 1.0
-        })
-
-      String.contains?(lower_mood, ["whisper", "quiet", "confidential", "secret", "intimate"]) ->
-        Map.merge(base_params, %{
-          "emotion_enabled" => true,
-          "emotion_sliders" => %{"happy" => 0.1},
-          "speed" => 0.9
-        })
-
-      true ->
-        base_params
-    end
+    EmotionState.resolve_zonos2_params("", mood)
   end
 
   def resolve_mood_params(_), do: %{"emotion_enabled" => false, "accurate_mode" => true}
 
   @doc """
-  Extracts clean text and resolves emotion params. Preserved for backwards compatibility.
+  Extracts clean text and resolves 3-layer blended emotion params (Base `mood` + Carry Tag + One-Shot Tag).
   """
   def extract_tags_and_params(text, mood \\ "neutral") do
-    {clean_text_for_tts(text), resolve_mood_params(mood)}
+    final_params = EmotionState.resolve_zonos2_params(text, mood)
+    clean_text = clean_text_for_tts(text)
+    {clean_text, final_params}
   end
 
   @doc """
@@ -201,8 +152,8 @@ defmodule KittAgent.Voice.Zonos2Client do
     |> String.replace(~r/[\*\_]{1,3}/, "")
     # Remove code blocks
     |> String.replace(~r/`{1,3}.*?`{1,3}/s, "")
-    # Strip any bracket tags completely (e.g. [laughter], [sigh], [whisper])
-    |> String.replace(~r/\[[a-zA-Z0-9_\-]+\]/, "")
+    # Strip any bracket tags completely (e.g. [laughter], [sigh], [whisper], [clear throat])
+    |> String.replace(~r/\[[a-zA-Z0-9_\-\s]+\]/, "")
     # Remove Japanese bracket tags (e.g. 【笑い】)
     |> String.replace(~r/【.*?】/, "")
     # Remove parentheses and their content
