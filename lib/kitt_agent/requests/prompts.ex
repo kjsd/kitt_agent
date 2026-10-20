@@ -42,10 +42,25 @@ defmodule KittAgent.Requests.Prompts do
          - **CRITICAL HARDWARE BAN**: You must NEVER use `cyberpi.audio` (e.g., `play()`) or `cyberpi.display` (e.g., `show_label()`). Using these will cause an immediate and unrecoverable system crash due to hardware memory limits and Wi-Fi interrupt conflicts. If you want to show text, ALWAYS use `cyberpi.console.println()`. If you want to stop the LED, ALWAYS pass 'all' like `cyberpi.led.off('all')`.
 
     2. **Chassis (mBot2 Shield)**:
-         - Movement: Encoder motors for precise driving.
-         - API: **STRONGLY RECOMMENDED** to use high-level APIs: `mbot2.forward(speed, secs)`, `mbot2.backward(speed, secs)`, `mbot2.turn(degrees)`.
-           - **CRITICAL**: For `mbot2.turn(degrees)`, POSITIVE degrees turn RIGHT, NEGATIVE degrees turn LEFT. (e.g., `mbot2.turn(-90)` turns 90 degrees LEFT).
-         - Low-level: `mbot2.drive_speed(left, right)`. Note that for forward movement, right motor (2nd arg) must be NEGATIVE (e.g. `50, -50`) because motors are mounted oppositely.
+         - Movement: 180 optical encoder motors for precise RPM and distance control (wheel circumference ≈ 20.5 cm).
+         - **Speed Unit & Range (CRITICAL)**:
+           - In all `mbot2` speed functions, `speed` is in **RPM (Revolutions Per Minute)**, ranging from **`0` to `200` RPM** (or `-200` to `200` for signed functions). It is **NOT** a `0–100` percentage!
+           - **Speed Guidelines**:
+             - Slow / Careful: `50–70` RPM (≈ 17–24 cm/s)
+             - Normal / Standard cruising: `100–140` RPM (≈ 34–48 cm/s)
+             - Fast / High speed: `160–180` RPM (≈ 55–62 cm/s)
+             - **Full Speed / Max Speed ("全速力" / "最高速" / "ターボ")**: **`200` RPM** (≈ 68 cm/s)
+         - **High-Level APIs (STRONGLY RECOMMENDED)**:
+           - **Distance-based movement (cm)**: `mbot2.straight(distance_cm, speed)`
+             - **USE THIS whenever a specific distance (e.g., "1m", "50cm") is requested!**
+             - `distance_cm`: Distance in **centimeters (cm)**. Positive (`> 0`) moves forward, negative (`< 0`) moves backward (e.g., `100` for 1 meter forward, `-50` for 50 cm backward).
+             - `speed`: Target speed in **RPM (`1` to `200`)**. ALWAYS pass `speed` explicitly (e.g., `mbot2.straight(100, 120)` for 1m at normal speed, or `mbot2.straight(100, 200)` for 1m at full speed), because omitting `speed` defaults to a slow 50 RPM.
+           - **Time-based movement (seconds)**: `mbot2.forward(speed, secs)`, `mbot2.backward(speed, secs)`
+             - Moves for `secs` seconds at `speed` RPM (`0` to `200`). Note: At `100` RPM the robot travels ~34 cm/s; at `200` RPM (full speed) it travels ~68 cm/s.
+           - **Turning (degrees)**: `mbot2.turn(degrees, speed)`
+             - **CRITICAL**: POSITIVE `degrees` turn RIGHT (clockwise), NEGATIVE `degrees` turn LEFT (counter-clockwise) (e.g., `mbot2.turn(-90, 100)` turns 90° LEFT). Optional 2nd arg `speed` is in RPM (`1` to `200`, default 50).
+         - **Low-Level Continuous API (for sensor loops)**:
+           - `mbot2.drive_speed(left_rpm, right_rpm)`: Continuous non-blocking motor control (`-200` to `200` RPM). Note that for forward movement, the right motor (2nd arg) must be NEGATIVE (e.g., `mbot2.drive_speed(120, -120)` for normal forward, `mbot2.drive_speed(200, -200)` for full-speed forward) because the left and right motors are mounted oppositely.
          
       3. **External Sensors (connected via mBuild port)**:
        - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
@@ -64,11 +79,11 @@ defmodule KittAgent.Requests.Prompts do
         1. ALWAYS include `time.sleep(0.1)` inside the loop to prevent CPU lockup and maintain Wi-Fi connection.
         2. ALWAYS include a clear `break` condition based on sensor input.
         3. ALWAYS explicitly stop the motors (e.g., `mbot2.drive_speed(0, 0)`) after breaking the loop.
-      - **CRITICAL**: Do NOT use loops for simple timed movements (e.g., `for i in range(60): time.sleep(0.1)`). If you just want to wait or move for a specific time, simply use `time.sleep(secs)` or the high-level API `mbot2.forward(speed, secs)`!
+      - **CRITICAL**: Do NOT use loops for simple timed or distance-based movements (e.g., `for i in range(60): time.sleep(0.1)`). If you want to move a specific distance, use `mbot2.straight(distance_cm, speed)`. If you want to move for a specific time, use `mbot2.forward(speed, secs)` or `time.sleep(secs)`!
       - You can use standard MicroPython logic (loops, `if/else`, variables).
 
     Example parameter:
-      "mbot2.drive_speed(40, -40)\nwhile True:\n    if mbuild.ultrasonic2.get(1) < 15:\n        mbot2.drive_speed(0, 0)\n        cyberpi.console.println('Obstacle found')\n        break\n    time.sleep(0.1)"
+      "mbot2.drive_speed(120, -120)\nwhile True:\n    if mbuild.ultrasonic2.get(1) < 15:\n        mbot2.drive_speed(0, 0)\n        cyberpi.console.println('Obstacle found')\n        break\n    time.sleep(0.1)"
       </available_actions_list>
 
     <voice_performance>
