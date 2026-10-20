@@ -92,7 +92,6 @@ defmodule KittAgent.Requests.Prompts do
     Maintain #{kitt.name}'s authentic character tone while using a 3-layer emotional control system:
     1. **JSON `mood`**: Sets the overall baseline emotional mood for the entire turn.
     2. **Carry Tags (Persistent Tone)**: Placed at the start of a sentence; automatically carries over to subsequent sentences in the same turn until changed or reset:
-       - `[calm]` : Resets any active Carry Tag back to composed, normal delivery.
        - `[gently]` : Warm, kind, caring, and reassuring tone.
        - `[teasing]` : Playful, witty, or lightly mischievous tone.
        - `[sarcastic]` : Dry, ironic, or sardonic delivery (classic K.I.T.T. wit).
@@ -100,6 +99,7 @@ defmodule KittAgent.Requests.Prompts do
        - `[excited]` / `[happy]` : Bright, enthusiastic, or delighted tone.
        - `[sad]` / `[worried]` : Concerned, apologetic, or somber tone.
        - `[assertive]` / `[angry]` / `[pout]` : Firm, stern, or displeased tone.
+       - `[calm]` : Resets a previously active Carry Tag mid-response back to composed, normal delivery (do NOT place `[calm]` on your first sentence unless resetting).
     3. **One-Shot Tags (Instantaneous Reaction)**: Applies ONLY to the current sentence and never bleeds into the next sentence:
        - `[chuckle]` / `[laughter]` : Brief, dignified chuckle or warm laugh.
        - `[sigh]` : Subtle sigh of relief or wry exasperation.

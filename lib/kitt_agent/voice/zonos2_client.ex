@@ -132,7 +132,7 @@ defmodule KittAgent.Voice.Zonos2Client do
     EmotionState.resolve_zonos2_params("", mood)
   end
 
-  def resolve_mood_params(_), do: %{"emotion_enabled" => false, "accurate_mode" => true}
+  def resolve_mood_params(_), do: EmotionState.resolve_zonos2_params("", "neutral")
 
   @doc """
   Extracts clean text and resolves 3-layer blended emotion params (Base `mood` + Carry Tag + One-Shot Tag).
@@ -241,7 +241,17 @@ defmodule KittAgent.Voice.Zonos2Client do
   defp maybe_put_custom_audio(payload, b64) when is_binary(b64) and b64 != "" do
     Map.put(payload, "speaker_audio_base64", b64)
   end
-  defp maybe_put_custom_audio(payload, _), do: payload
+
+  defp maybe_put_custom_audio(payload, _) do
+    speaker_id =
+      case payload["speaker_embedding_name"] do
+        "nina" -> "default_e9a8401ead1dea46"
+        "nina2" -> "default_e9a8401ead1dea46"
+        other -> other
+      end
+
+    Map.put(payload, "speaker_embedding_id", speaker_id)
+  end
 
   defp save_audio(wav_binary, %Kitt{} = kitt) do
     filename = "#{Ecto.UUID.generate()}.wav"
