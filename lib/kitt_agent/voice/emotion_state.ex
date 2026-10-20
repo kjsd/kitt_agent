@@ -221,11 +221,12 @@ defmodule KittAgent.Voice.EmotionState do
     "calm" => %{
       sliders: %{},
       valence: nil,
-      arousal: nil,
+      arousal: -0.2,
       cfg_scale: nil,
-      speed: 1.0,
-      emotion_enabled: false,
-      accurate_mode: true
+      speed: 0.92,
+      emotion_enabled: true,
+      accurate_mode: false,
+      reset_carry: true
     }
   }
 
@@ -344,11 +345,12 @@ defmodule KittAgent.Voice.EmotionState do
     "nod" => %{
       sliders: %{},
       valence: nil,
-      arousal: nil,
+      arousal: -0.15,
       cfg_scale: nil,
-      speed: 1.0,
-      emotion_enabled: false,
-      accurate_mode: true
+      speed: 0.94,
+      emotion_enabled: true,
+      accurate_mode: false,
+      reset_carry: true
     },
     "clear throat" => %{
       sliders: %{},
@@ -1282,16 +1284,20 @@ defmodule KittAgent.Voice.EmotionState do
 
     default_params = %{
       "emotion_enabled" => false,
-      "accurate_mode" => true
+      "accurate_mode" => false,
+      "speaking_rate_enabled" => true,
+      "speaking_rate" => 13.0
     }
 
     cond do
       # Explicit calm/confirmation tag with no emotional one-shot override
-      not is_nil(carry_profile) and carry_profile.emotion_enabled == false and
+      not is_nil(carry_profile) and
+          (carry_profile.emotion_enabled == false or Map.get(carry_profile, :reset_carry, false)) and
           is_nil(oneshot_profile) ->
         Map.merge(default_params, profile_to_zonos_map(carry_profile))
 
-      not is_nil(oneshot_profile) and oneshot_profile.emotion_enabled == false and
+      not is_nil(oneshot_profile) and
+          (oneshot_profile.emotion_enabled == false or Map.get(oneshot_profile, :reset_carry, false)) and
           is_nil(carry_profile) ->
         Map.merge(default_params, profile_to_zonos_map(oneshot_profile))
 
@@ -1480,16 +1486,11 @@ defmodule KittAgent.Voice.EmotionState do
   end
 
   defp profile_to_zonos_map(%{emotion_enabled: false} = profile) do
-    base = %{
+    %{
       "emotion_enabled" => false,
       "accurate_mode" => profile.accurate_mode
     }
-
-    if is_number(profile.speed) and abs(profile.speed - 1.0) > 0.001 do
-      Map.put(base, "speed", profile.speed)
-    else
-      base
-    end
+    |> maybe_put_speed(profile.speed)
   end
 
   defp profile_to_zonos_map(profile) do
@@ -1507,8 +1508,14 @@ defmodule KittAgent.Voice.EmotionState do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, val), do: Map.put(map, key, val)
 
-  defp maybe_put_speed(map, speed) when is_number(speed) and abs(speed - 1.0) > 0.001 do
-    Map.put(map, "speed", speed)
+  # Zonos 2 defines 8 speaking-rate buckets where Bucket 2 ("11-14" B/s) is natural Japanese pace
+  # and Bucket 3 ("14-17" B/s) is lively/fast Japanese pace. Using `speed` directly in Zonos 2
+  # multiplies against 19.0 B/s (Bucket 4 "17-21"), which makes brisk reference voices speak too fast.
+  # Mapping `speed` via `13.5 * speed` locks normal/calm speech to Bucket 2 and excited speech to Bucket 3.
+  defp maybe_put_speed(map, speed) when is_number(speed) and speed > 0 do
+    map
+    |> Map.put("speaking_rate_enabled", true)
+    |> Map.put("speaking_rate", Float.round(13.5 * speed, 2))
   end
 
   defp maybe_put_speed(map, _), do: map

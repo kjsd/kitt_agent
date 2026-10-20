@@ -85,7 +85,9 @@ defmodule KittAgent.Voice.EmotionStateTest do
       for neutral_mood <- ["neutral", "default", ""] do
         params = EmotionState.resolve_zonos2_params("了解しました。", neutral_mood)
         assert params["emotion_enabled"] == false
-        assert params["accurate_mode"] == true
+        assert params["accurate_mode"] == false
+        assert params["speaking_rate_enabled"] == true
+        assert params["speaking_rate"] == 13.0
       end
     end
 
@@ -108,15 +110,21 @@ defmodule KittAgent.Voice.EmotionStateTest do
       assert slider_sum <= 1.0001
       assert params["emotion_sliders"]["happy"] > 0.0
       assert params["emotion_sliders"]["angry"] > 0.0
+      assert params["speaking_rate_enabled"] == true
+      assert is_number(params["speaking_rate"])
     end
 
-    test "resets emotion when [calm] is used without one-shot tags" do
+    test "resets emotion sliders and stabilizes speaking rate when [calm] is used without one-shot tags" do
       {clean_text, params} =
         Zonos2Client.extract_tags_and_params("[calm] 通常モードに戻ります。", "excited")
 
       assert clean_text == "通常モードに戻ります。"
-      assert params["emotion_enabled"] == false
-      assert params["accurate_mode"] == true
+      assert params["emotion_enabled"] == true
+      assert params["emotion_sliders"] == %{}
+      assert params["emotion_arousal"] == -0.2
+      assert params["accurate_mode"] == false
+      assert params["speaking_rate_enabled"] == true
+      assert params["speaking_rate"] == 12.42
     end
   end
 
