@@ -78,16 +78,35 @@ defmodule KittAgent.Voice.Zonos2Client do
 
       with {:ok, wav_binary} <- generate_audio_multi(content.message, content.mood, base_url, speaker_name, custom_audio_b64),
            {:ok, local_rel_path} <- save_audio(wav_binary, kitt),
-           {:ok, updated_content} <-
+           {:ok, %Content{} = updated_content} <-
              Events.update_content(
                content,
                %{audio_path: local_rel_path}
              ) do
         Talks.Queue.enqueue(kitt.id, updated_content)
 
-        # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready
+        # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready.
+        # If it is a Talk action, enqueue a virtual SystemAction (`talk_led`) so mBot2's
+        # front ultrasonic LEDs blink in sync with the audio duration.
         if updated_content.action == KittAgent.Datasets.Content.action_system() do
           KittAgent.SystemActions.Queue.enqueue(kitt.id, updated_content)
+        else
+          if KittAgent.SystemActions.queue_length(kitt.id) == 0 do
+            duration_sec =
+              max(byte_size(wav_binary) - 44, 0)
+              |> Kernel./(88_200)
+              |> Float.round(1)
+              |> max(1.0)
+
+            talk_led_action = %Content{
+              updated_content
+              | action: KittAgent.Datasets.Content.action_system(),
+                status: KittAgent.Datasets.Content.status_pending(),
+                parameter: "talk_led(#{duration_sec})"
+            }
+
+            KittAgent.SystemActions.Queue.enqueue(kitt.id, talk_led_action)
+          end
         end
 
         updated_content

@@ -85,7 +85,7 @@ defmodule KittAgent.Requests.Prompts do
            - `mbuild.quad_rgb_sensor.get_offset_track(index)`: Returns deviation from line center (`-100` to `100`) for PID line following.
 
     # Constraints & Rules
-    - Allowed libraries & globals (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`, `BG_GRAY`, `calibrate_sensors`, `is_black_line`, `is_white_line`.
+    - Allowed libraries & globals (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`, `BG_GRAY`, `calibrate_sensors`, `is_black_line`, `is_white_line`, `talk_led`.
     - **CRITICAL**: Do NOT use 'import' statements (e.g., `import cyberpi`). These libraries are already loaded. Re-importing may cause errors.
     - **CRITICAL**: SSL/HTTPS is STRICTLY PROHIBITED due to hardware memory limits. ALWAYS use HTTP. `urequests.get("https://...")` will CRASH the system. Use `http://` instead.
     - **Safe Loops Allowed**: You may use loops (e.g., `while True:`) ONLY for tasks like "move UNTIL an obstacle is detected". However, you MUST follow these safety rules:
