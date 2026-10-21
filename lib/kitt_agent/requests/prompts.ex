@@ -71,15 +71,21 @@ defmodule KittAgent.Requests.Prompts do
              - `mbuild.ultrasonic2.set_bri(brightness, 1)`: Sets brightness (`0`–`100`) of all blue LEDs on sensor `1` (`0` turns them off).
              - `mbuild.ultrasonic2.add_bri(delta, 1)`: Adjusts brightness by `delta`.
              - `mbuild.ultrasonic2.play(emotion, 1)`: Plays a preset blue LED animation (`'happy'`, `'sleepy'`, `'dizzy'`, `'wink'`, `'thinking'`).
-       - **Quad RGB Sensor**: Detects colors and tracks lines. API: `mbuild.quad_rgb_sensor`.
-         - `get_line_sta(index)`: Returns an integer (0-15) representing the status of 4 sensors (L2, L1, R1, R2).
-           - L2(Bit3/8), L1(Bit2/4), R1(Bit1/2), R2(Bit0/1). 1=Black(Line), 0=White(Background).
-           - e.g., 6 (0110) means L1 and R1 are on the line (Center).
-           - e.g., 0 (0000) means no line detected. 15 (1111) means all sensors are on black (Intersection/Crossroad).
-         - `get_offset_track(index)`: Returns deviation from line center (-100 to 100). Useful for PID control.
+       - **Quad RGB Sensor**: Detects colors, surface grayscale brightness, and tracks lines. API: `mbuild.quad_rgb_sensor` + pre-calibrated global helpers.
+         - **Black / White Line Detection (Pre-calibrated Global Helpers — ALWAYS USE THESE for Black/White Lines)**:
+           - At startup, mBot2 automatically calibrates the floor's baseline grayscale reflectivity (`BG_GRAY`, `0`–`100`) and provides global helper functions:
+             - `is_black_line(ch="any", index=1)`: Returns `True` when a **black line** (significantly darker than `BG_GRAY`) is detected on channel `ch` (`"any"`, `"l2"`, `"l1"`, `"r1"`, `"r2"`).
+             - `is_white_line(ch="any", index=1)`: Returns `True` when a **white line** (significantly brighter than `BG_GRAY`) is detected on channel `ch` (`"any"`, `"l2"`, `"l1"`, `"r1"`, `"r2"`).
+           - **CRITICAL**: When asked to detect or stop at a **black line** or **white line**, ALWAYS use `is_black_line()` or `is_white_line()`! Do NOT use `mbuild.quad_rgb_sensor.get_line_sta(1)` to detect black vs. white lines, because `get_line_sta(1)` only checks uncalibrated hardware contrast and will falsely trigger on white lines!
+         - **Color & Grayscale Detection**:
+           - `mbuild.quad_rgb_sensor.is_color(color, ch="any", index=1)`: Returns `True` if `color` (`'red'`, `'yellow'`, `'green'`, `'cyan'`, `'blue'`, `'purple'`, `'white'`, `'black'`) is detected on channel `ch` (`'any'`, `'l2'`, `'l1'`, `'r1'`, `'r2'`).
+           - `mbuild.quad_rgb_sensor.get_gray(ch, index=1)`: Returns grayscale reflectivity (`0`–`100`) for channel `ch` (`'l2'`, `'l1'`, `'r1'`, `'r2'`).
+         - **Continuous Line Tracking**:
+           - `mbuild.quad_rgb_sensor.get_line_sta(index)`: Returns an integer (`0`–`15`) bitmask of 4 sensors (`L2=8, L1=4, R1=2, R2=1`).
+           - `mbuild.quad_rgb_sensor.get_offset_track(index)`: Returns deviation from line center (`-100` to `100`) for PID line following.
 
     # Constraints & Rules
-    - Allowed libraries (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`.
+    - Allowed libraries & globals (Pre-imported): `cyberpi`, `mbot2`, `mbuild`, `urequests`, `json`, `event`, `time`, `random`, `BG_GRAY`, `calibrate_sensors`, `is_black_line`, `is_white_line`, `talk_led`.
     - **CRITICAL**: Do NOT use 'import' statements (e.g., `import cyberpi`). These libraries are already loaded. Re-importing may cause errors.
     - **CRITICAL**: SSL/HTTPS is STRICTLY PROHIBITED due to hardware memory limits. ALWAYS use HTTP. `urequests.get("https://...")` will CRASH the system. Use `http://` instead.
     - **Safe Loops Allowed**: You may use loops (e.g., `while True:`) ONLY for tasks like "move UNTIL an obstacle is detected". However, you MUST follow these safety rules:

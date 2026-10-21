@@ -12,7 +12,9 @@ defmodule KittAgentWeb.SystemActionController do
 
   def pending(conn, %{"id" => kitt_id}) do
     with %Content{} = c <- dequeue_pending(kitt_id) do
-      Events.content_processing(c)
+      if not String.starts_with?(c.parameter || "", "talk_led(") do
+        Events.content_processing(c)
+      end
 
       conn
       |> json(c)
@@ -41,7 +43,11 @@ defmodule KittAgentWeb.SystemActionController do
 
   defp dequeue_pending(id) do
     with %Content{status: Content.status_pending()} = c <- Queue.dequeue(id) do
-      c
+      if stale_talk_led?(c) do
+        dequeue_pending(id)
+      else
+        c
+      end
     else
       %Content{} ->
         dequeue_pending(id)
@@ -50,4 +56,12 @@ defmodule KittAgentWeb.SystemActionController do
         x
     end
   end
+
+  defp stale_talk_led?(%Content{parameter: param, updated_at: %NaiveDateTime{} = ts})
+       when is_binary(param) do
+    String.starts_with?(param, "talk_led(") and
+      NaiveDateTime.diff(NaiveDateTime.utc_now(), ts, :second) > 20
+  end
+
+  defp stale_talk_led?(_), do: false
 end
