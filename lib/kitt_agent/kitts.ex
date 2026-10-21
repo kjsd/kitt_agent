@@ -82,6 +82,8 @@ defmodule KittAgent.Kitts do
     end
   end
 
+  def update(%Kitt{} = kitt, attr), do: update_kitt(kitt, attr)
+
   def delete(%Kitt{id: id} = kitt) do
     with {:ok, _} = x <- delete_kitt(kitt) do
       kitt
