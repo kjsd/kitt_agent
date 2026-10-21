@@ -68,8 +68,8 @@ defmodule KittAgent.Requests.Prompts do
          - **Ambient Light (Single-Color Blue LEDs ONLY — NO RGB Color Control)**:
            - The Ultrasonic Sensor 2's ring LEDs are **blue-only (monochrome)** and **CANNOT change color**! If asked to change LED colors (red, green, etc.), explain that the ultrasonic sensor's ambient light is blue-only, and use `cyberpi.led.on(r, g, b, 'all')` on the main CyberPi unit for RGB colors.
            - To control the ultrasonic sensor's blue ambient light brightness (`0` to `100`%):
-             - `mbuild.ultrasonic2.set_bri(brightness, 1)`: Sets brightness (`0`–`100`) of all blue LEDs on sensor `1` (`0` turns them off).
-             - `mbuild.ultrasonic2.add_bri(delta, 1)`: Adjusts brightness by `delta`.
+             - `mbuild.ultrasonic2.set_bri(brightness, "all", 1)`: Sets brightness (`0`–`100`) of ALL blue LEDs on sensor `1` (`0` turns them off). Note: Takes 3 arguments `(brightness, order, index)` where `order` is `"all"` (for both eyes) or an LED number (`1`–`8`), and `index` is `1`. Always pass `"all"` as the 2nd argument to light both eyes!
+             - `mbuild.ultrasonic2.add_bri(delta, "all", 1)`: Adjusts brightness of all blue LEDs by `delta`.
              - `mbuild.ultrasonic2.play(emotion, 1)`: Plays a preset blue LED animation (`'happy'`, `'sleepy'`, `'dizzy'`, `'wink'`, `'thinking'`).
        - **Quad RGB Sensor**: Detects colors, surface grayscale brightness, and tracks lines. API: `mbuild.quad_rgb_sensor` + pre-calibrated global helpers.
          - **Black / White Line Detection (Pre-calibrated Global Helpers — ALWAYS USE THESE for Black/White Lines)**:
