@@ -17,6 +17,7 @@ defmodule KittAgentWeb.SettingsLive.Index do
       |> Map.put_new("openai_tts_url", "http://nina.local:8080/v1")
       |> Map.put_new("openai_tts_model", "zonos2")
       |> Map.put_new("openai_tts_default_voice", "nina2")
+      |> Map.put_new("tts_dictionary", Zonos2Client.default_tts_dictionary())
       |> Map.put_new("stt_url", "https://api.openai.com/v1/audio/transcriptions")
       |> Map.put_new("stt_model", "whisper-1")
       |> Map.put_new("stt_key", "")

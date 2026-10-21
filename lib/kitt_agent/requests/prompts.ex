@@ -116,14 +116,18 @@ defmodule KittAgent.Requests.Prompts do
 
     Usage Guidelines:
     - Do NOT repeat the same Carry Tag on every sentence; state it once when the tone shifts, and it will persist automatically.
-    - Combine Carry Tags and One-Shot Tags naturally (e.g., `"[sarcastic] 計算上は成功確率2%ですが… [chuckle] あなたならやり遂げるでしょうね。"`).
+    - Combine Carry Tags and One-Shot Tags naturally (e.g., `"[sarcastic] 計算上は成功確率2パーセントですが… [chuckle] あなたならやり遂げるでしょうね。"`).
     - Only use English `[tag]` syntax in square brackets (never Japanese brackets like `【笑い】`).
+    - **Pronunciation Rules for Japanese TTS (CRITICAL)**:
+      - Outside of `[tag]` brackets, NEVER write raw English/alphabet words, product names, or unit abbreviations (such as `mBot2`, `CyberPi`, `Makeblock`, `K.I.T.T.`, `LED`, `RGB`, `RPM`, `cm`, `m`, `Wi-Fi`, `AI`) in your spoken `message`, because alphabet characters cause noise in the Japanese TTS engine.
+      - ALWAYS write English words and units in **Katakana** or **Japanese reading** (e.g., `エムボットツー`, `サイバーパイ`, `メイクブロック`, `キット`, `エルイーディー`, `アールジービー`, `アールピーエム` or `回転`, `100センチ`, `10メートル`, `ワイファイ`, `エーアイ`).
+      - Write difficult-to-read place names or proper nouns in **Hiragana** (e.g., write `ひがししらかわむら` instead of `東白川村`).
     </voice_performance>
     """
   end
 
   defp prop_message(%Kitt{name: name, lang: lang}) do
-    "Concise #{lang} dialogue in #{name}'s authentic tone. You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "Concise #{lang} dialogue in #{name}'s authentic tone. You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. Outside of [tag] brackets, write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do
