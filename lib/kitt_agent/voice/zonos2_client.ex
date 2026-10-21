@@ -15,6 +15,52 @@ defmodule KittAgent.Voice.Zonos2Client do
   @default_url "http://nina.local:1919"
   @default_speaker "nina2"
 
+  @default_tts_dictionary String.trim("""
+                          東白川村=ひがししらかわむら
+                          東白川=ひがししらかわ
+                          mBot2=エムボットツー
+                          mBot=エムボット
+                          CyberPi=サイバーパイ
+                          Makeblock=メイクブロック
+                          mBuild=エムビルド
+                          K.I.T.T.=キット
+                          KITT=キット
+                          Kitt=キット
+                          Knight Rider=ナイトライダー
+                          LED=エルイーディー
+                          RGB=アールジービー
+                          RPM=アールピーエム
+                          Wi-Fi=ワイファイ
+                          WiFi=ワイファイ
+                          AI=エーアイ
+                          OK=オーケー
+                          """)
+
+  @doc """
+  Returns the default TTS pronunciation dictionary text (`word=reading` per line).
+  """
+  def default_tts_dictionary, do: @default_tts_dictionary
+
+  @doc """
+  Returns the active TTS dictionary string from DB config (`tts_dictionary`),
+  falling back to `@default_tts_dictionary` when unset or blank.
+  """
+  def get_tts_dictionary_text do
+    try do
+      case KittAgent.Configs.get_config("tts_dictionary", @default_tts_dictionary) do
+        val when is_binary(val) ->
+          if String.trim(val) == "", do: @default_tts_dictionary, else: val
+
+        _ ->
+          @default_tts_dictionary
+      end
+    rescue
+      _ -> @default_tts_dictionary
+    catch
+      :exit, _ -> @default_tts_dictionary
+    end
+  end
+
 
   @doc """
   Processes a Content item: extracts emotion tags, performs multi-chunk Zonos 2 synthesis,
@@ -144,7 +190,8 @@ defmodule KittAgent.Voice.Zonos2Client do
   end
 
   @doc """
-  Cleans tags, Markdown, and non-pronounceable characters from text.
+  Cleans tags, Markdown, and non-pronounceable characters from text,
+  and applies the DB-managed TTS pronunciation dictionary & unit normalizations.
   """
   def clean_text_for_tts(text) do
     text
@@ -158,11 +205,58 @@ defmodule KittAgent.Voice.Zonos2Client do
     |> String.replace(~r/【.*?】/, "")
     # Remove parentheses and their content
     |> String.replace(~r/（.*?）|\(.*?\)/, "")
+    # Apply DB-managed TTS pronunciation dictionary & unit normalizations
+    |> apply_tts_dictionary()
     # Remove emojis and unknown symbols (preserve Japanese characters, punctuation, ellipses, and wavy dash)
     |> String.replace(~r/[^\x00-\x7F\p{Hiragana}\p{Katakana}\p{Han}、。！？ー…〜\n]/u, "")
     # Collapse multiple whitespace
     |> String.replace(~r/\s+/, " ")
     |> String.trim()
+  end
+
+  @doc """
+  Applies the DB-managed `tts_dictionary` (`word=reading` lines) and common unit normalizations
+  so Zonos 2 accurately pronounces place names (e.g. 東白川村) and English terms (e.g. mBot2, LED, RPM, cm).
+  """
+  def apply_tts_dictionary(text) when is_binary(text) do
+    entries =
+      get_tts_dictionary_text()
+      |> String.split(~r/\r?\n/, trim: true)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == "" or String.starts_with?(&1, "#")))
+      |> Enum.flat_map(fn line ->
+        case String.split(line, ~r/\s*(?:=|=>|→)\s*/, parts: 2) do
+          [word, reading] when word != "" and reading != "" -> [{word, reading}]
+          _ -> []
+        end
+      end)
+      # Replace longer words first (e.g., "東白川村" before "東白川", "mBot2" before "mBot")
+      |> Enum.sort_by(fn {word, _reading} -> -String.length(word) end)
+
+    text
+    |> normalize_units_for_tts()
+    |> then(fn acc_text ->
+      Enum.reduce(entries, acc_text, fn {word, reading}, acc ->
+        if String.match?(word, ~r/^[\x00-\x7F]+$/) do
+          Regex.replace(Regex.compile!(Regex.escape(word), "i"), acc, reading)
+        else
+          String.replace(acc, word, reading)
+        end
+      end)
+    end)
+  end
+
+  defp normalize_units_for_tts(text) do
+    text
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*km\/h\b/i, "\\1キロ")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*cm\/s\b/i, "秒速\\1センチ")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*m\/s\b/i, "秒速\\1メートル")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*cm\b/i, "\\1センチ")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*mm\b/i, "\\1ミリ")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*km\b/i, "\\1キロ")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*m\b/i, "\\1メートル")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*(?:deg|°)/i, "\\1度")
+    |> String.replace(~r/(\d+(?:\.\d+)?)\s*[%％]/u, "\\1パーセント")
   end
 
   @doc """

@@ -79,9 +79,19 @@ defmodule KittAgentWeb.HomeLive do
   end
 
   def handle_event("talk", %{"id" => id, "user_text" => text}, socket) do
-    with %Kitt{} = kitt <- Kitts.get_kitt(id) do
-      kitt |> KittAgent.talk(text)
-    end
+    socket =
+      with %Kitt{} = kitt <- Kitts.get_kitt(id) do
+        case KittAgent.talk(kitt, text) do
+          {:ok, _content} ->
+            socket
+
+          {:error, reason} ->
+            Logger.error("HomeLive talk failed: #{inspect(reason)}")
+            put_flash(socket, :error, "Talk request failed: #{inspect(reason)}")
+        end
+      else
+        _ -> socket
+      end
 
     {:noreply, socket}
   end

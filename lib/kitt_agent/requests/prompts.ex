@@ -63,7 +63,14 @@ defmodule KittAgent.Requests.Prompts do
            - `mbot2.drive_speed(left_rpm, right_rpm)`: Continuous non-blocking motor control (`-200` to `200` RPM). Note that for forward movement, the right motor (2nd arg) must be NEGATIVE (e.g., `mbot2.drive_speed(120, -120)` for normal forward, `mbot2.drive_speed(200, -200)` for full-speed forward) because the left and right motors are mounted oppositely.
          
       3. **External Sensors (connected via mBuild port)**:
-       - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
+       - **Ultrasonic Sensor 2**: Measures distance and controls built-in blue ambient LEDs. API: `mbuild.ultrasonic2`.
+         - `mbuild.ultrasonic2.get(1)`: Returns distance to an obstacle in cm (`4` to `300` cm).
+         - **Ambient Light (Single-Color Blue LEDs ONLY — NO RGB Color Control)**:
+           - The Ultrasonic Sensor 2's ring LEDs are **blue-only (monochrome)** and **CANNOT change color**! If asked to change LED colors (red, green, etc.), explain that the ultrasonic sensor's ambient light is blue-only, and use `cyberpi.led.on(r, g, b, 'all')` on the main CyberPi unit for RGB colors.
+           - To control the ultrasonic sensor's blue ambient light brightness (`0` to `100`%):
+             - `mbuild.ultrasonic2.set_bri(brightness, 1)`: Sets brightness (`0`–`100`) of all blue LEDs on sensor `1` (`0` turns them off).
+             - `mbuild.ultrasonic2.add_bri(delta, 1)`: Adjusts brightness by `delta`.
+             - `mbuild.ultrasonic2.play(emotion, 1)`: Plays a preset blue LED animation (`'happy'`, `'sleepy'`, `'dizzy'`, `'wink'`, `'thinking'`).
        - **Quad RGB Sensor**: Detects colors and tracks lines. API: `mbuild.quad_rgb_sensor`.
          - `get_line_sta(index)`: Returns an integer (0-15) representing the status of 4 sensors (L2, L1, R1, R2).
            - L2(Bit3/8), L1(Bit2/4), R1(Bit1/2), R2(Bit0/1). 1=Black(Line), 0=White(Background).
@@ -109,14 +116,18 @@ defmodule KittAgent.Requests.Prompts do
 
     Usage Guidelines:
     - Do NOT repeat the same Carry Tag on every sentence; state it once when the tone shifts, and it will persist automatically.
-    - Combine Carry Tags and One-Shot Tags naturally (e.g., `"[sarcastic] 計算上は成功確率2%ですが… [chuckle] あなたならやり遂げるでしょうね。"`).
+    - Combine Carry Tags and One-Shot Tags naturally (e.g., `"[sarcastic] 計算上は成功確率2パーセントですが… [chuckle] あなたならやり遂げるでしょうね。"`).
     - Only use English `[tag]` syntax in square brackets (never Japanese brackets like `【笑い】`).
+    - **Pronunciation Rules for Japanese TTS (CRITICAL)**:
+      - Outside of `[tag]` brackets, NEVER write raw English/alphabet words, product names, or unit abbreviations (such as `mBot2`, `CyberPi`, `Makeblock`, `K.I.T.T.`, `LED`, `RGB`, `RPM`, `cm`, `m`, `Wi-Fi`, `AI`) in your spoken `message`, because alphabet characters cause noise in the Japanese TTS engine.
+      - ALWAYS write English words and units in **Katakana** or **Japanese reading** (e.g., `エムボットツー`, `サイバーパイ`, `メイクブロック`, `キット`, `エルイーディー`, `アールジービー`, `アールピーエム` or `回転`, `100センチ`, `10メートル`, `ワイファイ`, `エーアイ`).
+      - Write difficult-to-read place names or proper nouns in **Hiragana** (e.g., write `ひがししらかわむら` instead of `東白川村`).
     </voice_performance>
     """
   end
 
   defp prop_message(%Kitt{name: name, lang: lang}) do
-    "Concise #{lang} dialogue in #{name}'s authentic tone. You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "Concise #{lang} dialogue in #{name}'s authentic tone. You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. Outside of [tag] brackets, write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do
