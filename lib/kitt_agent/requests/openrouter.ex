@@ -6,6 +6,8 @@ defmodule KittAgent.Requests.OpenRouter do
   require Content
   require Logger
 
+  @receive_timeout 60_000
+
   def list_models() do
     api_key =
       KittAgent.Configs.get_config("api_key") ||
@@ -38,6 +40,7 @@ defmodule KittAgent.Requests.OpenRouter do
 
     case Req.post(api_url,
            json: kitt |> Prompts.make(last_ev),
+           receive_timeout: @receive_timeout,
            headers: [
              {"Authorization", "Bearer #{api_key}"},
              {"HTTP-Referer", "https://www.kandj.org"},
@@ -79,12 +82,16 @@ defmodule KittAgent.Requests.OpenRouter do
           end
         else
           e ->
-            Logger.error(inspect(e))
+            Logger.error("OpenRouter talk decode/event error: #{inspect(e)}")
             {:error, e}
         end
 
       {:ok, e} ->
-        Logger.error(inspect(e))
+        Logger.error("OpenRouter talk unexpected response: #{inspect(e)}")
+        {:error, e}
+
+      {:error, e} ->
+        Logger.error("OpenRouter talk transport error: #{inspect(e)}")
         {:error, e}
     end
   end
@@ -100,6 +107,7 @@ defmodule KittAgent.Requests.OpenRouter do
 
     case Req.post(api_url,
            json: Prompts.summary(kitt, events),
+           receive_timeout: @receive_timeout,
            headers: [
              {"Authorization", "Bearer #{api_key}"},
              {"HTTP-Referer", "https://www.kandj.org"},
@@ -116,6 +124,11 @@ defmodule KittAgent.Requests.OpenRouter do
         end
 
       {:ok, e} ->
+        Logger.error("OpenRouter summary unexpected response: #{inspect(e)}")
+        {:error, e}
+
+      {:error, e} ->
+        Logger.error("OpenRouter summary transport error: #{inspect(e)}")
         {:error, e}
     end
   end

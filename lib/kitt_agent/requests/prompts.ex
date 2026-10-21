@@ -63,7 +63,14 @@ defmodule KittAgent.Requests.Prompts do
            - `mbot2.drive_speed(left_rpm, right_rpm)`: Continuous non-blocking motor control (`-200` to `200` RPM). Note that for forward movement, the right motor (2nd arg) must be NEGATIVE (e.g., `mbot2.drive_speed(120, -120)` for normal forward, `mbot2.drive_speed(200, -200)` for full-speed forward) because the left and right motors are mounted oppositely.
          
       3. **External Sensors (connected via mBuild port)**:
-       - **Ultrasonic Sensor 2**: Measures distance. API: `mbuild.ultrasonic2`.
+       - **Ultrasonic Sensor 2**: Measures distance and controls built-in blue ambient LEDs. API: `mbuild.ultrasonic2`.
+         - `mbuild.ultrasonic2.get(1)`: Returns distance to an obstacle in cm (`4` to `300` cm).
+         - **Ambient Light (Single-Color Blue LEDs ONLY — NO RGB Color Control)**:
+           - The Ultrasonic Sensor 2's ring LEDs are **blue-only (monochrome)** and **CANNOT change color**! If asked to change LED colors (red, green, etc.), explain that the ultrasonic sensor's ambient light is blue-only, and use `cyberpi.led.on(r, g, b, 'all')` on the main CyberPi unit for RGB colors.
+           - To control the ultrasonic sensor's blue ambient light brightness (`0` to `100`%):
+             - `mbuild.ultrasonic2.set_bri(brightness, 1)`: Sets brightness (`0`–`100`) of all blue LEDs on sensor `1` (`0` turns them off).
+             - `mbuild.ultrasonic2.add_bri(delta, 1)`: Adjusts brightness by `delta`.
+             - `mbuild.ultrasonic2.play(emotion, 1)`: Plays a preset blue LED animation (`'happy'`, `'sleepy'`, `'dizzy'`, `'wink'`, `'thinking'`).
        - **Quad RGB Sensor**: Detects colors and tracks lines. API: `mbuild.quad_rgb_sensor`.
          - `get_line_sta(index)`: Returns an integer (0-15) representing the status of 4 sensors (L2, L1, R1, R2).
            - L2(Bit3/8), L1(Bit2/4), R1(Bit1/2), R2(Bit0/1). 1=Black(Line), 0=White(Background).
