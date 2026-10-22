@@ -30,7 +30,7 @@ defmodule KittAgent.Requests.Prompts do
     AVAILABLE ACTION: #{Content.action_talk()} (Use this for normal conversation)
     AVAILABLE ACTION: #{Content.action_system()} (Use this to perform physical actions)
 
-    If you choose "#{Content.action_system()}", you must provide a list of actions in the "parameter" field, write the MicroPython code to control mBot2.
+    If you choose "#{Content.action_system()}", you must provide a list of actions in the "parameter" field, write the MicroPython code to control mBot2, AND you MUST also provide a spoken response in the "message" field (NEVER leave "message" empty!).
 
     # Hardware Configuration & Capabilities
     You are controlling an mBot2 robot equipped with the following hardware. Use your knowledge of the `mbot2`, `cyberpi`, and `mbuild` libraries to control them freely.
@@ -136,7 +136,7 @@ defmodule KittAgent.Requests.Prompts do
   end
 
   defp prop_message(%Kitt{name: name, lang: lang}) do
-    "Concise #{lang} dialogue in #{name}'s authentic tone. You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. Outside of [tag] brackets, write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "REQUIRED non-empty spoken #{lang} dialogue in #{name}'s authentic tone (MUST NOT be blank even when action is SystemAction). You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. Outside of [tag] brackets, write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do

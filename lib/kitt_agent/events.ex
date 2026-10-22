@@ -65,7 +65,20 @@ defmodule KittAgent.Events do
 
   def make_kitt_event(attr) do
     action = attr["action"] || attr[:action] || Content.action_talk()
-    message = attr["message"] || attr[:message] || "..."
+    raw_message = attr["message"] || attr[:message]
+
+    message =
+      case raw_message do
+        msg when is_binary(msg) ->
+          if String.trim(msg) == "" do
+            if action == Content.action_system(), do: "了解しました。", else: "..."
+          else
+            msg
+          end
+
+        _ ->
+          if action == Content.action_system(), do: "了解しました。", else: "..."
+      end
 
     status =
       if action == Content.action_talk(),
