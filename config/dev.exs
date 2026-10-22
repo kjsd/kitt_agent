@@ -9,7 +9,8 @@ config :kitt_agent, KittAgent.Repo,
   database: "kitt_agent_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: 10,
+  log: false
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -72,7 +73,11 @@ config :kitt_agent, KittAgentWeb.Endpoint,
 config :kitt_agent, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :default_formatter, format: "[$level] $message\n"
+config :logger, level: :info
+
+config :logger, :default_formatter,
+  format: "$message\n",
+  colors: [enabled: true]
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

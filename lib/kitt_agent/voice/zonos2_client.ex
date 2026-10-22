@@ -6,7 +6,7 @@ defmodule KittAgent.Voice.Zonos2Client do
   """
 
   alias KittAgent.Datasets.{Kitt, Content}
-  alias KittAgent.{Kitts, Events, Talks}
+  alias KittAgent.{Kitts, Events, Talks, StageLogger}
   alias KittAgent.Voice.EmotionState
 
   require Logger
@@ -72,7 +72,9 @@ defmodule KittAgent.Voice.Zonos2Client do
       speaker_name = resolve_speaker_name(kitt)
       custom_audio_b64 = load_speaker_audio_base64(kitt)
 
-      Logger.info(
+      StageLogger.tts_started("Zonos 2")
+
+      Logger.debug(
         "Zonos2 TTS: Generating audio for Content #{content.id} (Speaker: #{speaker_name}, Custom Audio: #{is_binary(custom_audio_b64)}, Mood: #{inspect(content.mood)})..."
       )
 
@@ -83,21 +85,23 @@ defmodule KittAgent.Voice.Zonos2Client do
                content,
                %{audio_path: local_rel_path}
              ) do
+        duration_sec =
+          max(byte_size(wav_binary) - 44, 0)
+          |> Kernel./(88_200)
+          |> Float.round(1)
+          |> max(1.0)
+
+        is_system_action = updated_content.action == KittAgent.Datasets.Content.action_system()
+
         Talks.Queue.enqueue(kitt.id, updated_content)
 
         # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready.
         # If it is a Talk action, enqueue a virtual SystemAction (`talk_led`) so mBot2's
         # front ultrasonic LEDs blink in sync with the audio duration.
-        if updated_content.action == KittAgent.Datasets.Content.action_system() do
+        if is_system_action do
           KittAgent.SystemActions.Queue.enqueue(kitt.id, updated_content)
         else
           if KittAgent.SystemActions.queue_length(kitt.id) == 0 do
-            duration_sec =
-              max(byte_size(wav_binary) - 44, 0)
-              |> Kernel./(88_200)
-              |> Float.round(1)
-              |> max(1.0)
-
             talk_led_action = %Content{
               updated_content
               | action: KittAgent.Datasets.Content.action_system(),
@@ -112,7 +116,8 @@ defmodule KittAgent.Voice.Zonos2Client do
         updated_content
         |> Events.broadcast_change()
 
-        Logger.info("Zonos2 TTS: Completed. Saved to #{local_rel_path} (#{byte_size(wav_binary)} bytes)")
+        StageLogger.tts_completed(duration_sec, is_system_action)
+        Logger.debug("Zonos2 TTS: Completed. Saved to #{local_rel_path} (#{byte_size(wav_binary)} bytes)")
         {:ok, updated_content}
       else
         error ->
@@ -335,7 +340,7 @@ defmodule KittAgent.Voice.Zonos2Client do
       |> maybe_put_custom_audio(custom_audio_b64)
       |> Map.merge(emotion_params)
 
-    Logger.info("🎙️ Requesting Zonos 2 TTS: \"#{String.slice(text, 0, 30)}...\" [speaker=#{speaker_name}]")
+    Logger.debug("🎙️ Requesting Zonos 2 TTS: \"#{String.slice(text, 0, 30)}...\" [speaker=#{speaker_name}]")
 
     case Req.post(endpoint, json: payload, receive_timeout: 45_000) do
       {:ok, %{status: 200, body: pcm_data}} when is_binary(pcm_data) and byte_size(pcm_data) > 0 ->

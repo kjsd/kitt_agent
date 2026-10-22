@@ -6,7 +6,7 @@ defmodule KittAgent.Requests.OpenAITTS do
   """
 
   alias KittAgent.Datasets.{Kitt, Content}
-  alias KittAgent.{Kitts, Events, Talks}
+  alias KittAgent.{Kitts, Events, Talks, StageLogger}
   alias KittAgent.Voice.EmotionState
 
   require Logger
@@ -27,7 +27,9 @@ defmodule KittAgent.Requests.OpenAITTS do
       model = KittAgent.Configs.get_config("openai_tts_model", @default_model)
       speaker_audio_b64 = load_speaker_audio_base64(kitt)
 
-      Logger.info(
+      StageLogger.tts_started("OpenAI TTS / #{model}")
+
+      Logger.debug(
         "TTS: Generating audio for Content #{content.id} (Voice: #{voice}, Custom Audio: #{is_binary(speaker_audio_b64)}, Mood: #{inspect(content.mood)})..."
       )
 
@@ -38,20 +40,22 @@ defmodule KittAgent.Requests.OpenAITTS do
                content,
                %{audio_path: local_rel_path}
              ) do
+        duration_sec =
+          max(byte_size(wav_binary) - 44, 0)
+          |> Kernel./(88_200)
+          |> Float.round(1)
+          |> max(1.0)
+
+        is_system_action = updated_content.action == KittAgent.Datasets.Content.action_system()
+
         Talks.Queue.enqueue(kitt.id, updated_content)
 
         # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready.
         # If it is a Talk action, enqueue a virtual SystemAction (`talk_led`) for mBot2's front LEDs.
-        if updated_content.action == KittAgent.Datasets.Content.action_system() do
+        if is_system_action do
           KittAgent.SystemActions.Queue.enqueue(kitt.id, updated_content)
         else
           if KittAgent.SystemActions.queue_length(kitt.id) == 0 do
-            duration_sec =
-              max(byte_size(wav_binary) - 44, 0)
-              |> Kernel./(88_200)
-              |> Float.round(1)
-              |> max(1.0)
-
             talk_led_action = %Content{
               updated_content
               | action: KittAgent.Datasets.Content.action_system(),
@@ -66,7 +70,8 @@ defmodule KittAgent.Requests.OpenAITTS do
         updated_content
         |> Events.broadcast_change()
 
-        Logger.info("TTS: Completed. Saved to #{local_rel_path}")
+        StageLogger.tts_completed(duration_sec, is_system_action)
+        Logger.debug("TTS: Completed. Saved to #{local_rel_path}")
         {:ok, updated_content}
       else
         error ->

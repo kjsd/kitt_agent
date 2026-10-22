@@ -43,7 +43,9 @@ defmodule KittAgentWeb.Endpoint do
   end
 
   plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+  plug Plug.Telemetry,
+    event_prefix: [:phoenix, :endpoint],
+    log: {__MODULE__, :log_level, []}
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -54,4 +56,9 @@ defmodule KittAgentWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug KittAgentWeb.Router
+
+  # Suppress noisy polling and API access logs on stage monitor
+  def log_level(%{path_info: ["kitts" | _]}), do: false
+  def log_level(%{path_info: ["uploads" | _]}), do: false
+  def log_level(_conn), do: :debug
 end

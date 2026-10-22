@@ -59,12 +59,12 @@ defmodule KittAgentWeb.KittController do
         else
           case WhisperClient.transcribe(audio_source) do
             {:ok, ""} ->
-              Logger.info("talk_audio: No speech detected in audio")
+              Logger.debug("talk_audio: No speech detected in audio")
               conn
               |> json(%{status: "ignored", text: "", message: "No speech detected"})
 
             {:ok, user_text} ->
-              Logger.info("talk_audio: Transcribed \"#{user_text}\", triggering talk...")
+              Logger.debug("talk_audio: Transcribed \"#{user_text}\", triggering talk...")
               case KittAgent.talk(kitt, user_text) do
                 {:ok, %Content{} = content} ->
                   conn
@@ -102,7 +102,7 @@ defmodule KittAgentWeb.KittController do
       |> json(c)
     else
       %Content{} = x ->
-        x |> inspect |> Logger.info()
+        Logger.debug(fn -> "dequeue_talk without audio_path: #{inspect(x)}" end)
         nil
 
       e -> e
