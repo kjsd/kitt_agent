@@ -3,6 +3,7 @@ defmodule KittAgent.Voice.WhisperClient do
   Client for OpenAI Whisper and compatible STT (Speech-to-Text) API endpoints.
   """
   require Logger
+  alias KittAgent.StageLogger
 
   @default_url "https://api.openai.com/v1/audio/transcriptions"
   @default_model "whisper-1"
@@ -116,12 +117,18 @@ defmodule KittAgent.Voice.WhisperClient do
           []
         end
 
-    Logger.info("🎤 STT Request to #{target_url} (model: #{target_model}, file: #{filename})")
+    StageLogger.stt_started()
+    Logger.debug("🎤 STT Request to #{target_url} (model: #{target_model}, file: #{filename})")
 
     case Req.post(target_url, body: body, headers: headers, receive_timeout: 60_000) do
       {:ok, %{status: 200, body: %{"text" => text}}} ->
         clean_text = filter_hallucination(text)
-        Logger.info("🎤 STT Result: \"#{text}\" -> Filtered: \"#{clean_text}\"")
+        Logger.debug("🎤 STT Result: \"#{text}\" -> Filtered: \"#{clean_text}\"")
+
+        if clean_text == "" do
+          StageLogger.stt_ignored(text)
+        end
+
         {:ok, clean_text}
 
       {:ok, %{status: status, body: resp_body}} ->
@@ -150,7 +157,7 @@ defmodule KittAgent.Voice.WhisperClient do
 
     if is_hallucination or is_garbage do
       unless trimmed == "" do
-        Logger.info("🚫 STT Hallucination/Garbage filtered: [#{trimmed}]")
+        Logger.debug("🚫 STT Hallucination/Garbage filtered: [#{trimmed}]")
       end
 
       ""

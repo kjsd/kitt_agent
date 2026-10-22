@@ -3,7 +3,7 @@ defmodule KittAgentWeb.SystemActionController do
 
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.Datasets.Kitt
-  alias KittAgent.{Kitts, Events}
+  alias KittAgent.{Kitts, Events, StageLogger}
   alias KittAgent.SystemActions.Queue
 
   require Content
@@ -14,6 +14,7 @@ defmodule KittAgentWeb.SystemActionController do
     with %Content{} = c <- dequeue_pending(kitt_id) do
       if not String.starts_with?(c.parameter || "", "talk_led(") do
         Events.content_processing(c)
+        StageLogger.mbot_action_started(c)
       end
 
       conn
@@ -25,6 +26,7 @@ defmodule KittAgentWeb.SystemActionController do
     with %Kitt{} = _ <- Kitts.get_kitt(kitt_id),
          %Content{} = c <- Events.get_content(content_id) do
       Events.content_completed(c)
+      StageLogger.mbot_action_completed(c)
 
       conn
       |> json(%{status: "OK"})
@@ -35,6 +37,7 @@ defmodule KittAgentWeb.SystemActionController do
     with %Kitt{} = _ <- Kitts.get_kitt(kitt_id),
          %Content{} = c <- Events.get_content(content_id) do
       Events.content_failed(c)
+      StageLogger.mbot_action_failed(c)
 
       conn
       |> json(%{status: "OK"})

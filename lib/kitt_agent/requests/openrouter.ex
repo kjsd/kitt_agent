@@ -1,6 +1,6 @@
 defmodule KittAgent.Requests.OpenRouter do
   alias KittAgent.Datasets.{Kitt, Content}
-  alias KittAgent.{Events, Summarizer, TTS, SystemActions}
+  alias KittAgent.{Events, Summarizer, TTS, SystemActions, StageLogger}
   alias KittAgent.Requests.Prompts
 
   require Content
@@ -38,6 +38,8 @@ defmodule KittAgent.Requests.OpenRouter do
 
     last_ev = Events.make_user_talk_event(user_text)
 
+    StageLogger.llm_started(user_text)
+
     case Req.post(api_url,
            json: kitt |> Prompts.make(last_ev),
            receive_timeout: @receive_timeout,
@@ -55,6 +57,8 @@ defmodule KittAgent.Requests.OpenRouter do
           with {:ok, event} <-
                  Events.make_kitt_event(res)
                  |> Events.create_kitt_event(kitt) do
+            StageLogger.llm_completed(event.content)
+
             tts_enabled? =
               Application.get_env(:kitt_agent, KittAgent.Requests, [])
               |> Keyword.get(:talk, [])
