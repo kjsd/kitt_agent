@@ -91,7 +91,7 @@ defmodule KittAgent.Voice.EmotionStateTest do
       end
     end
 
-    test "blends Base Mood (20%) + Carry Tag (30%) + One-Shot Tag (50%) and strips tags cleanly" do
+    test "determines Zonos 2 parameters solely from mood and strips stray inline tags cleanly" do
       {clean_text, params} =
         Zonos2Client.extract_tags_and_params(
           "[whisper] [chuckle] 内緒の話ですよ。",
@@ -99,47 +99,43 @@ defmodule KittAgent.Voice.EmotionStateTest do
         )
 
       assert clean_text == "内緒の話ですよ。"
+      assert params == Zonos2Client.resolve_mood_params("sarcastic")
       assert params["emotion_enabled"] == true
       assert is_map(params["emotion_sliders"])
-
-      slider_sum =
-        params["emotion_sliders"]
-        |> Map.values()
-        |> Enum.sum()
-
-      assert slider_sum <= 1.0001
       assert params["emotion_sliders"]["happy"] > 0.0
       assert params["emotion_sliders"]["angry"] > 0.0
       assert params["speaking_rate_enabled"] == true
       assert is_number(params["speaking_rate"])
     end
 
-    test "resets emotion sliders and stabilizes speaking rate when [calm] is used without one-shot tags" do
+    test "ignores inline tags when mood is neutral or excited" do
       {clean_text, params} =
         Zonos2Client.extract_tags_and_params("[calm] 通常モードに戻ります。", "excited")
 
       assert clean_text == "通常モードに戻ります。"
+      assert params == Zonos2Client.resolve_mood_params("excited")
       assert params["emotion_enabled"] == true
-      assert params["emotion_sliders"] == %{}
-      assert params["emotion_arousal"] == -0.2
       assert params["accurate_mode"] == false
       assert params["speaking_rate_enabled"] == true
-      assert params["speaking_rate"] == 12.42
+      assert params["speaking_rate"] == 14.18
     end
   end
 
   describe "OpenAITTS.prepare_input_text/2 integration" do
-    test "decorates single and multi-sentence text with mood and Carry tags" do
+    test "decorates single and multi-sentence text using mood only and strips inline tags" do
       alias KittAgent.Requests.OpenAITTS
 
       assert OpenAITTS.prepare_input_text("Hello Kitt", nil) == "Hello Kitt"
       assert OpenAITTS.prepare_input_text("Hello Kitt", "happy") == "[happy] Hello Kitt"
-      assert OpenAITTS.prepare_input_text("[sigh] Oh no", "sad") == "[sigh] Oh no"
+      assert OpenAITTS.prepare_input_text("[sigh] Oh no", "sad") == "[sad] Oh no"
 
       multi = "[whisper] ここから先は内緒です。[chuckle] 誰にも言わないでくださいね。"
 
       assert OpenAITTS.prepare_input_text(multi, "neutral") ==
-               "[whisper] ここから先は内緒です。 [whisper] [chuckle] 誰にも言わないでくださいね。"
+               "ここから先は内緒です。 誰にも言わないでくださいね。"
+
+      assert OpenAITTS.prepare_input_text(multi, "whisper") ==
+               "[whisper] ここから先は内緒です。 誰にも言わないでくださいね。"
     end
   end
 end

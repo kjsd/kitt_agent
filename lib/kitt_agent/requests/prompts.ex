@@ -103,32 +103,13 @@ defmodule KittAgent.Requests.Prompts do
       </available_actions_list>
 
     <voice_performance>
-    # Voice Performance & 3-Layer Emotion Tags (Zonos 2 / OpenAI TTS)
+    # Voice Performance & Mood Control (Zonos 2 / OpenAI TTS)
     Your speech is synthesized in 44.1kHz high-fidelity audio.
-    Maintain #{kitt.name}'s authentic character tone while using a 3-layer emotional control system:
-    1. **JSON `mood`**: Sets the overall baseline emotional mood for the entire turn.
-    2. **Carry Tags (Persistent Tone)**: Placed at the start of a sentence; automatically carries over to subsequent sentences in the same turn until changed or reset:
-       - `[gently]` : Warm, kind, caring, and reassuring tone.
-       - `[teasing]` : Playful, witty, or lightly mischievous tone.
-       - `[sarcastic]` : Dry, ironic, or sardonic delivery (classic K.I.T.T. wit).
-       - `[whisper]` : Hushed, confidential, or intimate whisper.
-       - `[excited]` / `[happy]` : Bright, enthusiastic, or delighted tone.
-       - `[sad]` / `[worried]` : Concerned, apologetic, or somber tone.
-       - `[assertive]` / `[angry]` / `[pout]` : Firm, stern, or displeased tone.
-       - `[calm]` : Resets a previously active Carry Tag mid-response back to composed, normal delivery (do NOT place `[calm]` on your first sentence unless resetting).
-    3. **One-Shot Tags (Instantaneous Reaction)**: Applies ONLY to the current sentence and never bleeds into the next sentence:
-       - `[chuckle]` / `[laughter]` : Brief, dignified chuckle or warm laugh.
-       - `[sigh]` : Subtle sigh of relief or wry exasperation.
-       - `[surprised]` / `[gasp]` : Momentary surprise or sharp intake of breath.
-       - `[questioning]` : Curious or inquisitive inflection.
-       - `[nod]` / `[clear throat]` : Subtle agreement or throat-clearing pause.
-
-    Usage Guidelines:
-    - Do NOT repeat the same Carry Tag on every sentence; state it once when the tone shifts, and it will persist automatically.
-    - Combine Carry Tags and One-Shot Tags naturally (e.g., `"[sarcastic] 計算上は成功確率2パーセントですが… [chuckle] あなたならやり遂げるでしょうね。"`).
-    - Only use English `[tag]` syntax in square brackets (never Japanese brackets like `【笑い】`).
+    Maintain #{kitt.name}'s authentic character tone.
+    - **Mood-Only Emotional Control**: Vocal emotion for the entire response is controlled solely by the JSON `"mood"` field.
+    - **NO Inline Audio/Emotion Tags (CRITICAL)**: Do NOT embed any bracketed tags or emotion/sound markers (such as `[laughter]`, `[excited]`, `[sigh]`, `[whisper]`, `[chuckle]`, `[sarcastic]`, `[calm]`, or `【笑い】`) inside the `"message"` text. Express emotion naturally through phrasing and by selecting the appropriate `"mood"` field.
     - **Pronunciation Rules for Japanese TTS (CRITICAL)**:
-      - Outside of `[tag]` brackets, NEVER write raw English/alphabet words, product names, or unit abbreviations (such as `mBot2`, `CyberPi`, `Makeblock`, `K.I.T.T.`, `LED`, `RGB`, `RPM`, `cm`, `m`, `Wi-Fi`, `AI`) in your spoken `message`, because alphabet characters cause noise in the Japanese TTS engine.
+      - NEVER write raw English/alphabet words, product names, or unit abbreviations (such as `mBot2`, `CyberPi`, `Makeblock`, `K.I.T.T.`, `LED`, `RGB`, `RPM`, `cm`, `m`, `Wi-Fi`, `AI`) in your spoken `message`, because alphabet characters cause noise in the Japanese TTS engine.
       - ALWAYS write English words and units in **Katakana** or **Japanese reading** (e.g., `エムボットツー`, `サイバーパイ`, `メイクブロック`, `キット`, `エルイーディー`, `アールジービー`, `アールピーエム` or `回転`, `100センチ`, `10メートル`, `ワイファイ`, `エーアイ`).
       - Write difficult-to-read place names or proper nouns in **Hiragana** (e.g., write `ひがししらかわむら` instead of `東白川村`).
     </voice_performance>
@@ -136,7 +117,7 @@ defmodule KittAgent.Requests.Prompts do
   end
 
   defp prop_message(%Kitt{name: name, lang: lang}) do
-    "REQUIRED non-empty spoken #{lang} dialogue in #{name}'s authentic tone (MUST NOT be blank even when action is SystemAction). You may embed English [carry_tag] and [oneshot_tag] markers (e.g. [gently], [sarcastic], [whisper], [chuckle], [sigh], [calm]) to control vocal expression across sentences. Outside of [tag] brackets, write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "REQUIRED non-empty spoken #{lang} dialogue in #{name}'s authentic tone (MUST NOT be blank even when action is SystemAction). Do NOT include any bracketed tags or emotion markers (like [laughter], [sigh], [whisper], or 【笑い】) in the message; express emotion through natural phrasing and the 'mood' field. Write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do

@@ -141,25 +141,25 @@ defmodule KittAgent.Voice.Zonos2Client do
   end
 
   @doc """
-  Generates audio binary (16-bit PCM WAV) for multi-sentence text using 3-layer emotion blending
-  (Base `mood` + Carry Tag + One-Shot Tag) across sentence chunks.
+  Generates audio binary (16-bit PCM WAV) for multi-sentence text using unified emotion
+  parameters determined solely by the response-level `mood` across all sentence chunks.
   """
   def generate_audio_multi(raw_text, mood, base_url, speaker_name, custom_audio_b64) do
+    emotion_params = resolve_mood_params(mood)
+
     chunks =
       split_text(raw_text || "")
-      |> Enum.reject(&(&1 == ""))
-      |> EmotionState.propagate_sentences()
-      |> Enum.map(&extract_tags_and_params(&1, mood))
-      |> Enum.filter(fn {chunk, _} ->
-        String.match?(chunk, ~r/[\p{Hiragana}\p{Katakana}\p{Han}a-zA-Z0-9]/u)
+      |> Enum.map(&clean_text_for_tts/1)
+      |> Enum.filter(fn chunk ->
+        chunk != "" and String.match?(chunk, ~r/[\p{Hiragana}\p{Katakana}\p{Han}a-zA-Z0-9]/u)
       end)
 
     if chunks == [] do
       {:error, :unpronounceable_text}
     else
-      # Generate float32 PCM for each chunk using its blended 3-layer emotion_params
+      # Generate float32 PCM for each chunk using the unified mood-based emotion_params
       pcm_results =
-        Enum.reduce_while(chunks, {:ok, []}, fn {chunk, emotion_params}, {:ok, acc} ->
+        Enum.reduce_while(chunks, {:ok, []}, fn chunk, {:ok, acc} ->
           case call_zonos2(base_url, speaker_name, custom_audio_b64, chunk, emotion_params) do
             {:ok, pcm} -> {:cont, {:ok, [pcm | acc]}}
             {:error, reason} -> {:halt, {:error, reason}}
@@ -205,10 +205,11 @@ defmodule KittAgent.Voice.Zonos2Client do
   def resolve_mood_params(_), do: EmotionState.resolve_zonos2_params("", "neutral")
 
   @doc """
-  Extracts clean text and resolves 3-layer blended emotion params (Base `mood` + Carry Tag + One-Shot Tag).
+  Extracts clean text (stripping any stray inline tags) and resolves Zonos 2 emotion parameters
+  solely from the response-level `mood`.
   """
   def extract_tags_and_params(text, mood \\ "neutral") do
-    final_params = EmotionState.resolve_zonos2_params(text, mood)
+    final_params = resolve_mood_params(mood)
     clean_text = clean_text_for_tts(text)
     {clean_text, final_params}
   end
