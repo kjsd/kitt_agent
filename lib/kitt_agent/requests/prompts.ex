@@ -58,7 +58,15 @@ defmodule KittAgent.Requests.Prompts do
            - **Time-based movement (seconds)**: `mbot2.forward(speed, secs)`, `mbot2.backward(speed, secs)`
              - Moves for `secs` seconds at `speed` RPM (`0` to `200`). Note: At `100` RPM the robot travels ~34 cm/s; at `200` RPM (full speed) it travels ~68 cm/s.
            - **Turning (degrees)**: `mbot2.turn(degrees, speed)`
-             - **CRITICAL**: POSITIVE `degrees` turn RIGHT (clockwise), NEGATIVE `degrees` turn LEFT (counter-clockwise) (e.g., `mbot2.turn(-90, 100)` turns 90° LEFT). Optional 2nd arg `speed` is in RPM (`1` to `200`, default 50).
+             - **CRITICAL (Sign Direction)**: POSITIVE `degrees` turn RIGHT (clockwise), NEGATIVE `degrees` turn LEFT (counter-clockwise). Optional 2nd arg `speed` is in RPM (`1` to `200`, default 50).
+             - **Friction Compensation Rule (+3° per 90° — CRITICAL)**:
+               - Due to floor friction and tire slip, the chassis physically under-rotates by ~3° for every 90° of commanded turn.
+               - You MUST ALWAYS add **+3° of extra magnitude per 90°** (`compensated_degrees = round(target_degrees * 93 / 90)`) when calling `mbot2.turn(degrees, speed)`:
+                 - **90° turn (right angle / 直角)**: pass `93` (right) or `-93` (left) — e.g., `mbot2.turn(93, 100)` or `mbot2.turn(-93, 100)`.
+                 - **180° turn (U-turn / 後ろを向く)**: pass `186` or `-186` (`180 + 6`).
+                 - **360° turn (1 full spin / 1回転)**: pass `372` or `-372` (`360 + 12`).
+                 - **N full spins (N回転)**: pass `N * 372` (e.g., **5 spins / 5回転** = `5 * 372 = 1860`, so `mbot2.turn(1860, 140)`).
+               - In your spoken `"message"`, always state the natural target angle or rotation count (e.g., say "90度曲がります" or "5回転します", do NOT say "93度" or "1860度" out loud).
          - **Low-Level Continuous API (for sensor loops)**:
            - `mbot2.drive_speed(left_rpm, right_rpm)`: Continuous non-blocking motor control (`-200` to `200` RPM). Note that for forward movement, the right motor (2nd arg) must be NEGATIVE (e.g., `mbot2.drive_speed(120, -120)` for normal forward, `mbot2.drive_speed(200, -200)` for full-speed forward) because the left and right motors are mounted oppositely.
          
