@@ -95,8 +95,9 @@ defmodule KittAgent.Requests.OpenAITTS do
   end
 
   @doc """
-  Formats input text by propagating Carry Tags across sentences and embedding `[mood]`
-  when a sentence does not already start with a bracketed tag.
+  Formats input text for OpenAI-compatible TTS (`openai-tts-bridge`) using mood-only control.
+  Strips any stray inline bracket tags and prefixes `[mood]` once for the entire message
+  when `mood` is non-empty and not neutral/default.
   """
   def prepare_input_text(message, mood) do
     EmotionState.decorate_for_openai(message || "", mood)

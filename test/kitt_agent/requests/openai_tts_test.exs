@@ -5,26 +5,30 @@ defmodule KittAgent.Requests.OpenAITTSTest do
   alias KittAgent.Datasets.Kitt
 
   describe "prepare_input_text/2" do
-    test "returns plain text when mood is nil or empty" do
+    test "returns plain text when mood is nil, empty, or neutral/default" do
       assert OpenAITTS.prepare_input_text("Hello Kitt", nil) == "Hello Kitt"
       assert OpenAITTS.prepare_input_text("Hello Kitt", "") == "Hello Kitt"
       assert OpenAITTS.prepare_input_text("Hello Kitt", "   ") == "Hello Kitt"
+      assert OpenAITTS.prepare_input_text("Hello Kitt", "neutral") == "Hello Kitt"
+      assert OpenAITTS.prepare_input_text("Hello Kitt", "default") == "Hello Kitt"
     end
 
-    test "prefixes mood tag when mood is present" do
+    test "prefixes mood tag once for the entire message when mood is present" do
       assert OpenAITTS.prepare_input_text("Hello Kitt", "happy") == "[happy] Hello Kitt"
       assert OpenAITTS.prepare_input_text("Good night", "whisper") == "[whisper] Good night"
     end
 
-    test "does not duplicate tag if text already starts with a bracket" do
-      assert OpenAITTS.prepare_input_text("[sigh] Oh no", "sad") == "[sigh] Oh no"
-      assert OpenAITTS.prepare_input_text("【笑い】あはは", "happy") == "【笑い】あはは"
-    end
+    test "strips stray inline bracket tags and uses only the mood field" do
+      assert OpenAITTS.prepare_input_text("[sigh] Oh no", "sad") == "[sad] Oh no"
+      assert OpenAITTS.prepare_input_text("【笑い】あはは", "happy") == "[happy] あはは"
 
-    test "propagates Carry tags across multiple sentences for OpenAI TTS bridge" do
       input = "[whisper] ここから先は内緒です。[chuckle] 誰にも言わないでくださいね。"
+
       assert OpenAITTS.prepare_input_text(input, "neutral") ==
-               "[whisper] ここから先は内緒です。 [whisper] [chuckle] 誰にも言わないでくださいね。"
+               "ここから先は内緒です。 誰にも言わないでくださいね。"
+
+      assert OpenAITTS.prepare_input_text(input, "whisper") ==
+               "[whisper] ここから先は内緒です。 誰にも言わないでくださいね。"
     end
   end
 
