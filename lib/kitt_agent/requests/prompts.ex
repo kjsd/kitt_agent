@@ -111,7 +111,7 @@ defmodule KittAgent.Requests.Prompts do
       </available_actions_list>
 
     <voice_performance>
-    # Voice Performance & Mood Control (Zonos 2 / OpenAI TTS)
+    # Voice Performance & Mood Control (Zonos / OpenAI TTS)
     Your speech is synthesized in 44.1kHz high-fidelity audio.
     Maintain #{kitt.name}'s authentic character tone.
     - **Mood-Only Emotional Control**: Vocal emotion for the entire response is controlled solely by the JSON `"mood"` field.
