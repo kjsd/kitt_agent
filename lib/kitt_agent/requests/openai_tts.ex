@@ -7,7 +7,7 @@ defmodule KittAgent.Requests.OpenAITTS do
 
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Kitts, Events, Talks, StageLogger}
-  alias KittAgent.Voice.EmotionState
+  alias KittAgent.Requests.ZonosGradio
 
   require Logger
   require Content
@@ -96,11 +96,21 @@ defmodule KittAgent.Requests.OpenAITTS do
 
   @doc """
   Formats input text for OpenAI-compatible TTS (`openai-tts-bridge`) using mood-only control.
-  Strips any stray inline bracket tags and prefixes `[mood]` once for the entire message
-  when `mood` is non-empty and not neutral/default.
+  Strips any stray inline bracket tags, applies TTS dictionary normalizations,
+  and prefixes `[mood]` once for the entire message when `mood` is non-empty and not neutral/default.
   """
   def prepare_input_text(message, mood) do
-    EmotionState.decorate_for_openai(message || "", mood)
+    cleaned_text =
+      (message || "")
+      |> ZonosGradio.clean_text_for_tts()
+
+    trimmed_mood = String.trim(mood || "")
+
+    if trimmed_mood not in ["", "neutral", "normal", "default"] and cleaned_text != "" do
+      "[#{trimmed_mood}] " <> cleaned_text
+    else
+      cleaned_text
+    end
   end
 
   @doc """
@@ -207,8 +217,6 @@ defmodule KittAgent.Requests.OpenAITTS do
   end
 
   def openai_tts_url() do
-    # Check new config first, fallback to legacy zonos_gradio_url or default
-    KittAgent.Configs.get_config("openai_tts_url") ||
-      KittAgent.Configs.get_config("zonos_gradio_url", @default_url)
+    KittAgent.Configs.get_config("openai_tts_url", @default_url) || @default_url
   end
 end

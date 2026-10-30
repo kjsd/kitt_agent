@@ -2,8 +2,8 @@ defmodule KittAgentWeb.SettingsLive.Index do
   use KittAgentWeb, :live_view
 
   alias KittAgent.Configs
-  alias KittAgent.Requests.{OpenRouter, OpenAITTS}
-  alias KittAgent.Voice.{Zonos2Client, WhisperClient}
+  alias KittAgent.Requests.{OpenRouter, OpenAITTS, ZonosGradio}
+  alias KittAgent.Voice.WhisperClient
 
   @impl true
   def mount(_params, _session, socket) do
@@ -11,13 +11,12 @@ defmodule KittAgentWeb.SettingsLive.Index do
       Configs.all_configs()
       |> Map.put_new("default_lang", "Japanese")
       |> Map.put_new("default_timezone", "Asia/Tokyo")
-      |> Map.put_new("tts_provider", "zonos2")
-      |> Map.put_new("zonos2_url", "http://nina.local:1919")
-      |> Map.put_new("zonos2_default_speaker", "nina2")
+      |> Map.put_new("tts_provider", "zonos")
+      |> Map.put_new("zonos_gradio_url", "http://nina.local:7860")
       |> Map.put_new("openai_tts_url", "http://nina.local:8080/v1")
       |> Map.put_new("openai_tts_model", "zonos2")
       |> Map.put_new("openai_tts_default_voice", "nina2")
-      |> Map.put_new("tts_dictionary", Zonos2Client.default_tts_dictionary())
+      |> Map.put_new("tts_dictionary", ZonosGradio.default_tts_dictionary())
       |> Map.put_new("stt_url", "https://api.openai.com/v1/audio/transcriptions")
       |> Map.put_new("stt_model", "whisper-1")
       |> Map.put_new("stt_key", "")
@@ -92,11 +91,11 @@ defmodule KittAgentWeb.SettingsLive.Index do
   end
 
   def handle_event("save_all", %{"action" => "check_tts"} = params, socket) do
-    provider = params["tts_provider"] || socket.assigns.configs["tts_provider"] || "zonos2"
+    provider = params["tts_provider"] || socket.assigns.configs["tts_provider"] || "zonos"
 
     case provider do
       "openai" ->
-        url = params["openai_tts_url"] || params["zonos_gradio_url"]
+        url = params["openai_tts_url"] || socket.assigns.configs["openai_tts_url"] || "http://nina.local:8080/v1"
 
         case OpenAITTS.check_connection(url) do
           {:ok, msg} ->
@@ -106,15 +105,15 @@ defmodule KittAgentWeb.SettingsLive.Index do
             {:noreply, put_flash(socket, :error, "OpenAI TTS: #{msg}")}
         end
 
-      _zonos2 ->
-        url = params["zonos2_url"] || "http://nina.local:1919"
+      _zonos ->
+        url = params["zonos_gradio_url"] || socket.assigns.configs["zonos_gradio_url"] || "http://nina.local:7860"
 
-        case Zonos2Client.check_connection(url) do
+        case ZonosGradio.check_connection(url) do
           {:ok, msg} ->
-            {:noreply, put_flash(socket, :info, "Zonos 2 TTS: #{msg}")}
+            {:noreply, put_flash(socket, :info, "Zonos TTS: #{msg}")}
 
           {:error, msg} ->
-            {:noreply, put_flash(socket, :error, "Zonos 2 TTS: #{msg}")}
+            {:noreply, put_flash(socket, :error, "Zonos TTS: #{msg}")}
         end
     end
   end
