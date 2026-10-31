@@ -14,6 +14,7 @@ defmodule KittAgent.Requests.ZonosGradio do
   # Zonos-v0.1-hybrid
   @model_type "Zyphra/Zonos-v0.1-hybrid"
   @gradio_default_url "http://nina.local:7860"
+  @inter_chunk_silence_sec 0.1
 
   @default_tts_dictionary String.trim("""
                           東白川村=ひがししらかわむら
@@ -145,17 +146,22 @@ defmodule KittAgent.Requests.ZonosGradio do
     try do
       lang_code = lang_to_code(kitt.lang)
       speaker_audio = prepare_speaker_audio(kitt)
-      clean_text = clean_text_for_tts(content.message || "")
+      chunks = prepare_chunks(content.message || "")
+      clean_text = Enum.join(chunks, " ")
 
       # Resolve Zonos parameters based on mood
       params = resolve_parameters(content.mood)
       log_mood_details(clean_text, content.mood, params)
 
-      StageLogger.tts_started("Zonos TTS")
-      Logger.info("TTS: Generating audio for Content #{content.id} (Lang: #{lang_code})...")
+      StageLogger.tts_started("Zonos TTS (#{length(chunks)} chunk(s))")
 
-      with {:ok, audio_url} <- call_gradio(clean_text, params, lang_code, speaker_audio),
-           {:ok, local_path, wav_binary} <- download_audio(audio_url, kitt),
+      Logger.info(
+        "TTS: Generating audio for Content #{content.id} (Lang: #{lang_code}, Chunks: #{length(chunks)})..."
+      )
+
+      with {:ok, wav_binaries} <- synthesize_chunks(chunks, params, lang_code, speaker_audio),
+           {:ok, wav_binary} <- concat_wav_binaries(wav_binaries),
+           {:ok, local_path} <- save_audio(wav_binary, kitt),
            {:ok, %Content{} = updated_content} <-
              Events.update_content(
                content,
@@ -215,19 +221,117 @@ defmodule KittAgent.Requests.ZonosGradio do
   Computes audio duration in seconds from a RIFF WAVE binary.
   """
   def wav_duration_sec(wav_binary) when is_binary(wav_binary) do
-    byte_rate =
-      case wav_binary do
-        <<"RIFF", _::binary-size(20), rate::unsigned-little-32, _::binary>> when rate > 0 ->
-          rate
+    {data_bytes, byte_rate} =
+      case parse_wav_chunks(wav_binary) do
+        {:ok,
+         <<_fmt::unsigned-little-16, _ch::unsigned-little-16, _sr::unsigned-little-32,
+           rate::unsigned-little-32, _::binary>>, data_body}
+        when rate > 0 ->
+          {byte_size(data_body), rate}
 
         _ ->
-          88_200
+          rate =
+            case wav_binary do
+              <<"RIFF", _::binary-size(24), r::unsigned-little-32, _::binary>> when r > 0 -> r
+              _ -> 88_200
+            end
+
+          {max(byte_size(wav_binary) - 44, 0), rate}
       end
 
-    max(byte_size(wav_binary) - 44, 0)
+    data_bytes
     |> Kernel./(byte_rate)
     |> Float.round(1)
     |> max(1.0)
+  end
+
+  @doc """
+  Splits text into individual sentence chunks by Japanese/English sentence-ending punctuation
+  (`。`, `！`, `？`, `!`, `?`) and newlines, cleans each chunk for TTS, and normalizes
+  sentence-final punctuation so Zonos v0.1's phonemizer cleanly terminates each sentence.
+  """
+  def prepare_chunks(text) when is_binary(text) do
+    chunks =
+      text
+      # Remove multi-line code blocks before splitting on newlines
+      |> String.replace(~r/`{1,3}.*?`{1,3}/s, "")
+      |> split_text()
+      |> Enum.map(&clean_text_for_tts/1)
+      |> Enum.filter(&speakable?/1)
+      |> Enum.map(&normalize_chunk_punctuation/1)
+
+    case chunks do
+      [_ | _] ->
+        chunks
+
+      [] ->
+        fallback =
+          text
+          |> clean_text_for_tts()
+          |> normalize_chunk_punctuation()
+
+        if speakable?(fallback), do: [fallback], else: []
+    end
+  end
+
+  def prepare_chunks(_), do: []
+
+  @doc """
+  Splits text into sentences while keeping terminal punctuation attached to each sentence.
+  """
+  def split_text(text) when is_binary(text) do
+    Regex.split(~r/([。！？!?]+|\r?\n+)/u, text, include_captures: true, trim: true)
+    |> Enum.reduce([], fn part, acc ->
+      if Regex.match?(~r/^([。！？!?]+|\r?\n+)$/u, part) do
+        punct = String.trim(part)
+
+        case acc do
+          [current | rest] when punct != "" -> [current <> punct | rest]
+          _ -> acc
+        end
+      else
+        trimmed = String.trim(part)
+        if trimmed != "", do: [trimmed | acc], else: acc
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  @doc """
+  Normalizes punctuation within a single TTS sentence chunk so Zonos v0.1 (`espeak-ng`)
+  gets clean prosody boundaries and never trails off into mumbling/hallucination on trailing `…` or `〜`.
+  """
+  def normalize_chunk_punctuation(chunk) when is_binary(chunk) do
+    cleaned =
+      chunk
+      |> String.replace("!", "！")
+      |> String.replace("?", "？")
+      # Strip trailing ellipses, tildes, dots, or spaces right before sentence-final ！/？/。
+      |> String.replace(~r/[…〜～\.・\s]+([。！？]+)$/u, "\\1")
+      # Strip trailing ellipses, tildes, commas, dots, or spaces at the end of the chunk
+      |> String.replace(~r/[、,，…〜～\.・\s]+$/u, "")
+      # Convert mid-sentence ellipses into a clean Japanese comma pause
+      |> String.replace(~r/…+/u, "、")
+      # Convert remaining wave dashes into standard Japanese long vowel mark (ー)
+      |> String.replace(~r/[〜～]+/u, "ー")
+      # Collapse duplicate commas
+      |> String.replace(~r/、+/u, "、")
+      |> String.trim()
+
+    cond do
+      cleaned == "" ->
+        ""
+
+      String.match?(cleaned, ~r/[。！？]$/u) ->
+        cleaned
+
+      true ->
+        cleaned <> "。"
+    end
+  end
+
+  defp speakable?(text) when is_binary(text) do
+    String.match?(text, ~r/[\p{Hiragana}\p{Katakana}\p{Han}a-zA-Z0-9]/u)
   end
 
   @doc """
@@ -424,7 +528,7 @@ defmodule KittAgent.Requests.ZonosGradio do
         # 38: Min K
         0,
         # 39: Min P
-        0,
+        0.05,
         # 31: Linear
         0.5,
         # 32: Confidence
@@ -563,17 +667,36 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
-  defp download_audio(url, %Kitt{} = kitt) do
-    filename = "#{Ecto.UUID.generate()}.wav"
-    local_rel_path = Kitts.path(kitt, filename)
-    local_abs_path = Kitts.resource(kitt, filename)
+  defp synthesize_chunks([], _params, _lang_code, _speaker_audio) do
+    {:error, "No speakable text chunks"}
+  end
 
-    File.mkdir_p!(Path.dirname(local_abs_path))
+  defp synthesize_chunks(chunks, params, lang_code, speaker_audio) do
+    total = length(chunks)
 
+    chunks
+    |> Enum.with_index(1)
+    |> Enum.reduce_while({:ok, []}, fn {chunk, idx}, {:ok, acc} ->
+      Logger.info("TTS: Generating chunk [#{idx}/#{total}]: #{inspect(chunk)}")
+
+      with {:ok, audio_url} <- call_gradio(chunk, params, lang_code, speaker_audio),
+           {:ok, wav_binary} <- download_audio_binary(audio_url) do
+        {:cont, {:ok, [wav_binary | acc]}}
+      else
+        {:error, reason} ->
+          {:halt, {:error, "Chunk #{idx}/#{total} failed: #{inspect(reason)}"}}
+      end
+    end)
+    |> case do
+      {:ok, rev_binaries} -> {:ok, Enum.reverse(rev_binaries)}
+      {:error, _} = err -> err
+    end
+  end
+
+  defp download_audio_binary(url) do
     case Req.get(url) do
-      {:ok, %{status: 200, body: body}} ->
-        File.write!(local_abs_path, body)
-        {:ok, local_rel_path, body}
+      {:ok, %{status: 200, body: body}} when is_binary(body) ->
+        {:ok, body}
 
       {:ok, resp} ->
         {:error, "Download failed: #{resp.status}"}
@@ -581,6 +704,128 @@ defmodule KittAgent.Requests.ZonosGradio do
       {:error, reason} ->
         {:error, "Download error: #{inspect(reason)}"}
     end
+  end
+
+  defp save_audio(wav_binary, %Kitt{} = kitt) when is_binary(wav_binary) do
+    filename = "#{Ecto.UUID.generate()}.wav"
+    local_rel_path = Kitts.path(kitt, filename)
+    local_abs_path = Kitts.resource(kitt, filename)
+
+    File.mkdir_p!(Path.dirname(local_abs_path))
+    File.write!(local_abs_path, wav_binary)
+    {:ok, local_rel_path}
+  end
+
+  @doc """
+  Concatenates one or more RIFF WAVE binaries into a single canonical RIFF WAVE binary,
+  inserting a short natural pause (`#{@inter_chunk_silence_sec}s` of digital silence) between sentence chunks.
+  """
+  def concat_wav_binaries([single_wav]) when is_binary(single_wav) do
+    case parse_wav_chunks(single_wav) do
+      {:ok, fmt_body, data_body} ->
+        {:ok, build_wav_binary(fmt_body, data_body)}
+
+      {:error, _} ->
+        {:ok, single_wav}
+    end
+  end
+
+  def concat_wav_binaries([_ | _] = wav_binaries) do
+    parsed =
+      Enum.reduce_while(wav_binaries, {:ok, nil, []}, fn wav, {:ok, first_fmt, data_acc} ->
+        case parse_wav_chunks(wav) do
+          {:ok, fmt_body, data_body} ->
+            {:cont, {:ok, first_fmt || fmt_body, [data_body | data_acc]}}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+      end)
+
+    case parsed do
+      {:ok, fmt_body, rev_data_chunks} when is_binary(fmt_body) ->
+        silence = build_silence_bytes(fmt_body, @inter_chunk_silence_sec)
+
+        combined_data =
+          rev_data_chunks
+          |> Enum.reverse()
+          |> Enum.intersperse(silence)
+          |> IO.iodata_to_binary()
+
+        {:ok, build_wav_binary(fmt_body, combined_data)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def concat_wav_binaries([]), do: {:error, "No audio chunks generated"}
+
+  defp parse_wav_chunks(<<"RIFF", _riff_size::unsigned-little-32, "WAVE", rest::binary>>) do
+    do_parse_wav_chunks(rest, nil, [])
+  end
+
+  defp parse_wav_chunks(_), do: {:error, "Invalid RIFF WAVE header"}
+
+  defp do_parse_wav_chunks(<<>>, fmt_body, data_acc)
+       when is_binary(fmt_body) and data_acc != [] do
+    {:ok, fmt_body, IO.iodata_to_binary(Enum.reverse(data_acc))}
+  end
+
+  defp do_parse_wav_chunks(
+         <<chunk_id::binary-size(4), chunk_size::unsigned-little-32, rest::binary>>,
+         fmt_body,
+         data_acc
+       )
+       when byte_size(rest) >= chunk_size do
+    <<chunk_body::binary-size(chunk_size), after_chunk::binary>> = rest
+    pad = rem(chunk_size, 2)
+
+    remaining =
+      if pad == 1 and byte_size(after_chunk) >= 1 do
+        <<_pad_byte::8, tail::binary>> = after_chunk
+        tail
+      else
+        after_chunk
+      end
+
+    case chunk_id do
+      "fmt " ->
+        do_parse_wav_chunks(remaining, fmt_body || chunk_body, data_acc)
+
+      "data" ->
+        do_parse_wav_chunks(remaining, fmt_body, [chunk_body | data_acc])
+
+      _other ->
+        do_parse_wav_chunks(remaining, fmt_body, data_acc)
+    end
+  end
+
+  defp do_parse_wav_chunks(_rest, fmt_body, data_acc)
+       when is_binary(fmt_body) and data_acc != [] do
+    {:ok, fmt_body, IO.iodata_to_binary(Enum.reverse(data_acc))}
+  end
+
+  defp do_parse_wav_chunks(_, _, _), do: {:error, "Incomplete WAV chunks"}
+
+  defp build_silence_bytes(
+         <<_audio_format::unsigned-little-16, _num_channels::unsigned-little-16,
+           _sample_rate::unsigned-little-32, byte_rate::unsigned-little-32,
+           block_align::unsigned-little-16, _rest::binary>>,
+         seconds
+       )
+       when byte_rate > 0 and block_align > 0 and seconds > 0 do
+    frames = trunc(byte_rate * seconds / block_align)
+    :binary.copy(<<0>>, frames * block_align)
+  end
+
+  defp build_silence_bytes(_fmt_body, _seconds), do: <<>>
+
+  defp build_wav_binary(fmt_body, data_body) do
+    fmt_chunk = <<"fmt ", byte_size(fmt_body)::unsigned-little-32, fmt_body::binary>>
+    data_chunk = <<"data", byte_size(data_body)::unsigned-little-32, data_body::binary>>
+    riff_size = 4 + byte_size(fmt_chunk) + byte_size(data_chunk)
+    <<"RIFF", riff_size::unsigned-little-32, "WAVE", fmt_chunk::binary, data_chunk::binary>>
   end
 
   defp lang_to_code(lang) do
