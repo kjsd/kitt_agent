@@ -158,8 +158,18 @@ defmodule KittAgent.Requests.ZonosGradio do
         "TTS: Generating audio for Content #{content.id} (Lang: #{lang_code}, Chunks: #{length(chunks)})..."
       )
 
+      is_system_action = content.action == KittAgent.Datasets.Content.action_system()
+
       with {:ok, wav_binaries, pushed_any} <-
-             synthesize_chunks(chunks, params, lang_code, kitt, content.mood, true),
+             synthesize_chunks(
+               chunks,
+               params,
+               lang_code,
+               kitt,
+               content.mood,
+               true,
+               not is_system_action
+             ),
            {:ok, wav_binary} <- concat_wav_binaries(wav_binaries),
            {:ok, local_path} <- save_audio(wav_binary, kitt),
            {:ok, %Content{} = updated_content} <-
@@ -167,8 +177,8 @@ defmodule KittAgent.Requests.ZonosGradio do
                content,
                %{audio_path: local_path}
              ) do
+        KittAgent.SystemActions.set_thinking(kitt.id, false)
         duration_sec = wav_duration_sec(wav_binary)
-        is_system_action = updated_content.action == KittAgent.Datasets.Content.action_system()
 
         if pushed_any do
           Talks.broadcast_ws(kitt.id, %{
@@ -184,20 +194,13 @@ defmodule KittAgent.Requests.ZonosGradio do
         end
 
         # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready.
-        # If it is a Talk action, enqueue a virtual SystemAction (`talk_led`) so mBot2's
-        # front ultrasonic LEDs blink in sync with the audio duration.
+        # If it is a Talk action and WebSocket streaming did not already enqueue per-chunk
+        # `talk_led`, enqueue a virtual SystemAction (`talk_led`) for the full duration.
         if is_system_action do
           KittAgent.SystemActions.Queue.enqueue(kitt.id, updated_content)
         else
-          if KittAgent.SystemActions.queue_length(kitt.id) == 0 do
-            talk_led_action = %Content{
-              updated_content
-              | action: KittAgent.Datasets.Content.action_system(),
-                status: KittAgent.Datasets.Content.status_pending(),
-                parameter: "talk_led(#{duration_sec})"
-            }
-
-            KittAgent.SystemActions.Queue.enqueue(kitt.id, talk_led_action)
+          if not pushed_any and KittAgent.SystemActions.queue_length(kitt.id) == 0 do
+            KittAgent.SystemActions.enqueue_talk_led(kitt.id, duration_sec)
           end
         end
 
@@ -209,6 +212,7 @@ defmodule KittAgent.Requests.ZonosGradio do
         {:ok, updated_content}
       else
         error ->
+          KittAgent.SystemActions.set_thinking(kitt.id, false)
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
           Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
           fallback_enqueue_system_action(content, kitt)
@@ -216,6 +220,7 @@ defmodule KittAgent.Requests.ZonosGradio do
       end
     rescue
       e ->
+        KittAgent.SystemActions.set_thinking(kitt.id, false)
         Logger.error("TTS: Exception: #{inspect(e)}")
         Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
         fallback_enqueue_system_action(content, kitt)
@@ -825,17 +830,19 @@ defmodule KittAgent.Requests.ZonosGradio do
   end
 
   def synthesize_chunks(chunks, params, lang_code, kitt, mood) do
-    case synthesize_chunks(chunks, params, lang_code, kitt, mood, false) do
+    case synthesize_chunks(chunks, params, lang_code, kitt, mood, false, false) do
       {:ok, wav_binaries, _pushed_any} -> {:ok, wav_binaries}
       {:error, _} = err -> err
     end
   end
 
-  def synthesize_chunks([], _params, _lang_code, _kitt, _mood, _stream_ws?) do
+  def synthesize_chunks(chunks, params, lang_code, kitt, mood, stream_ws?, talk_led? \\ false)
+
+  def synthesize_chunks([], _params, _lang_code, _kitt, _mood, _stream_ws?, _talk_led?) do
     {:error, "No speakable text chunks"}
   end
 
-  def synthesize_chunks(chunks, params, lang_code, %Kitt{} = kitt, mood, stream_ws?) do
+  def synthesize_chunks(chunks, params, lang_code, %Kitt{} = kitt, mood, stream_ws?, talk_led?) do
     table = ensure_prefetch_table()
     mood_key = normalize_mood_key(mood)
     total = length(chunks)
@@ -854,6 +861,12 @@ defmodule KittAgent.Requests.ZonosGradio do
               "TTS: Using prefetched & WS-pushed chunk [#{idx}/#{total}]: #{inspect(chunk)}"
             )
 
+            KittAgent.SystemActions.set_thinking(kitt.id, false)
+
+            if talk_led? do
+              KittAgent.SystemActions.enqueue_talk_led(kitt.id, wav_duration_sec(wav_binary))
+            end
+
             {:cont, {:ok, [wav_binary | acc], true}}
 
           {:ok, wav_binary, false} ->
@@ -865,6 +878,10 @@ defmodule KittAgent.Requests.ZonosGradio do
               else
                 false
               end
+
+            if pushed_now and talk_led? do
+              KittAgent.SystemActions.enqueue_talk_led(kitt.id, wav_duration_sec(wav_binary))
+            end
 
             {:cont, {:ok, [wav_binary | acc], pushed_acc or pushed_now}}
 
@@ -879,6 +896,10 @@ defmodule KittAgent.Requests.ZonosGradio do
                   else
                     false
                   end
+
+                if pushed_now and talk_led? do
+                  KittAgent.SystemActions.enqueue_talk_led(kitt.id, wav_duration_sec(wav_binary))
+                end
 
                 {:cont, {:ok, [wav_binary | acc], pushed_acc or pushed_now}}
 
@@ -911,6 +932,8 @@ defmodule KittAgent.Requests.ZonosGradio do
             })
 
           if pushed do
+            KittAgent.SystemActions.set_thinking(kitt.id, false)
+
             Logger.info(
               "TTS WS Stream: Pushed chunk [#{chunk_idx + 1}] (#{chunk_rel_path}, is_last=#{is_last})"
             )

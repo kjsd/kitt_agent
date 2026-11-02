@@ -40,6 +40,8 @@ defmodule KittAgent.Requests.OpenAITTS do
                content,
                %{audio_path: local_rel_path}
              ) do
+        KittAgent.SystemActions.set_thinking(kitt.id, false)
+
         duration_sec =
           max(byte_size(wav_binary) - 44, 0)
           |> Kernel./(88_200)
@@ -56,14 +58,7 @@ defmodule KittAgent.Requests.OpenAITTS do
           KittAgent.SystemActions.Queue.enqueue(kitt.id, updated_content)
         else
           if KittAgent.SystemActions.queue_length(kitt.id) == 0 do
-            talk_led_action = %Content{
-              updated_content
-              | action: KittAgent.Datasets.Content.action_system(),
-                status: KittAgent.Datasets.Content.status_pending(),
-                parameter: "talk_led(#{duration_sec})"
-            }
-
-            KittAgent.SystemActions.Queue.enqueue(kitt.id, talk_led_action)
+            KittAgent.SystemActions.enqueue_talk_led(kitt.id, duration_sec)
           end
         end
 
@@ -75,6 +70,7 @@ defmodule KittAgent.Requests.OpenAITTS do
         {:ok, updated_content}
       else
         error ->
+          KittAgent.SystemActions.set_thinking(kitt.id, false)
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
           Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
           fallback_enqueue_system_action(content, kitt)
@@ -82,6 +78,7 @@ defmodule KittAgent.Requests.OpenAITTS do
       end
     rescue
       e ->
+        KittAgent.SystemActions.set_thinking(kitt.id, false)
         Logger.error("TTS: Exception: #{inspect(e)}")
         Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
         fallback_enqueue_system_action(content, kitt)

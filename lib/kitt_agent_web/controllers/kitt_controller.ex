@@ -63,8 +63,11 @@ defmodule KittAgentWeb.KittController do
           |> put_status(:bad_request)
           |> json(%{error: "Missing or invalid audio parameter (expected 'audio' file upload or 'audio_base64')"})
         else
+          KittAgent.SystemActions.set_thinking(kitt.id, true)
+
           case WhisperClient.transcribe(audio_source) do
             {:ok, ""} ->
+              KittAgent.SystemActions.set_thinking(kitt.id, false)
               Logger.debug("talk_audio: No speech detected in audio")
               conn
               |> json(%{status: "ignored", text: "", message: "No speech detected"})
@@ -87,6 +90,7 @@ defmodule KittAgentWeb.KittController do
                   })
 
                 {:error, reason} ->
+                  KittAgent.SystemActions.set_thinking(kitt.id, false)
                   Logger.error("talk_audio: Talk error: #{inspect(reason)}")
                   conn
                   |> put_status(:internal_server_error)
@@ -94,6 +98,7 @@ defmodule KittAgentWeb.KittController do
               end
 
             {:error, reason} ->
+              KittAgent.SystemActions.set_thinking(kitt.id, false)
               Logger.error("talk_audio: STT error: #{inspect(reason)}")
               conn
               |> put_status(:bad_gateway)
