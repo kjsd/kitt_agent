@@ -132,9 +132,9 @@ defmodule KittAgent.Requests.Prompts do
     """
     (If #{kitt.name} is just speaking, use action "Talk". If #{kitt.name} needs to physical actions, use "SystemAction").
     Use ONLY this JSON object to give your answer. Do not send any other characters outside of this JSON structure
-    (Response tones are mandatory in the response):
+    (Response tones are mandatory in the response, and output keys in the order: mood, message, action, parameter, listener):
     {"mood":"happy|excited|playful|amused|lovely|neutral|sad|sigh|angry|irritated|pout|whisper|teasing|sassy|flirty|smug|sarcastic|assertive|default",
-    "action":"#{Content.action_talk()}|#{Content.action_system()}", "parameter": "Parameters for special actions", "listener":"target to talk", "message":"#{prop_message(kitt)}"}
+    "message":"#{prop_message(kitt)}", "action":"#{Content.action_talk()}|#{Content.action_system()}", "parameter": "Parameters for special actions", "listener":"target to talk"}
     """
   end
 
@@ -158,63 +158,64 @@ defmodule KittAgent.Requests.Prompts do
           name: "response",
           schema: %{
             type: "object",
-            properties: %{
-              message: %{
-                type: "string",
-                description: prop_message(kitt)
-              },
-              mood: %{
-                type: "string",
-                description: "mood to use while speaking",
-                enum: [
-                  "happy",
-                  "excited",
-                  "playful",
-                  "amused",
-                  "lovely",
-                  "neutral",
-                  "sad",
-                  "sigh",
-                  "angry",
-                  "irritated",
-                  "pout",
-                  "whisper",
-                  "teasing",
-                  "sassy",
-                  "flirty",
-                  "smug",
-                  "sarcastic",
-                  "assertive",
-                  "default",
-                  "sardonic",
-                  "seductive",
-                  "smirking",
-                  "mocking",
-                  "kindly",
-                  "assisting"
-                ]
-              },
-              action: %{
-                type: "string",
-                description:
-                  "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_system()}' to perform physical actions.",
-                enum: [
-                  "#{Content.action_talk()}",
-                  "#{Content.action_system()}"
-                ]
-              },
-              parameter: %{
-                type: "string",
-                description: "Parameters for special actions"
-              },
-              listener: %{
-                type: "string",
-                description: "target to talk"
-              }
-            },
+            properties:
+              Jason.OrderedObject.new([
+                mood: %{
+                  type: "string",
+                  description: "mood to use while speaking",
+                  enum: [
+                    "happy",
+                    "excited",
+                    "playful",
+                    "amused",
+                    "lovely",
+                    "neutral",
+                    "sad",
+                    "sigh",
+                    "angry",
+                    "irritated",
+                    "pout",
+                    "whisper",
+                    "teasing",
+                    "sassy",
+                    "flirty",
+                    "smug",
+                    "sarcastic",
+                    "assertive",
+                    "default",
+                    "sardonic",
+                    "seductive",
+                    "smirking",
+                    "mocking",
+                    "kindly",
+                    "assisting"
+                  ]
+                },
+                message: %{
+                  type: "string",
+                  description: prop_message(kitt)
+                },
+                action: %{
+                  type: "string",
+                  description:
+                    "Choose '#{Content.action_talk()}' for dialogue, or '#{Content.action_system()}' to perform physical actions.",
+                  enum: [
+                    "#{Content.action_talk()}",
+                    "#{Content.action_system()}"
+                  ]
+                },
+                parameter: %{
+                  type: "string",
+                  description: "Parameters for special actions"
+                },
+                listener: %{
+                  type: "string",
+                  description: "target to talk"
+                }
+              ]),
             required: [
-              "message",
               "mood",
+              "message",
               "action",
               "parameter",
               "listener"
@@ -231,7 +232,18 @@ defmodule KittAgent.Requests.Prompts do
     t = %{role: "user", content: tail(kitt)}
 
     encode = fn x ->
-      Events.with_timestamp(x, kitt)
+      c = Events.with_timestamp(x, kitt)
+
+      [
+        mood: Map.get(c, :mood),
+        message: Map.get(c, :message),
+        action: Map.get(c, :action),
+        parameter: Map.get(c, :parameter),
+        listener: Map.get(c, :listener),
+        timestamp: Map.get(c, :timestamp)
+      ]
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Jason.OrderedObject.new()
       |> Jason.encode!()
     end
 

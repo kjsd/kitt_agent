@@ -9,10 +9,12 @@ defmodule KittAgent.Requests do
   def talk(%Kitt{} = k, t), do: OpenRouter.talk(k, t)
   def summary(%Kitt{} = k, [_ | _] = e), do: OpenRouter.summary(k, e)
 
-  def process_tts(%Content{} = c, %Kitt{} = k) do
-    provider = KittAgent.Configs.get_config("tts_provider", "zonos")
+  def tts_provider() do
+    KittAgent.Configs.get_config("tts_provider", "zonos") || "zonos"
+  end
 
-    case provider do
+  def process_tts(%Content{} = c, %Kitt{} = k) do
+    case tts_provider() do
       "openai" ->
         OpenAITTS.process(c, k)
 

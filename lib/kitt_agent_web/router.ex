@@ -27,6 +27,10 @@ defmodule KittAgentWeb.Router do
   end
 
   scope "/kitts", KittAgentWeb do
+    get "/:id/ws", KittController, :ws
+  end
+
+  scope "/kitts", KittAgentWeb do
     pipe_through :api
 
     get "/", KittController, :index

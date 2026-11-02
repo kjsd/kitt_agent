@@ -21,6 +21,12 @@ defmodule KittAgentWeb.KittController do
     json(conn, kitt)
   end
 
+  def ws(conn, %{"id" => id}) do
+    conn
+    |> WebSockAdapter.upgrade(KittAgentWeb.TalkerSocket, %{kitt_id: id}, timeout: 120_000)
+    |> halt()
+  end
+
   def talk(conn, %{"id" => id, "text" => user_text}) do
     with %Kitt{} = kitt <- Kitts.get_kitt(id),
          {:ok, res} <- kitt |> KittAgent.talk(user_text) do
@@ -65,6 +71,8 @@ defmodule KittAgentWeb.KittController do
 
             {:ok, user_text} ->
               Logger.debug("talk_audio: Transcribed \"#{user_text}\", triggering talk...")
+              KittAgent.Talks.broadcast_ws(kitt.id, %{type: "stt", text: user_text})
+
               case KittAgent.talk(kitt, user_text) do
                 {:ok, %Content{} = content} ->
                   conn

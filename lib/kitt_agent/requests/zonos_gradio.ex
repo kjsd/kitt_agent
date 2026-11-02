@@ -145,7 +145,6 @@ defmodule KittAgent.Requests.ZonosGradio do
   def process(%Content{} = content, %Kitt{} = kitt) do
     try do
       lang_code = lang_to_code(kitt.lang)
-      speaker_audio = prepare_speaker_audio(kitt)
       chunks = prepare_chunks(content.message || "")
       clean_text = Enum.join(chunks, " ")
 
@@ -159,7 +158,8 @@ defmodule KittAgent.Requests.ZonosGradio do
         "TTS: Generating audio for Content #{content.id} (Lang: #{lang_code}, Chunks: #{length(chunks)})..."
       )
 
-      with {:ok, wav_binaries} <- synthesize_chunks(chunks, params, lang_code, speaker_audio),
+      with {:ok, wav_binaries, pushed_any} <-
+             synthesize_chunks(chunks, params, lang_code, kitt, content.mood, true),
            {:ok, wav_binary} <- concat_wav_binaries(wav_binaries),
            {:ok, local_path} <- save_audio(wav_binary, kitt),
            {:ok, %Content{} = updated_content} <-
@@ -170,7 +170,18 @@ defmodule KittAgent.Requests.ZonosGradio do
         duration_sec = wav_duration_sec(wav_binary)
         is_system_action = updated_content.action == KittAgent.Datasets.Content.action_system()
 
-        Talks.Queue.enqueue(kitt.id, updated_content)
+        if pushed_any do
+          Talks.broadcast_ws(kitt.id, %{
+            type: "talk_complete",
+            id: updated_content.id,
+            action: updated_content.action,
+            message: updated_content.message,
+            mood: updated_content.mood,
+            audio_path: updated_content.audio_path
+          })
+        else
+          Talks.enqueue_or_push(kitt.id, updated_content)
+        end
 
         # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready.
         # If it is a Talk action, enqueue a virtual SystemAction (`talk_led`) so mBot2's
@@ -199,12 +210,14 @@ defmodule KittAgent.Requests.ZonosGradio do
       else
         error ->
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
+          Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
           fallback_enqueue_system_action(content, kitt)
           {:error, error}
       end
     rescue
       e ->
         Logger.error("TTS: Exception: #{inspect(e)}")
+        Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
         fallback_enqueue_system_action(content, kitt)
         {:error, e}
     end
@@ -404,30 +417,174 @@ defmodule KittAgent.Requests.ZonosGradio do
     |> String.replace(~r/(\d+(?:\.\d+)?)\s*[%％]/u, "\\1パーセント")
   end
 
-  defp prepare_speaker_audio(%Kitt{} = kitt) do
+  @doc """
+  Extracts `mood` and any already-completed sentence chunks from an in-progress
+  streaming LLM JSON string so Zonos TTS synthesis can begin while the LLM is
+  still generating subsequent sentences or `parameter` (MicroPython code).
+  """
+  def extract_ready_tts_chunks(partial_json) when is_binary(partial_json) do
+    with [_, mood] <- Regex.run(~r/"mood"\s*:\s*"([^"\\]+)"/, partial_json) do
+      cond do
+        # Case A: "message" field has a complete closing quote
+        match = Regex.run(~r/"message"\s*:\s*"((?:\\.|[^"\\])*)"/s, partial_json) ->
+          [_, raw_escaped] = match
+
+          with {:ok, full_message} <- Jason.decode("\"#{raw_escaped}\""),
+               [_ | _] = chunks <- prepare_chunks(full_message) do
+            {:ok, mood, chunks}
+          else
+            _ -> :incomplete
+          end
+
+        # Case B: "message" field is still streaming; any sentence before the last chunk is complete
+        match = Regex.run(~r/"message"\s*:\s*"((?:\\.|[^"\\])*)/s, partial_json) ->
+          [_, raw_partial] = match
+
+          with {:ok, partial_message} <- Jason.decode("\"#{raw_partial}\""),
+               false <- String.contains?(partial_message, "`"),
+               chunks when length(chunks) >= 2 <- prepare_chunks(partial_message),
+               [_ | _] = completed_chunks <- Enum.drop(chunks, -1) do
+            {:ok, mood, completed_chunks}
+          else
+            _ -> :incomplete
+          end
+
+        true ->
+          :incomplete
+      end
+    else
+      _ -> :incomplete
+    end
+  end
+
+  def extract_ready_tts_chunks(_), do: :incomplete
+
+  @doc """
+  Pre-warms the speaker reference audio upload in the background so the Gradio `FileData`
+  is cached in `:persistent_term` before the first TTS chunk starts.
+  """
+  def warm_speaker_audio_async(%Kitt{} = kitt) do
+    if KittAgent.Requests.tts_provider() == "zonos" do
+      Task.start(fn -> prepare_speaker_audio(kitt, false) end)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Starts background synthesis for completed sentence chunks in strict sequential order
+  while the LLM is still streaming the remainder of the response.
+  """
+  def prefetch_chunks_async(%Kitt{} = kitt, mood, chunks)
+      when is_binary(mood) and is_list(chunks) and chunks != [] do
+    if KittAgent.Requests.tts_provider() == "zonos" do
+      table = ensure_prefetch_table()
+      now = System.monotonic_time(:millisecond)
+      mood_key = normalize_mood_key(mood)
+
+      chunks_with_keys =
+        chunks
+        |> Enum.map(fn chunk -> {chunk, {kitt.id, mood_key, chunk}} end)
+
+      new_items =
+        chunks_with_keys
+        |> Enum.with_index()
+        |> Enum.filter(fn {{_chunk, key}, _idx} ->
+          :ets.insert_new(table, {key, :in_progress, now})
+        end)
+
+      if new_items != [] do
+        lang_code = lang_to_code(kitt.lang)
+        params = resolve_parameters(mood)
+
+        Task.start(fn ->
+          Enum.each(new_items, fn {{chunk, key}, idx} ->
+            prev_key =
+              if idx > 0 do
+                elem(Enum.at(chunks_with_keys, idx - 1), 1)
+              else
+                nil
+              end
+
+            wait_for_prev_key(table, prev_key, System.monotonic_time(:millisecond) + 60_000)
+
+            Logger.info("TTS Prefetch: Synthesizing early chunk [#{idx + 1}]: #{inspect(chunk)}")
+
+            case synthesize_single_chunk(chunk, params, lang_code, kitt) do
+              {:ok, wav_binary} ->
+                pushed? = maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx, false)
+
+                :ets.insert(
+                  table,
+                  {key, {:done, {:ok, wav_binary, pushed?}}, System.monotonic_time(:millisecond)}
+                )
+
+              {:error, reason} ->
+                Logger.warning(
+                  "TTS Prefetch: Early chunk failed (will retry synchronously): #{inspect(reason)}"
+                )
+
+                :ets.delete(table, key)
+            end
+          end)
+        end)
+      end
+    end
+
+    :ok
+  end
+
+  def prefetch_chunks_async(_, _, _), do: :ok
+
+  @doc """
+  Stores a pre-synthesized WAV binary into the prefetch cache (also used by unit tests).
+  """
+  def put_prefetched_chunk(kitt_id, mood, chunk, wav_binary) when is_binary(wav_binary) do
+    table = ensure_prefetch_table()
+    key = {kitt_id, normalize_mood_key(mood), chunk}
+
+    :ets.insert(
+      table,
+      {key, {:done, {:ok, wav_binary, false}}, System.monotonic_time(:millisecond)}
+    )
+
+    :ok
+  end
+
+  def prepare_speaker_audio(%Kitt{} = kitt, force_refresh \\ false) do
     with path when is_binary(path) <- Kitts.resource_audio(kitt),
-         true <- File.exists?(path) do
-      try do
-        with {:ok, remote_path} <- upload_file(path) do
-          # Return as FileData object pointing to the uploaded file on Gradio server
-          %{
-            "path" => remote_path,
-            "url" => "#{gradio_url()}/gradio_api/file=#{remote_path}",
-            "orig_name" => Path.basename(path),
-            "size" => File.stat!(path).size,
-            "mime_type" => MIME.from_path(path),
-            "is_stream" => false,
-            "meta" => %{"_type" => "gradio.FileData"}
-          }
-        else
-          e ->
-            Logger.error("TTS: Failed to upload speaker audio: #{inspect(e)}")
-            nil
-        end
-      rescue
-        e ->
-          Logger.error("TTS: Failed to process speaker audio: #{inspect(e)}")
-          nil
+         {:ok, %File.Stat{mtime: mtime, size: size}} <- File.stat(path) do
+      cache_key = {__MODULE__, :speaker_audio, gradio_url(), path, mtime, size}
+
+      case if(force_refresh, do: nil, else: :persistent_term.get(cache_key, nil)) do
+        %{"path" => _} = cached ->
+          cached
+
+        _ ->
+          try do
+            with {:ok, remote_path} <- upload_file(path) do
+              file_data = %{
+                "path" => remote_path,
+                "url" => "#{gradio_url()}/gradio_api/file=#{remote_path}",
+                "orig_name" => Path.basename(path),
+                "size" => size,
+                "mime_type" => MIME.from_path(path),
+                "is_stream" => false,
+                "meta" => %{"_type" => "gradio.FileData"}
+              }
+
+              :persistent_term.put(cache_key, file_data)
+              file_data
+            else
+              e ->
+                Logger.error("TTS: Failed to upload speaker audio: #{inspect(e)}")
+                nil
+            end
+          rescue
+            e ->
+              Logger.error("TTS: Failed to process speaker audio: #{inspect(e)}")
+              nil
+          end
       end
     else
       _ ->
@@ -667,29 +824,243 @@ defmodule KittAgent.Requests.ZonosGradio do
     end
   end
 
-  defp synthesize_chunks([], _params, _lang_code, _speaker_audio) do
+  def synthesize_chunks(chunks, params, lang_code, kitt, mood) do
+    case synthesize_chunks(chunks, params, lang_code, kitt, mood, false) do
+      {:ok, wav_binaries, _pushed_any} -> {:ok, wav_binaries}
+      {:error, _} = err -> err
+    end
+  end
+
+  def synthesize_chunks([], _params, _lang_code, _kitt, _mood, _stream_ws?) do
     {:error, "No speakable text chunks"}
   end
 
-  defp synthesize_chunks(chunks, params, lang_code, speaker_audio) do
+  def synthesize_chunks(chunks, params, lang_code, %Kitt{} = kitt, mood, stream_ws?) do
+    table = ensure_prefetch_table()
+    mood_key = normalize_mood_key(mood)
     total = length(chunks)
+    keys = Enum.map(chunks, &{kitt.id, mood_key, &1})
 
-    chunks
-    |> Enum.with_index(1)
-    |> Enum.reduce_while({:ok, []}, fn {chunk, idx}, {:ok, acc} ->
-      Logger.info("TTS: Generating chunk [#{idx}/#{total}]: #{inspect(chunk)}")
+    result =
+      chunks
+      |> Enum.with_index(1)
+      |> Enum.reduce_while({:ok, [], false}, fn {chunk, idx}, {:ok, acc, pushed_acc} ->
+        key = {kitt.id, mood_key, chunk}
+        is_last = idx == total
 
-      with {:ok, audio_url} <- call_gradio(chunk, params, lang_code, speaker_audio),
-           {:ok, wav_binary} <- download_audio_binary(audio_url) do
-        {:cont, {:ok, [wav_binary | acc]}}
-      else
-        {:error, reason} ->
-          {:halt, {:error, "Chunk #{idx}/#{total} failed: #{inspect(reason)}"}}
-      end
-    end)
-    |> case do
-      {:ok, rev_binaries} -> {:ok, Enum.reverse(rev_binaries)}
+        case await_prefetch_entry(table, key, System.monotonic_time(:millisecond) + 60_000) do
+          {:ok, wav_binary, true} ->
+            Logger.info(
+              "TTS: Using prefetched & WS-pushed chunk [#{idx}/#{total}]: #{inspect(chunk)}"
+            )
+
+            {:cont, {:ok, [wav_binary | acc], true}}
+
+          {:ok, wav_binary, false} ->
+            Logger.info("TTS: Using prefetched chunk [#{idx}/#{total}]: #{inspect(chunk)}")
+
+            pushed_now =
+              if stream_ws? do
+                maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx - 1, is_last)
+              else
+                false
+              end
+
+            {:cont, {:ok, [wav_binary | acc], pushed_acc or pushed_now}}
+
+          :miss ->
+            Logger.info("TTS: Generating chunk [#{idx}/#{total}]: #{inspect(chunk)}")
+
+            case synthesize_single_chunk(chunk, params, lang_code, kitt) do
+              {:ok, wav_binary} ->
+                pushed_now =
+                  if stream_ws? do
+                    maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx - 1, is_last)
+                  else
+                    false
+                  end
+
+                {:cont, {:ok, [wav_binary | acc], pushed_acc or pushed_now}}
+
+              {:error, reason} ->
+                {:halt, {:error, "Chunk #{idx}/#{total} failed: #{inspect(reason)}"}}
+            end
+        end
+      end)
+
+    Enum.each(keys, &:ets.delete(table, &1))
+
+    case result do
+      {:ok, rev_binaries, pushed_any} -> {:ok, Enum.reverse(rev_binaries), pushed_any}
       {:error, _} = err -> err
+    end
+  end
+
+  defp maybe_push_chunk_ws(wav_binary, %Kitt{} = kitt, mood, chunk_text, chunk_idx, is_last) do
+    if Talks.ws_connected?(kitt.id) do
+      case save_temp_chunk_audio(wav_binary, kitt) do
+        {:ok, chunk_rel_path} ->
+          pushed =
+            Talks.broadcast_ws(kitt.id, %{
+              type: "talk_chunk",
+              mood: mood,
+              message: chunk_text,
+              audio_path: chunk_rel_path,
+              chunk_index: chunk_idx,
+              is_last: is_last
+            })
+
+          if pushed do
+            Logger.info(
+              "TTS WS Stream: Pushed chunk [#{chunk_idx + 1}] (#{chunk_rel_path}, is_last=#{is_last})"
+            )
+          end
+
+          pushed
+
+        {:error, reason} ->
+          Logger.warning("TTS WS Stream: Failed to save temp chunk audio: #{inspect(reason)}")
+          false
+      end
+    else
+      false
+    end
+  end
+
+  defp save_temp_chunk_audio(wav_binary, %Kitt{} = kitt) when is_binary(wav_binary) do
+    try do
+      {:ok, canonical_wav} = concat_wav_binaries([wav_binary])
+      filename = "chunk_#{Ecto.UUID.generate()}.wav"
+      local_rel_path = Kitts.path(kitt, filename)
+      local_abs_path = Kitts.resource(kitt, filename)
+
+      File.mkdir_p!(Path.dirname(local_abs_path))
+      File.write!(local_abs_path, canonical_wav)
+
+      Task.start(fn ->
+        Process.sleep(120_000)
+        File.rm(local_abs_path)
+      end)
+
+      {:ok, local_rel_path}
+    rescue
+      e -> {:error, e}
+    end
+  end
+
+  defp synthesize_single_chunk(chunk, params, lang_code, %Kitt{} = kitt) do
+    speaker_audio = prepare_speaker_audio(kitt, false)
+
+    case do_call_and_download(chunk, params, lang_code, speaker_audio) do
+      {:ok, wav_binary} ->
+        {:ok, wav_binary}
+
+      {:error, _reason} when not is_nil(speaker_audio) ->
+        Logger.info("TTS: Refreshing cached speaker audio and retrying chunk once...")
+        fresh_speaker = prepare_speaker_audio(kitt, true)
+        do_call_and_download(chunk, params, lang_code, fresh_speaker)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp do_call_and_download(chunk, params, lang_code, speaker_audio) do
+    with {:ok, audio_url} <- call_gradio(chunk, params, lang_code, speaker_audio),
+         {:ok, wav_binary} <- download_audio_binary(audio_url) do
+      {:ok, wav_binary}
+    end
+  end
+
+  defp normalize_mood_key(mood) do
+    (mood || "default")
+    |> to_string()
+    |> String.trim()
+    |> String.downcase()
+  end
+
+  defp ensure_prefetch_table do
+    table = :zonos_chunk_prefetch
+
+    case :ets.whereis(table) do
+      :undefined ->
+        try do
+          ets_opts =
+            case Process.whereis(KittAgent.Supervisor) do
+              pid when is_pid(pid) -> [:named_table, :public, :set, {:heir, pid, nil}]
+              _ -> [:named_table, :public, :set]
+            end
+
+          :ets.new(table, ets_opts)
+        rescue
+          ArgumentError -> table
+        end
+
+      _tid ->
+        prune_stale_prefetch_entries(table)
+        table
+    end
+  end
+
+  defp prune_stale_prefetch_entries(table) do
+    cutoff = System.monotonic_time(:millisecond) - 60_000
+
+    try do
+      :ets.foldl(
+        fn
+          {key, _status, ts}, acc when ts < cutoff ->
+            :ets.delete(table, key)
+            acc
+
+          _, acc ->
+            acc
+        end,
+        :ok,
+        table
+      )
+    rescue
+      _ -> :ok
+    end
+  end
+
+  defp wait_for_prev_key(_table, nil, _deadline), do: :ok
+
+  defp wait_for_prev_key(table, prev_key, deadline) do
+    case :ets.lookup(table, prev_key) do
+      [{^prev_key, :in_progress, _ts}] ->
+        if System.monotonic_time(:millisecond) < deadline do
+          Process.sleep(20)
+          wait_for_prev_key(table, prev_key, deadline)
+        else
+          :ok
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp await_prefetch_entry(table, key, deadline) do
+    case :ets.lookup(table, key) do
+      [{^key, {:done, {:ok, wav_binary, pushed?}}, _ts}] ->
+        {:ok, wav_binary, pushed?}
+
+      [{^key, {:done, {:ok, wav_binary}}, _ts}] ->
+        {:ok, wav_binary, false}
+
+      [{^key, :in_progress, ts}] ->
+        now = System.monotonic_time(:millisecond)
+
+        if now < deadline and now - ts < 60_000 do
+          Process.sleep(20)
+          await_prefetch_entry(table, key, deadline)
+        else
+          :ets.delete(table, key)
+          :miss
+        end
+
+      _ ->
+        :miss
     end
   end
 
@@ -778,7 +1149,7 @@ defmodule KittAgent.Requests.ZonosGradio do
          data_acc
        )
        when byte_size(rest) >= chunk_size do
-    <<chunk_body::binary-size(chunk_size), after_chunk::binary>> = rest
+    <<chunk_body::binary-size(^chunk_size), after_chunk::binary>> = rest
     pad = rem(chunk_size, 2)
 
     remaining =

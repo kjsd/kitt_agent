@@ -48,7 +48,7 @@ defmodule KittAgent.Requests.OpenAITTS do
 
         is_system_action = updated_content.action == KittAgent.Datasets.Content.action_system()
 
-        Talks.Queue.enqueue(kitt.id, updated_content)
+        Talks.enqueue_or_push(kitt.id, updated_content)
 
         # If this is a SystemAction, enqueue it for the mBot2 AFTER the audio is ready.
         # If it is a Talk action, enqueue a virtual SystemAction (`talk_led`) for mBot2's front LEDs.
@@ -76,12 +76,14 @@ defmodule KittAgent.Requests.OpenAITTS do
       else
         error ->
           Logger.error("TTS: Failed. Reason: #{inspect(error)}")
+          Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
           fallback_enqueue_system_action(content, kitt)
           {:error, error}
       end
     rescue
       e ->
         Logger.error("TTS: Exception: #{inspect(e)}")
+        Talks.broadcast_ws(kitt.id, %{type: "talk_complete", error: true})
         fallback_enqueue_system_action(content, kitt)
         {:error, e}
     end

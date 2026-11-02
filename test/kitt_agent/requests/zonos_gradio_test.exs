@@ -77,6 +77,82 @@ defmodule KittAgent.Requests.ZonosGradioTest do
     end
   end
 
+  describe "extract_ready_tts_chunks/1 and prefetch cache consumption" do
+    test "incrementally extracts completed sentence chunks from streaming JSON" do
+      # Still typing first sentence -> :incomplete
+      assert ZonosGradio.extract_ready_tts_chunks(~s({"mood":"happy","message":"マイケル、了解です！)) ==
+               :incomplete
+
+      # Second sentence started -> first sentence chunk is guaranteed complete!
+      assert ZonosGradio.extract_ready_tts_chunks(
+               ~s({"mood":"happy","message":"マイケル、了解です！？ ただ)
+             ) == {:ok, "happy", ["マイケル、了解です！？"]}
+
+      # Closing quote of "message" arrived while "action"/"parameter" are still streaming -> all chunks ready!
+      assert ZonosGradio.extract_ready_tts_chunks(
+               ~s({"mood":"happy","message":"マイケル、了解です！？ ただちに100cm前進します。","action":"System)
+             ) == {
+               :ok,
+               "happy",
+               [
+                 "マイケル、了解です！？",
+                 "ただちに100センチ前進します。"
+               ]
+             }
+    end
+
+    test "synthesize_chunks/5 consumes prefetched chunks from ETS without network call" do
+      kitt = %KittAgent.Datasets.Kitt{id: "test-kitt-prefetch", lang: "Japanese"}
+      mood = "happy"
+      params = ZonosGradio.resolve_parameters(mood)
+      chunks = ["マイケル、了解です。", "ただちに前進します！"]
+
+      wav1 = build_test_wav(44_100, 0.5)
+      wav2 = build_test_wav(44_100, 0.5)
+
+      ZonosGradio.put_prefetched_chunk(kitt.id, mood, Enum.at(chunks, 0), wav1)
+      ZonosGradio.put_prefetched_chunk(kitt.id, mood, Enum.at(chunks, 1), wav2)
+
+      assert {:ok, [^wav1, ^wav2]} =
+               ZonosGradio.synthesize_chunks(chunks, params, "ja", kitt, mood)
+    end
+
+    test "synthesize_chunks/6 streams talk_chunk events to registered WebSocket processes" do
+      kitt = %KittAgent.Datasets.Kitt{id: "test-kitt-ws-stream", lang: "Japanese"}
+      mood = "happy"
+      params = ZonosGradio.resolve_parameters(mood)
+      chunks = ["マイケル、了解です。", "ただちに前進します！"]
+
+      wav1 = build_test_wav(44_100, 0.5)
+      wav2 = build_test_wav(44_100, 0.5)
+
+      {:ok, _} = KittAgent.Talks.register_ws(kitt.id)
+      assert KittAgent.Talks.ws_connected?(kitt.id)
+
+      ZonosGradio.put_prefetched_chunk(kitt.id, mood, Enum.at(chunks, 0), wav1)
+      ZonosGradio.put_prefetched_chunk(kitt.id, mood, Enum.at(chunks, 1), wav2)
+
+      assert {:ok, [^wav1, ^wav2], true} =
+               ZonosGradio.synthesize_chunks(chunks, params, "ja", kitt, mood, true)
+
+      assert_receive {:ws_push, json1}
+      assert_receive {:ws_push, json2}
+
+      msg1 = Jason.decode!(json1)
+      msg2 = Jason.decode!(json2)
+
+      assert msg1["type"] == "talk_chunk"
+      assert msg1["chunk_index"] == 0
+      assert msg1["is_last"] == false
+      assert is_binary(msg1["audio_path"])
+
+      assert msg2["type"] == "talk_chunk"
+      assert msg2["chunk_index"] == 1
+      assert msg2["is_last"] == true
+      assert is_binary(msg2["audio_path"])
+    end
+  end
+
   describe "OpenAITTS.prepare_input_text/2" do
     test "prefixes [mood] once when mood is non-neutral and cleans text" do
       result = OpenAITTS.prepare_input_text("[laughter] 東白川村へようこそ。", "excited")
