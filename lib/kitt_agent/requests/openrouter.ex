@@ -47,6 +47,7 @@ defmodule KittAgent.Requests.OpenRouter do
       ZonosGradio.warm_speaker_audio_async(kitt)
     end
 
+    SystemActions.set_thinking(kitt.id, true)
     StageLogger.llm_started(user_text)
 
     payload =
@@ -90,6 +91,8 @@ defmodule KittAgent.Requests.OpenRouter do
               # TTS will handle enqueuing the SystemAction after audio is generated to sync them.
               TTS.RequestBroker.exec(kitt, event.content)
             else
+              SystemActions.set_thinking(kitt.id, false)
+
               # If TTS is disabled, enqueue SystemAction immediately.
               if event.content.action == Content.action_system() do
                 SystemActions.Queue.enqueue(kitt.id, event.content)
@@ -108,15 +111,18 @@ defmodule KittAgent.Requests.OpenRouter do
           end
         else
           e ->
+            SystemActions.set_thinking(kitt.id, false)
             Logger.error("OpenRouter talk decode/event error: #{inspect(e)}")
             {:error, e}
         end
 
       {:ok, e} ->
+        SystemActions.set_thinking(kitt.id, false)
         Logger.error("OpenRouter talk unexpected response: #{inspect(e)}")
         {:error, e}
 
       {:error, e} ->
+        SystemActions.set_thinking(kitt.id, false)
         Logger.error("OpenRouter talk transport error: #{inspect(e)}")
         {:error, e}
     end

@@ -11,15 +11,30 @@ defmodule KittAgentWeb.SystemActionController do
   action_fallback KittAgentWeb.FallbackController
 
   def pending(conn, %{"id" => kitt_id}) do
-    with %Content{} = c <- dequeue_pending(kitt_id) do
-      if not String.starts_with?(c.parameter || "", "talk_led(") do
-        Events.content_processing(c)
-        StageLogger.mbot_action_started(c)
-      end
+    case dequeue_pending(kitt_id) do
+      %Content{} = c ->
+        if not virtual_led_action?(c) do
+          Events.content_processing(c)
+          StageLogger.mbot_action_started(c)
+        end
 
-      conn
-      |> json(c)
+        conn
+        |> json(c)
+
+      nil ->
+        if KittAgent.SystemActions.thinking?(kitt_id) do
+          conn
+          |> json(KittAgent.SystemActions.thinking_action())
+        else
+          nil
+        end
     end
+  end
+
+  def complete(conn, %{"id" => _kitt_id, "content_id" => content_id})
+      when content_id in ["thinking", "talk_led"] do
+    conn
+    |> json(%{status: "OK"})
   end
 
   def complete(conn, %{"id" => kitt_id, "content_id" => content_id}) do
@@ -33,6 +48,12 @@ defmodule KittAgentWeb.SystemActionController do
     end
   end
 
+  def fail(conn, %{"id" => _kitt_id, "content_id" => content_id})
+      when content_id in ["thinking", "talk_led"] do
+    conn
+    |> json(%{status: "OK"})
+  end
+
   def fail(conn, %{"id" => kitt_id, "content_id" => content_id}) do
     with %Kitt{} = _ <- Kitts.get_kitt(kitt_id),
          %Content{} = c <- Events.get_content(content_id) do
@@ -43,6 +64,14 @@ defmodule KittAgentWeb.SystemActionController do
       |> json(%{status: "OK"})
     end
   end
+
+  defp virtual_led_action?(%Content{id: id}) when id in ["thinking", "talk_led"], do: true
+
+  defp virtual_led_action?(%Content{parameter: param}) when is_binary(param) do
+    String.starts_with?(param, "talk_led(") or String.starts_with?(param, "think_led(")
+  end
+
+  defp virtual_led_action?(_), do: false
 
   defp dequeue_pending(id) do
     with %Content{status: Content.status_pending()} = c <- Queue.dequeue(id) do
