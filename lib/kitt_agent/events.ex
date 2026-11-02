@@ -50,7 +50,7 @@ defmodule KittAgent.Events do
       |> preload([event: :kitt])
     end
 
-  @recent 100
+  @recent 20
 
   def make_user_talk_event(text) do
     %Event{

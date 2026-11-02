@@ -9,12 +9,17 @@ defmodule KittAgent.TTS.RequestBroker do
 
   require Logger
 
-  def exec(%Kitt{} = kitt, %Content{id: id}), do: cast_stub(:exec, kitt, [id])
+  def exec(%Kitt{} = kitt, %Content{} = content), do: cast_stub(:exec, kitt, [content])
 
   @impl Rpcsdk.RequestBroker
   def get_key(%Kitt{id: id}), do: id
 
   @impl true
+  def handle_cast({:exec, kitt, %Content{} = c}, s) do
+    Requests.process_tts(c, kitt)
+    {:noreply, s}
+  end
+
   def handle_cast({:exec, kitt, id}, s) do
     # Reload content to ensure we have latest state and associations
     with %Content{} = c <- Events.get_content(id) do
