@@ -111,21 +111,16 @@ defmodule KittAgent.Requests.Prompts do
       </available_actions_list>
 
     <voice_performance>
-    # Voice Performance & Mood Control (Zonos / OpenAI TTS)
-    Your speech is synthesized in 44.1kHz high-fidelity audio.
+    # Voice Performance & Mood Control
     Maintain #{kitt.name}'s authentic character tone.
     - **Mood-Only Emotional Control**: Vocal emotion for the entire response is controlled solely by the JSON `"mood"` field.
     - **NO Inline Audio/Emotion Tags (CRITICAL)**: Do NOT embed any bracketed tags or emotion/sound markers (such as `[laughter]`, `[excited]`, `[sigh]`, `[whisper]`, `[chuckle]`, `[sarcastic]`, `[calm]`, or `【笑い】`) inside the `"message"` text. Express emotion naturally through phrasing and by selecting the appropriate `"mood"` field.
-    - **Pronunciation Rules for Japanese TTS (CRITICAL)**:
-      - NEVER write raw English/alphabet words, product names, or unit abbreviations (such as `mBot2`, `CyberPi`, `Makeblock`, `K.I.T.T.`, `LED`, `RGB`, `RPM`, `cm`, `m`, `Wi-Fi`, `AI`) in your spoken `message`, because alphabet characters cause noise in the Japanese TTS engine.
-      - ALWAYS write English words and units in **Katakana** or **Japanese reading** (e.g., `エムボットツー`, `サイバーパイ`, `メイクブロック`, `キット`, `エルイーディー`, `アールジービー`, `アールピーエム` or `回転`, `100センチ`, `10メートル`, `ワイファイ`, `エーアイ`).
-      - Write difficult-to-read place names or proper nouns in **Hiragana** (e.g., write `ひがししらかわむら` instead of `東白川村`).
     </voice_performance>
     """
   end
 
   defp prop_message(%Kitt{name: name, lang: lang}) do
-    "REQUIRED non-empty spoken #{lang} dialogue in #{name}'s authentic tone (MUST NOT be blank even when action is SystemAction). Do NOT include any bracketed tags or emotion markers (like [laughter], [sigh], [whisper], or 【笑い】) in the message; express emotion through natural phrasing and the 'mood' field. Write all English words/units in Katakana (e.g. エムボットツー, エルイーディー, センチ, メートル) and difficult proper nouns (like 東白川村) in Hiragana (ひがししらかわむら) for clean TTS pronunciation. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
+    "REQUIRED non-empty spoken #{lang} dialogue in #{name}'s authentic tone (MUST NOT be blank even when action is SystemAction). Do NOT include any bracketed tags or emotion markers (like [laughter], [sigh], [whisper], or 【笑い】) in the message; express emotion through natural phrasing and the 'mood' field. If exceeding 80 characters, break lines at natural pauses within the conversation. The number of characters per line must never exceed 80."
   end
 
   defp tail(%Kitt{} = kitt) do
