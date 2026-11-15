@@ -1,9 +1,10 @@
 defmodule KittAgent.Requests.OpenAITTS do
   @moduledoc """
   OpenAI-compatible Text-to-Speech (TTS) client for `openai-tts-bridge`.
-  Calls `POST /v1/audio/speech` per sentence chunk with `[mood]` tag control and dynamic
-  per-Kitt reference voice (`speaker_audio_base64`), supporting real-time LLM streaming
-  prefetch, WebSocket `talk_chunk` delivery, and canonical RIFF WAVE concatenation.
+  Calls `POST /v1/audio/speech` per sentence chunk with `[mood]` tag control and SkyrimNet-style
+  on-demand per-Kitt reference voice enrollment (`POST /v1/audio/voices` on HTTP 404
+  `voice_not_found`), supporting real-time LLM streaming prefetch, WebSocket `talk_chunk`
+  delivery, and canonical RIFF WAVE concatenation.
   User pronunciation dictionaries and engine-specific text normalizations are delegated
   centrally to `openai-tts-bridge`.
   """
@@ -267,9 +268,8 @@ defmodule KittAgent.Requests.OpenAITTS do
       end)
 
     if new_items != [] do
-      voice = resolve_voice(kitt)
+      {voice, speaker_audio_path} = resolve_speaker(kitt)
       model = openai_tts_model()
-      speaker_audio_b64 = load_speaker_audio_base64(kitt)
 
       Task.start(fn ->
         Enum.each(new_items, fn {{chunk, key}, idx} ->
@@ -286,7 +286,7 @@ defmodule KittAgent.Requests.OpenAITTS do
 
           input_text = prepare_input_text(chunk, mood)
 
-          case call_speech_api(input_text, voice, model, speaker_audio_b64) do
+          case call_speech_api(input_text, voice, model, speaker_audio_path) do
             {:ok, wav_binary} ->
               pushed? = maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx, false)
 
@@ -342,9 +342,8 @@ defmodule KittAgent.Requests.OpenAITTS do
     total = length(chunks)
     keys = Enum.map(chunks, &{kitt.id, mood_key, &1})
 
-    voice = resolve_voice(kitt)
+    {voice, speaker_audio_path} = resolve_speaker(kitt)
     model = openai_tts_model()
-    speaker_audio_b64 = load_speaker_audio_base64(kitt)
 
     result =
       chunks
@@ -387,7 +386,7 @@ defmodule KittAgent.Requests.OpenAITTS do
             Logger.info("TTS: Generating chunk [#{idx}/#{total}]: #{inspect(chunk)}")
             input_text = prepare_input_text(chunk, mood)
 
-            case call_speech_api(input_text, voice, model, speaker_audio_b64) do
+            case call_speech_api(input_text, voice, model, speaker_audio_path) do
               {:ok, wav_binary} ->
                 pushed_now =
                   if stream_ws? do
@@ -417,20 +416,60 @@ defmodule KittAgent.Requests.OpenAITTS do
   end
 
   @doc """
-  Resolves speaker voice name. If kitt has an audio_path, uses its base name without extension.
-  Otherwise falls back to config or default 'nina2'.
+  Resolves `{voice_id, reference_audio_path}` for a Kitt.
+  When the Kitt's reference audio file exists on disk, derives a collision-free
+  content-addressed voice ID (`"kitt-<stem>-<sha12>"`) so multiple Kitts with identical
+  filenames (or updated recordings) never overwrite each other on `openai-tts-bridge`.
   """
-  def resolve_voice(%Kitt{audio_path: audio_path})
+  def resolve_speaker(%Kitt{id: id, audio_path: audio_path} = kitt)
       when is_binary(audio_path) and audio_path != "" do
-    Path.basename(audio_path, Path.extname(audio_path))
-  end
+    stem =
+      audio_path
+      |> Path.basename(Path.extname(audio_path))
+      |> sanitize_voice_stem()
 
-  def resolve_voice(_kitt) do
-    case KittAgent.Configs.get_config("openai_tts_default_voice", @default_voice) do
-      val when is_binary(val) and val != "" -> val
-      _ -> @default_voice
+    with true <- is_binary(id) and id != "",
+         path when is_binary(path) <- Kitts.resource_audio(kitt),
+         true <- File.regular?(path),
+         {:ok, binary} when byte_size(binary) > 0 <- File.read(path) do
+      hash12 =
+        :crypto.hash(:sha256, binary)
+        |> Base.encode16(case: :lower)
+        |> binary_part(0, 12)
+
+      {"kitt-#{stem}-#{hash12}", path}
+    else
+      _ -> {stem, nil}
     end
   end
+
+  def resolve_speaker(_kitt) do
+    voice =
+      case KittAgent.Configs.get_config("openai_tts_default_voice", @default_voice) do
+        val when is_binary(val) and val != "" -> val
+        _ -> @default_voice
+      end
+
+    {voice, nil}
+  end
+
+  defp sanitize_voice_stem(stem) do
+    cleaned =
+      stem
+      |> String.replace(~r/[^a-zA-Z0-9_-]/u, "_")
+      |> String.trim("_")
+
+    if cleaned == "", do: "voice", else: cleaned
+  end
+
+  @doc """
+  Resolves speaker voice ID for a Kitt.
+  """
+  def resolve_voice(%Kitt{} = kitt) do
+    elem(resolve_speaker(kitt), 0)
+  end
+
+  def resolve_voice(_), do: elem(resolve_speaker(nil), 0)
 
   @doc """
   Loads the Kitt's uploaded reference audio file (if exists) and returns base64-encoded string.
@@ -449,31 +488,73 @@ defmodule KittAgent.Requests.OpenAITTS do
   def load_speaker_audio_base64(_), do: nil
 
   @doc """
-  Sends request to OpenAI-compatible POST /audio/speech endpoint.
-  Supports optional speaker_audio_base64 parameter for custom speaker cloning.
-  Returns raw WAV binary data on success.
+  Sends request to OpenAI-compatible `POST /v1/audio/speech` endpoint using SkyrimNet-style
+  on-demand voice enrollment.
+  - Sends lightweight JSON (`model`, `input`, `voice`, `response_format`) without per-chunk base64.
+  - On HTTP 404 `voice_not_found`, automatically uploads `speaker_audio_path` once via
+    `POST /v1/audio/voices` and retries synthesis (or falls back to `"default"` if the Kitt
+    has no local reference audio file).
   """
-  def call_speech_api(input_text, voice, model, custom_audio_b64 \\ nil) do
-    base_url = openai_tts_url() |> String.trim_trailing("/")
+  def call_speech_api(input_text, voice, model, speaker_audio_path \\ nil, opts \\ []) do
+    base_url = (opts[:base_url] || openai_tts_url()) |> String.trim_trailing("/")
+    req_opts = opts[:req_options] || []
     url = "#{base_url}/audio/speech"
 
-    payload =
-      %{
-        "model" => model,
-        "input" => input_text,
-        "voice" => voice,
-        "response_format" => "wav"
-      }
-      |> maybe_put_custom_audio(custom_audio_b64)
+    payload = %{
+      "model" => model,
+      "input" => input_text,
+      "voice" => voice,
+      "response_format" => "wav"
+    }
 
-    headers = [
-      {"content-type", "application/json"}
-    ]
-
-    case Req.post(url, json: payload, headers: headers, receive_timeout: 45_000) do
+    case post_speech_json(url, payload, req_opts) do
       {:ok, %{status: 200, body: wav_binary}}
       when is_binary(wav_binary) and byte_size(wav_binary) > 0 ->
         {:ok, wav_binary}
+
+      {:ok, %{status: 404, body: body}} ->
+        cond do
+          voice_not_found?(body) and is_binary(speaker_audio_path) and
+              File.regular?(speaker_audio_path) ->
+            Logger.info(
+              "TTS: Voice '#{voice}' not enrolled on bridge; uploading #{Path.basename(speaker_audio_path)} via POST #{base_url}/audio/voices..."
+            )
+
+            with :ok <- enroll_speaker_voice(base_url, voice, speaker_audio_path, req_opts),
+                 {:ok, %{status: 200, body: retry_wav}}
+                 when is_binary(retry_wav) and byte_size(retry_wav) > 0 <-
+                   post_speech_json(url, payload, req_opts) do
+              {:ok, retry_wav}
+            else
+              {:ok, %{status: status, body: err_body}} ->
+                {:error, "Retry after voice enrollment returned HTTP #{status}: #{inspect(err_body)}"}
+
+              {:error, reason} ->
+                {:error, reason}
+            end
+
+          voice_not_found?(body) and is_nil(speaker_audio_path) and voice != "default" ->
+            Logger.info(
+              "TTS: Voice '#{voice}' not enrolled and Kitt has no reference audio; falling back to 'default'"
+            )
+
+            fallback_payload = Map.put(payload, "voice", "default")
+
+            case post_speech_json(url, fallback_payload, req_opts) do
+              {:ok, %{status: 200, body: retry_wav}}
+              when is_binary(retry_wav) and byte_size(retry_wav) > 0 ->
+                {:ok, retry_wav}
+
+              {:ok, %{status: status, body: err_body}} ->
+                {:error, "API returned HTTP #{status}: #{inspect(err_body)}"}
+
+              {:error, reason} ->
+                {:error, "Request failed: #{inspect(reason)}"}
+            end
+
+          true ->
+            {:error, "API returned HTTP 404: #{inspect(body)}"}
+        end
 
       {:ok, %{status: status, body: body}} ->
         {:error, "API returned HTTP #{status}: #{inspect(body)}"}
@@ -483,11 +564,53 @@ defmodule KittAgent.Requests.OpenAITTS do
     end
   end
 
-  defp maybe_put_custom_audio(payload, b64) when is_binary(b64) and b64 != "" do
-    Map.put(payload, "speaker_audio_base64", b64)
+  defp post_speech_json(url, payload, req_opts) do
+    headers = [{"content-type", "application/json"}]
+
+    Req.post(
+      url,
+      Keyword.merge([json: payload, headers: headers, receive_timeout: 45_000], req_opts)
+    )
   end
 
-  defp maybe_put_custom_audio(payload, _), do: payload
+  defp voice_not_found?(%{"error" => %{"code" => "voice_not_found"}}), do: true
+
+  defp voice_not_found?(body) when is_binary(body) do
+    String.contains?(body, "voice_not_found")
+  end
+
+  defp voice_not_found?(_), do: false
+
+  defp enroll_speaker_voice(base_url, voice, speaker_audio_path, req_opts) do
+    case File.read(speaker_audio_path) do
+      {:ok, wav_bytes} when byte_size(wav_bytes) > 0 ->
+        voices_url = "#{base_url}/audio/voices"
+
+        multipart = [
+          voice_id: voice,
+          title: voice,
+          ref_audio: {wav_bytes, filename: "#{voice}.wav", content_type: "audio/wav"}
+        ]
+
+        case Req.post(
+               voices_url,
+               Keyword.merge([form_multipart: multipart, receive_timeout: 30_000], req_opts)
+             ) do
+          {:ok, %{status: status}} when status in [200, 201, 409] ->
+            Logger.info("TTS: Enrolled Kitt reference voice '#{voice}' at #{voices_url}")
+            :ok
+
+          {:ok, %{status: status, body: body}} ->
+            {:error, "Voice upload returned HTTP #{status}: #{inspect(body)}"}
+
+          {:error, reason} ->
+            {:error, "Voice upload failed: #{inspect(reason)}"}
+        end
+
+      {:error, reason} ->
+        {:error, "Failed to read speaker audio #{speaker_audio_path}: #{inspect(reason)}"}
+    end
+  end
 
   @doc """
   Computes audio duration in seconds from a RIFF WAVE binary using the `fmt ` chunk's
