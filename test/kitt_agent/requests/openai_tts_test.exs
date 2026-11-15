@@ -188,6 +188,107 @@ defmodule KittAgent.Requests.OpenAITTSTest do
       assert OpenAITTS.bridge_ui_url("http://nina.local:8080/v1") == "http://nina.local:8080"
       assert OpenAITTS.bridge_ui_url("http://nina.local:8080/v1/") == "http://nina.local:8080"
     end
+
+    test "resolve_speaker/1 generates collision-free content-addressed voice IDs for distinct Kitts" do
+      kitt_a = %Kitt{id: Ecto.UUID.generate(), audio_path: "voice.wav"}
+      kitt_b = %Kitt{id: Ecto.UUID.generate(), audio_path: "voice.wav"}
+
+      path_a = KittAgent.Kitts.resource(kitt_a, "voice.wav")
+      path_b = KittAgent.Kitts.resource(kitt_b, "voice.wav")
+      File.mkdir_p!(Path.dirname(path_a))
+      File.mkdir_p!(Path.dirname(path_b))
+      File.write!(path_a, "RIFF_KITT_PERSONALITY_ALPHA")
+      File.write!(path_b, "RIFF_KITT_PERSONALITY_BETA")
+
+      on_exit(fn ->
+        File.rm_rf(Path.dirname(path_a))
+        File.rm_rf(Path.dirname(path_b))
+      end)
+
+      {voice_a, ^path_a} = OpenAITTS.resolve_speaker(kitt_a)
+      {voice_b, ^path_b} = OpenAITTS.resolve_speaker(kitt_b)
+
+      assert String.starts_with?(voice_a, "kitt-voice-")
+      assert String.starts_with?(voice_b, "kitt-voice-")
+      assert voice_a != voice_b
+    end
+
+    test "call_speech_api/5 enrolls Kitt voice on 404 voice_not_found without sending speaker_audio_base64" do
+      kitt = %Kitt{id: Ecto.UUID.generate(), audio_path: "knight2000.wav"}
+      ref_path = KittAgent.Kitts.resource(kitt, "knight2000.wav")
+      File.mkdir_p!(Path.dirname(ref_path))
+      File.write!(ref_path, "RIFF_KNIGHT2000_REF_WAV")
+      on_exit(fn -> File.rm_rf(Path.dirname(ref_path)) end)
+
+      {voice_id, ^ref_path} = OpenAITTS.resolve_speaker(kitt)
+      {:ok, agent} = Agent.start_link(fn -> %{enrolled: MapSet.new(), uploads: 0, speeches: 0} end)
+
+      plug = fn conn ->
+        {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+
+        case {conn.method, conn.request_path} do
+          {"POST", "/v1/audio/speech"} ->
+            decoded = Jason.decode!(raw_body)
+            refute Map.has_key?(decoded, "speaker_audio_base64")
+            req_voice = decoded["voice"]
+
+            enrolled? =
+              Agent.get_and_update(agent, fn s ->
+                s2 = %{s | speeches: s.speeches + 1}
+                {req_voice == "default" or MapSet.member?(s2.enrolled, req_voice), s2}
+              end)
+
+            if enrolled? do
+              conn
+              |> Plug.Conn.put_resp_content_type("audio/wav")
+              |> Plug.Conn.send_resp(200, "RIFF_SYNTHESIZED_KITT_WAV")
+            else
+              conn
+              |> Plug.Conn.put_resp_content_type("application/json")
+              |> Plug.Conn.send_resp(
+                404,
+                Jason.encode!(%{
+                  "error" => %{"code" => "voice_not_found", "message" => "Voice not found"}
+                })
+              )
+            end
+
+          {"POST", "/v1/audio/voices"} ->
+            assert raw_body =~ "RIFF_KNIGHT2000_REF_WAV"
+            assert raw_body =~ voice_id
+
+            Agent.update(agent, fn s ->
+              %{s | enrolled: MapSet.put(s.enrolled, voice_id), uploads: s.uploads + 1}
+            end)
+
+            conn
+            |> Plug.Conn.put_resp_content_type("application/json")
+            |> Plug.Conn.send_resp(200, Jason.encode!(%{"voice_id" => voice_id}))
+        end
+      end
+
+      opts = [base_url: "http://bridge.test/v1", req_options: [plug: plug]]
+
+      # 1st chunk: 404 -> uploads reference WAV once -> retries speech -> 200 OK
+      assert {:ok, "RIFF_SYNTHESIZED_KITT_WAV"} =
+               OpenAITTS.call_speech_api("マイケル、了解です。", voice_id, "zonos", ref_path, opts)
+
+      state1 = Agent.get(agent, & &1)
+      assert state1.uploads == 1
+      assert state1.speeches == 2
+
+      # 2nd chunk: already enrolled -> 1 speech call, 0 uploads!
+      assert {:ok, "RIFF_SYNTHESIZED_KITT_WAV"} =
+               OpenAITTS.call_speech_api("前進します！", voice_id, "zonos", ref_path, opts)
+
+      state2 = Agent.get(agent, & &1)
+      assert state2.uploads == 1
+      assert state2.speeches == 3
+
+      # Kitt without local reference audio falls back to "default" when configured voice is missing
+      assert {:ok, "RIFF_SYNTHESIZED_KITT_WAV"} =
+               OpenAITTS.call_speech_api("デフォルト音声テスト", "nina2", "zonos", nil, opts)
+    end
   end
 
   describe "Prompts voice_performance cleanup" do
