@@ -146,114 +146,74 @@
               <% end %>
             </datalist>
 
-            <div class="divider">TTS Configuration</div>
+            <div class="divider">TTS Configuration (OpenAI TTS Bridge)</div>
 
             <div class="form-control w-full">
               <label class="label">
-                <span class="label-text">TTS Provider</span>
-                <span class="label-text-alt text-gray-500">Choose TTS backend engine</span>
+                <span class="label-text">OpenAI TTS API Base URL</span>
+                <span class="label-text-alt text-gray-500">default: http://nina.local:8080/v1</span>
               </label>
-              <select name="tts_provider" class="select select-bordered w-full">
-                <option value="zonos" selected={@configs["tts_provider"] != "openai"}>
-                  Zonos (Gradio v0.1 - Default)
-                </option>
-                <option value="openai" selected={@configs["tts_provider"] == "openai"}>
-                  OpenAI TTS Compatible (Bridge / OpenAI)
-                </option>
-              </select>
+              <input
+                type="text"
+                name="openai_tts_url"
+                value={@configs["openai_tts_url"] || "http://nina.local:8080/v1"}
+                class="input input-bordered w-full"
+                placeholder="http://nina.local:8080/v1"
+              />
             </div>
 
-            <%= if @configs["tts_provider"] != "openai" do %>
-              <!-- Zonos Gradio Configuration -->
-              <div class="form-control w-full mt-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div class="form-control w-full">
                 <label class="label">
-                  <span class="label-text">Zonos Gradio API Base URL</span>
-                  <span class="label-text-alt text-gray-500">default: http://nina.local:7860</span>
+                  <span class="label-text">TTS Model</span>
+                  <span class="label-text-alt text-gray-500">default: tts-1</span>
                 </label>
                 <input
                   type="text"
-                  name="zonos_gradio_url"
-                  value={@configs["zonos_gradio_url"] || "http://nina.local:7860"}
+                  name="openai_tts_model"
+                  value={@configs["openai_tts_model"] || "tts-1"}
                   class="input input-bordered w-full"
-                  placeholder="http://nina.local:7860"
+                  placeholder="tts-1"
                 />
               </div>
-            <% else %>
-              <!-- OpenAI TTS Configuration -->
-              <div class="form-control w-full mt-2">
+
+              <div class="form-control w-full">
                 <label class="label">
-                  <span class="label-text">OpenAI TTS API Base URL</span>
-                  <span class="label-text-alt text-gray-500">default: http://nina.local:8080/v1</span>
+                  <span class="label-text">Default Voice</span>
+                  <span class="label-text-alt text-gray-500">default: nina2</span>
                 </label>
                 <input
                   type="text"
-                  name="openai_tts_url"
-                  value={@configs["openai_tts_url"] || "http://nina.local:8080/v1"}
+                  name="openai_tts_default_voice"
+                  value={@configs["openai_tts_default_voice"] || "nina2"}
                   class="input input-bordered w-full"
-                  placeholder="http://nina.local:8080/v1"
+                  placeholder="nina2"
                 />
               </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div class="form-control w-full">
-                  <label class="label">
-                    <span class="label-text">TTS Model</span>
-                    <span class="label-text-alt text-gray-500">default: zonos2</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="openai_tts_model"
-                    value={@configs["openai_tts_model"] || "zonos2"}
-                    class="input input-bordered w-full"
-                    placeholder="zonos2"
-                  />
-                </div>
-
-                <div class="form-control w-full">
-                  <label class="label">
-                    <span class="label-text">Default Voice</span>
-                    <span class="label-text-alt text-gray-500">default: nina2</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="openai_tts_default_voice"
-                    value={@configs["openai_tts_default_voice"] || "nina2"}
-                    class="input input-bordered w-full"
-                    placeholder="nina2"
-                  />
-                </div>
-              </div>
-            <% end %>
-
-            <div class="flex justify-end mt-2">
-              <button
-                type="submit"
-                name="action"
-                value="check_tts"
-                class="btn btn-sm btn-outline"
-              >
-                Check TTS Connection
-              </button>
             </div>
 
-            <div class="form-control w-full mt-4">
-              <label class="label">
-                <span class="label-text font-semibold">TTS Pronunciation Dictionary (読み替え辞書)</span>
-                <span class="label-text-alt text-gray-500">
-                  1行に1件「単語=読み」で入力（漢字の誤読防止・英単語のカタカナ化）
-                </span>
-              </label>
-              <textarea
-                name="tts_dictionary"
-                rows="8"
-                class="textarea textarea-bordered font-mono text-sm w-full"
-                placeholder="東白川村=ひがししらかわむら&#10;mBot2=エムボットツー"
-              ><%= @configs["tts_dictionary"] || KittAgent.Requests.ZonosGradio.default_tts_dictionary() %></textarea>
-              <label class="label">
-                <span class="label-text-alt text-gray-400">
-                  ※長い単語から優先的に置換されます。英字のみの単語は大文字・小文字を区別せず自動置換されます。
-                </span>
-              </label>
+            <div class="flex flex-wrap items-center justify-between gap-2 mt-2">
+              <span class="text-xs text-gray-500">
+                ※エンジン切替（Irodori / Zonos）やユーザ読み替え辞書は Bridge Web UI で管理します
+              </span>
+              <div class="flex items-center gap-2">
+                <a
+                  href={KittAgent.Requests.OpenAITTS.bridge_ui_url(@configs["openai_tts_url"])}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-sm btn-ghost border border-base-300"
+                >
+                  Bridge Web UI ↗
+                </a>
+                <button
+                  type="submit"
+                  name="action"
+                  value="check_tts"
+                  class="btn btn-sm btn-outline"
+                >
+                  Check TTS Connection
+                </button>
+              </div>
             </div>
 
             <div class="divider">STT Configuration (Speech to Text)</div>

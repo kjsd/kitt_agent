@@ -5,6 +5,10 @@ defmodule KittAgent.TTS do
 
   @impl true
   def init(_) do
+    if :ets.whereis(:tts_chunk_prefetch) == :undefined do
+      :ets.new(:tts_chunk_prefetch, [:named_table, :public, :set])
+    end
+
     children = [
       {DynamicSupervisor, name: KittAgent.TTS.Supervisor, strategy: :one_for_one},
       {Registry, keys: :unique, name: KittAgent.TTS.Registry}

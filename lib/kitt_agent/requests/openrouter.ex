@@ -1,7 +1,7 @@
 defmodule KittAgent.Requests.OpenRouter do
   alias KittAgent.Datasets.{Kitt, Content}
   alias KittAgent.{Events, Summarizer, TTS, SystemActions, StageLogger}
-  alias KittAgent.Requests.{Prompts, ZonosGradio}
+  alias KittAgent.Requests.{Prompts, OpenAITTS}
 
   require Content
   require Logger
@@ -42,10 +42,6 @@ defmodule KittAgent.Requests.OpenRouter do
       Application.get_env(:kitt_agent, KittAgent.Requests, [])
       |> Keyword.get(:talk, [])
       |> Keyword.get(:enable_tts, true)
-
-    if tts_enabled? do
-      ZonosGradio.warm_speaker_audio_async(kitt)
-    end
 
     SystemActions.set_thinking(kitt.id, true)
     StageLogger.llm_started(user_text)
@@ -165,9 +161,9 @@ defmodule KittAgent.Requests.OpenRouter do
   defp process_sse_line(_line, state, _kitt, _tts_enabled?), do: state
 
   defp maybe_trigger_tts_prefetch(state, %Kitt{} = kitt, true) do
-    case ZonosGradio.extract_ready_tts_chunks(state.content_acc) do
+    case OpenAITTS.extract_ready_tts_chunks(state.content_acc) do
       {:ok, mood, ready_chunks} when length(ready_chunks) > state.prefetched_count ->
-        ZonosGradio.prefetch_chunks_async(kitt, mood, ready_chunks)
+        OpenAITTS.prefetch_chunks_async(kitt, mood, ready_chunks)
         %{state | prefetched_count: length(ready_chunks)}
 
       _ ->
