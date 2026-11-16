@@ -140,7 +140,7 @@ defmodule KittAgent.Requests.OpenAITTS do
   def prepare_chunks(text) when is_binary(text) do
     chunks =
       text
-      |> String.replace(~r/`{1,3}.*?`{1,3}/s, "")
+      |> strip_stage_annotations()
       |> split_text()
       |> Enum.map(&clean_text_for_tts/1)
       |> Enum.filter(&speakable?/1)
@@ -156,6 +156,14 @@ defmodule KittAgent.Requests.OpenAITTS do
   end
 
   def prepare_chunks(_), do: []
+
+  defp strip_stage_annotations(text) when is_binary(text) do
+    text
+    |> String.replace(~r/`{1,3}.*?`{1,3}/s, "")
+    |> String.replace(~r/\[[a-zA-Z0-9_\-\s:!]+\]/, "")
+    |> String.replace(~r/【.*?】/s, "")
+    |> String.replace(~r/（.*?）|\(.*?\)/s, "")
+  end
 
   @doc """
   Splits text into sentences while keeping terminal punctuation attached to each sentence.
@@ -250,20 +258,24 @@ defmodule KittAgent.Requests.OpenAITTS do
   @doc """
   Starts background synthesis for completed sentence chunks in strict sequential order
   while the LLM is still streaming the remainder of the response.
+  Uses 0-based chunk index in the ETS key (`{kitt.id, mood_key, idx, chunk}`) so repeated
+  phrases in the same reply (e.g. `["はい！", "了解です。", "はい！"]`) never collide.
   """
-  def prefetch_chunks_async(%Kitt{} = kitt, mood, chunks)
+  def prefetch_chunks_async(kitt, mood, chunks, speech_opts \\ [])
+
+  def prefetch_chunks_async(%Kitt{} = kitt, mood, chunks, speech_opts)
       when is_binary(mood) and is_list(chunks) and chunks != [] do
     table = ensure_prefetch_table()
     now = System.monotonic_time(:millisecond)
     mood_key = normalize_mood_key(mood)
 
     chunks_with_keys =
-      Enum.map(chunks, fn chunk -> {chunk, {kitt.id, mood_key, chunk}} end)
+      chunks
+      |> Enum.with_index()
+      |> Enum.map(fn {chunk, idx} -> {chunk, idx, {kitt.id, mood_key, idx, chunk}} end)
 
     new_items =
-      chunks_with_keys
-      |> Enum.with_index()
-      |> Enum.filter(fn {{_chunk, key}, _idx} ->
+      Enum.filter(chunks_with_keys, fn {_chunk, _idx, key} ->
         :ets.insert_new(table, {key, :in_progress, now})
       end)
 
@@ -272,10 +284,10 @@ defmodule KittAgent.Requests.OpenAITTS do
       model = openai_tts_model()
 
       Task.start(fn ->
-        Enum.each(new_items, fn {{chunk, key}, idx} ->
+        Enum.each(new_items, fn {chunk, idx, key} ->
           prev_key =
             if idx > 0 do
-              elem(Enum.at(chunks_with_keys, idx - 1), 1)
+              elem(Enum.at(chunks_with_keys, idx - 1), 2)
             else
               nil
             end
@@ -286,7 +298,7 @@ defmodule KittAgent.Requests.OpenAITTS do
 
           input_text = prepare_input_text(chunk, mood)
 
-          case call_speech_api(input_text, voice, model, speaker_audio_path) do
+          case call_speech_api(input_text, voice, model, speaker_audio_path, speech_opts) do
             {:ok, wav_binary} ->
               pushed? = maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx, false)
 
@@ -309,11 +321,25 @@ defmodule KittAgent.Requests.OpenAITTS do
     :ok
   end
 
-  def prefetch_chunks_async(_, _, _), do: :ok
+  def prefetch_chunks_async(_, _, _, _), do: :ok
 
   @doc """
   Stores a pre-synthesized WAV binary into the prefetch cache (also used by unit tests).
+  Supports both indexed (`put_prefetched_chunk/5`) and unindexed (`put_prefetched_chunk/4`) keys.
   """
+  def put_prefetched_chunk(kitt_id, mood, idx, chunk, wav_binary)
+      when is_integer(idx) and idx >= 0 and is_binary(wav_binary) do
+    table = ensure_prefetch_table()
+    key = {kitt_id, normalize_mood_key(mood), idx, chunk}
+
+    :ets.insert(
+      table,
+      {key, {:done, {:ok, wav_binary, false}}, System.monotonic_time(:millisecond)}
+    )
+
+    :ok
+  end
+
   def put_prefetched_chunk(kitt_id, mood, chunk, wav_binary) when is_binary(wav_binary) do
     table = ensure_prefetch_table()
     key = {kitt_id, normalize_mood_key(mood), chunk}
@@ -329,30 +355,65 @@ defmodule KittAgent.Requests.OpenAITTS do
   @doc """
   Synthesizes (or consumes prefetched) sentence chunks in order, optionally streaming
   `talk_chunk` events over WebSocket and enqueueing per-chunk `talk_led` actions.
+  Individual chunk synthesis errors are logged and skipped so remaining sentences still play;
+  returns `{:error, ...}` only when zero chunks succeed.
   """
-  def synthesize_chunks(chunks, kitt, mood, stream_ws? \\ false, talk_led? \\ false)
+  def synthesize_chunks(
+        chunks,
+        kitt,
+        mood,
+        stream_ws? \\ false,
+        talk_led? \\ false,
+        speech_opts \\ []
+      )
 
-  def synthesize_chunks([], _kitt, _mood, _stream_ws?, _talk_led?) do
+  def synthesize_chunks([], _kitt, _mood, _stream_ws?, _talk_led?, _speech_opts) do
     {:error, "No speakable text chunks"}
   end
 
-  def synthesize_chunks(chunks, %Kitt{} = kitt, mood, stream_ws?, talk_led?) do
+  def synthesize_chunks(chunks, %Kitt{} = kitt, mood, stream_ws?, talk_led?, speech_opts) do
     table = ensure_prefetch_table()
     mood_key = normalize_mood_key(mood)
     total = length(chunks)
-    keys = Enum.map(chunks, &{kitt.id, mood_key, &1})
+
+    indexed_keys =
+      chunks
+      |> Enum.with_index()
+      |> Enum.map(fn {chunk, idx0} -> {kitt.id, mood_key, idx0, chunk} end)
+
+    legacy_keys = Enum.map(chunks, &{kitt.id, mood_key, &1})
 
     {voice, speaker_audio_path} = resolve_speaker(kitt)
     model = openai_tts_model()
 
-    result =
+    {rev_binaries, pushed_any, last_error} =
       chunks
       |> Enum.with_index(1)
-      |> Enum.reduce_while({:ok, [], false}, fn {chunk, idx}, {:ok, acc, pushed_acc} ->
-        key = {kitt.id, mood_key, chunk}
+      |> Enum.reduce({[], false, nil}, fn {chunk, idx}, {acc, pushed_acc, err_acc} ->
+        idx0 = idx - 1
+        indexed_key = {kitt.id, mood_key, idx0, chunk}
+        legacy_key = {kitt.id, mood_key, chunk}
         is_last = idx == total
+        deadline = System.monotonic_time(:millisecond) + 60_000
 
-        case await_prefetch_entry(table, key, System.monotonic_time(:millisecond) + 60_000) do
+        prefetch_hit =
+          case await_prefetch_entry(table, indexed_key, deadline) do
+            {:ok, _, _} = hit ->
+              :ets.delete(table, indexed_key)
+              hit
+
+            :miss ->
+              case await_prefetch_entry(table, legacy_key, deadline) do
+                {:ok, _, _} = hit ->
+                  :ets.delete(table, legacy_key)
+                  hit
+
+                :miss ->
+                  :miss
+              end
+          end
+
+        case prefetch_hit do
           {:ok, wav_binary, true} ->
             Logger.info(
               "TTS: Using prefetched & WS-pushed chunk [#{idx}/#{total}]: #{inspect(chunk)}"
@@ -364,14 +425,14 @@ defmodule KittAgent.Requests.OpenAITTS do
               KittAgent.SystemActions.enqueue_talk_led(kitt.id, wav_duration_sec(wav_binary))
             end
 
-            {:cont, {:ok, [wav_binary | acc], true}}
+            {[wav_binary | acc], true, err_acc}
 
           {:ok, wav_binary, false} ->
             Logger.info("TTS: Using prefetched chunk [#{idx}/#{total}]: #{inspect(chunk)}")
 
             pushed_now =
               if stream_ws? do
-                maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx - 1, is_last)
+                maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx0, is_last)
               else
                 false
               end
@@ -380,17 +441,17 @@ defmodule KittAgent.Requests.OpenAITTS do
               KittAgent.SystemActions.enqueue_talk_led(kitt.id, wav_duration_sec(wav_binary))
             end
 
-            {:cont, {:ok, [wav_binary | acc], pushed_acc or pushed_now}}
+            {[wav_binary | acc], pushed_acc or pushed_now, err_acc}
 
           :miss ->
             Logger.info("TTS: Generating chunk [#{idx}/#{total}]: #{inspect(chunk)}")
             input_text = prepare_input_text(chunk, mood)
 
-            case call_speech_api(input_text, voice, model, speaker_audio_path) do
+            case call_speech_api(input_text, voice, model, speaker_audio_path, speech_opts) do
               {:ok, wav_binary} ->
                 pushed_now =
                   if stream_ws? do
-                    maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx - 1, is_last)
+                    maybe_push_chunk_ws(wav_binary, kitt, mood, chunk, idx0, is_last)
                   else
                     false
                   end
@@ -399,19 +460,21 @@ defmodule KittAgent.Requests.OpenAITTS do
                   KittAgent.SystemActions.enqueue_talk_led(kitt.id, wav_duration_sec(wav_binary))
                 end
 
-                {:cont, {:ok, [wav_binary | acc], pushed_acc or pushed_now}}
+                {[wav_binary | acc], pushed_acc or pushed_now, err_acc}
 
               {:error, reason} ->
-                {:halt, {:error, "Chunk #{idx}/#{total} failed: #{inspect(reason)}"}}
+                err_msg = "Chunk #{idx}/#{total} failed: #{inspect(reason)}"
+                Logger.warning("TTS: #{err_msg} (continuing remaining chunks)")
+                {acc, pushed_acc, err_msg}
             end
         end
       end)
 
-    Enum.each(keys, &:ets.delete(table, &1))
+    Enum.each(indexed_keys ++ legacy_keys, &:ets.delete(table, &1))
 
-    case result do
-      {:ok, rev_binaries, pushed_any} -> {:ok, Enum.reverse(rev_binaries), pushed_any}
-      {:error, _} = err -> err
+    case rev_binaries do
+      [_ | _] -> {:ok, Enum.reverse(rev_binaries), pushed_any}
+      [] -> {:error, last_error || "All TTS chunks failed"}
     end
   end
 

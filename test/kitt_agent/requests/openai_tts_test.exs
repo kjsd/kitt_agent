@@ -45,6 +45,15 @@ defmodule KittAgent.Requests.OpenAITTSTest do
                "うーん…準備はいいですか〜？"
              ]
     end
+
+    test "strips parenthetical and bracketed stage remarks containing ！ before sentence splitting" do
+      raw = "こんにちは。（元気よく！）【急接近！】(smiling!) ただちに前進します！"
+
+      assert OpenAITTS.prepare_chunks(raw) == [
+               "こんにちは。",
+               "ただちに前進します！"
+             ]
+    end
   end
 
   describe "concat_wav_binaries/1 and wav_duration_sec/1" do
@@ -146,6 +155,87 @@ defmodule KittAgent.Requests.OpenAITTSTest do
       assert msg2["chunk_index"] == 1
       assert msg2["is_last"] == true
       assert is_binary(msg2["audio_path"])
+    end
+
+    test "delivers duplicate phrases in the same turn (e.g. ['はい！', '了解です。', 'はい！']) without ETS collision" do
+      kitt = %Kitt{id: "test-kitt-dup-#{System.unique_integer([:positive])}", lang: "Japanese"}
+      mood = "assisting"
+      chunks = ["はい！", "了解です。", "はい！"]
+      wav = build_test_wav(24_000, 0.4)
+
+      on_exit(fn ->
+        File.rm_rf(Path.dirname(KittAgent.Kitts.resource(kitt, "dummy.wav")))
+      end)
+
+      {:ok, _} = KittAgent.Talks.register_ws(kitt.id)
+
+      plug = fn conn ->
+        {:ok, _body, conn} = Plug.Conn.read_body(conn)
+
+        conn
+        |> Plug.Conn.put_resp_content_type("audio/wav")
+        |> Plug.Conn.send_resp(200, wav)
+      end
+
+      speech_opts = [base_url: "http://bridge.test/v1", req_options: [plug: plug]]
+
+      # Simulate progressive streaming prefetch: first ["はい！"], then all 3 chunks
+      :ok = OpenAITTS.prefetch_chunks_async(kitt, mood, ["はい！"], speech_opts)
+      :ok = OpenAITTS.prefetch_chunks_async(kitt, mood, chunks, speech_opts)
+
+      assert {:ok, [^wav, ^wav, ^wav], true} =
+               OpenAITTS.synthesize_chunks(chunks, kitt, mood, true, false, speech_opts)
+
+      assert_receive {:ws_push, json0}, 2_000
+      assert_receive {:ws_push, json1}, 2_000
+      assert_receive {:ws_push, json2}, 2_000
+
+      m0 = Jason.decode!(json0)
+      m1 = Jason.decode!(json1)
+      m2 = Jason.decode!(json2)
+
+      assert {m0["chunk_index"], m0["message"]} == {0, "はい！"}
+      assert {m1["chunk_index"], m1["message"]} == {1, "了解です。"}
+      assert {m2["chunk_index"], m2["message"]} == {2, "はい！"}
+    end
+
+    test "continues synthesizing remaining chunks when a single middle chunk fails" do
+      kitt = %Kitt{id: "test-kitt-partial-#{System.unique_integer([:positive])}", lang: "Japanese"}
+      mood = "happy"
+      chunks = ["1文目です。", "失敗する2文目！", "3文目です！"]
+      wav = build_test_wav(24_000, 0.4)
+
+      on_exit(fn ->
+        File.rm_rf(Path.dirname(KittAgent.Kitts.resource(kitt, "dummy.wav")))
+      end)
+
+      {:ok, _} = KittAgent.Talks.register_ws(kitt.id)
+
+      plug = fn conn ->
+        {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+        decoded = Jason.decode!(raw_body)
+
+        if String.contains?(decoded["input"], "失敗する2文目") do
+          conn
+          |> Plug.Conn.put_resp_content_type("application/json")
+          |> Plug.Conn.send_resp(502, Jason.encode!(%{"error" => "upstream failure"}))
+        else
+          conn
+          |> Plug.Conn.put_resp_content_type("audio/wav")
+          |> Plug.Conn.send_resp(200, wav)
+        end
+      end
+
+      speech_opts = [base_url: "http://bridge.test/v1", req_options: [plug: plug]]
+
+      assert {:ok, [^wav, ^wav], true} =
+               OpenAITTS.synthesize_chunks(chunks, kitt, mood, true, false, speech_opts)
+
+      assert_receive {:ws_push, json_first}, 1_000
+      assert_receive {:ws_push, json_third}, 1_000
+
+      assert Jason.decode!(json_first)["message"] == "1文目です。"
+      assert Jason.decode!(json_third)["message"] == "3文目です！"
     end
   end
 
